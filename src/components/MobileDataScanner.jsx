@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera, CheckCircle } from "lucide-react";
 import { readEncryptedTransferLink } from "../linkTransferUtils";
 import { parseTransferChunk, reconstructTransfer } from "../transferUtils";
 
@@ -14,6 +14,7 @@ export default function MobileDataScanner({
 }) {
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState("Ready to scan QR codes from desktop.");
+  const [importSummary, setImportSummary] = useState(null);
   const chunksRef = useRef([]);
   const initialUrlProcessedRef = useRef(false);
 
@@ -25,13 +26,16 @@ export default function MobileDataScanner({
       setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
       setCallNotes(reconstructed.callNotes || []);
       setReportBackSettings(reconstructed.reportBackSettings || { enabled: false, phone: "" });
+      setImportSummary({
+        contactCount: reconstructed.contacts?.length || 0,
+        templateCount: reconstructed.templates?.length || 0,
+        hasReportBack: Boolean(reconstructed.reportBackSettings?.enabled),
+      });
       setProgress("All data imported.");
       setIsScanning(false);
-      onImported?.();
       return true;
     },
     [
-      onImported,
       setCallNotes,
       setContacts,
       setExtraChannelsEnabled,
@@ -176,13 +180,32 @@ export default function MobileDataScanner({
         </p>
       </div>
 
-      <button
-        onClick={() => setIsScanning((value) => !value)}
-        style={styles.scanBtn}
-        className="hover-lift"
-      >
-        {isScanning ? "Stop scanning" : "Start scanning"}
-      </button>
+      {importSummary && (
+        <div style={styles.successBox}>
+          <CheckCircle size={24} color="var(--ta-green)" />
+          <div style={styles.successCopy}>
+            <span style={styles.successTitle}>Phonebank imported</span>
+            <p style={styles.successText}>
+              Loaded {importSummary.contactCount} contacts and{" "}
+              {importSummary.templateCount} message templates
+              {importSummary.hasReportBack ? ", with reportbacks enabled" : ""}.
+            </p>
+          </div>
+          <button type="button" onClick={onImported} style={styles.continueBtn}>
+            Start phonebanking
+          </button>
+        </div>
+      )}
+
+      {!importSummary && (
+        <button
+          onClick={() => setIsScanning((value) => !value)}
+          style={styles.scanBtn}
+          className="hover-lift"
+        >
+          {isScanning ? "Stop scanning" : "Start scanning"}
+        </button>
+      )}
 
       {isScanning && <div id="reachout-reader" style={styles.reader} />}
       <p style={styles.progress}>{progress}</p>
@@ -252,5 +275,39 @@ const styles = {
   progress: {
     fontSize: "13px",
     color: "rgba(247,244,236,0.72)",
+  },
+  successBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    border: "1px solid rgba(79, 159, 104, 0.32)",
+    borderRadius: "12px",
+    padding: "14px",
+  },
+  successCopy: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  successTitle: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-green)",
+    fontSize: "20px",
+    letterSpacing: "0.05em",
+  },
+  successText: {
+    color: "rgba(247,244,236,0.74)",
+    fontSize: "13px",
+    lineHeight: 1.4,
+  },
+  continueBtn: {
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    border: "none",
+    borderRadius: "8px",
+    padding: "10px 14px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "15px",
   },
 };
