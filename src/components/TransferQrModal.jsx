@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Link, X } from "lucide-react";
-import { createCompactTransferLinks, MAX_TRANSFER_LINK_LENGTH } from "../linkTransferUtils";
+import {
+  createCompactTransferLinks,
+  MAX_TRANSFER_LINK_LENGTH,
+} from "../linkTransferUtils";
 
 export default function TransferQrModal({
   contacts,
@@ -15,7 +18,10 @@ export default function TransferQrModal({
 }) {
   const batches = useMemo(() => {
     const callerCount = hostSessionEnabled
-      ? Math.min(Math.max(1, Number(hostSessionCallers) || 1), contacts.length || 1)
+      ? Math.min(
+          Math.max(1, Number(hostSessionCallers) || 1),
+          contacts.length || 1
+        )
       : 1;
     const batchSize = Math.ceil((contacts.length || 1) / callerCount);
 
@@ -30,11 +36,7 @@ export default function TransferQrModal({
         contacts: batchContacts,
       };
     });
-  }, [
-    contacts,
-    hostSessionCallers,
-    hostSessionEnabled,
-  ]);
+  }, [contacts, hostSessionCallers, hostSessionEnabled]);
   const [batchTransfers, setBatchTransfers] = useState([]);
   const [batchQrCodes, setBatchQrCodes] = useState([]);
   const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
@@ -103,7 +105,14 @@ export default function TransferQrModal({
     return () => {
       cancelled = true;
     };
-  }, [batches, callNotes, extraChannelsEnabled, reportBackSettings, selectedDialCode, templates]);
+  }, [
+    batches,
+    callNotes,
+    extraChannelsEnabled,
+    reportBackSettings,
+    selectedDialCode,
+    templates,
+  ]);
 
   const showPreviousBatch = () => {
     setCurrentBatchIndex((index) => Math.max(0, index - 1));
@@ -144,8 +153,8 @@ export default function TransferQrModal({
                 </p>
                 {hostSessionEnabled && batches.length > 1 && (
                   <p style={styles.hostDesc}>
-                    Hosting mode is on. Each participant scans only their own
-                    set, then you move to the next participant.
+                    Hosting mode is on. Each participant scans only their own QR
+                    code, then you move to the next participant.
                   </p>
                 )}
               </div>
@@ -153,14 +162,11 @@ export default function TransferQrModal({
 
             <ol style={styles.steps}>
               <li style={styles.step}>
-                Open REACHOUT on your phone, or scan any QR here with your
+                Open REACHOUT on your phone, or scan the QR code here with your
                 normal camera app to open the scanner automatically.
               </li>
               <li style={styles.step}>Tap Scan data in the bottom menu.</li>
-              <li style={styles.step}>
-                Point your camera at the QR code. It contains the same compact
-                transfer link shown below, so one scan is usually enough.
-              </li>
+              <li style={styles.step}>Point your camera at the QR code.</li>
             </ol>
 
             {hostSessionEnabled && batches.length > 1 && (
@@ -197,7 +203,6 @@ export default function TransferQrModal({
             )}
 
             <p style={styles.helperText}>
-              Leave this window open while scanning.
               {hostSessionEnabled && batches.length > 1
                 ? " Once one participant has imported their data, move to the next participant."
                 : ""}
@@ -205,7 +210,7 @@ export default function TransferQrModal({
 
             <div style={styles.linkPanel}>
               <div>
-                <span style={styles.linkTitle}>Experimental link transfer</span>
+                <span style={styles.linkTitle}>Share a unique link link</span>
                 <p style={styles.linkText}>
                   Copy this compacted link and open it on your phone instead of
                   scanning the QR code. Anyone with the full link can open the
@@ -231,7 +236,9 @@ export default function TransferQrModal({
                   <div style={styles.linkMeta}>
                     <span style={styles.linkName}>
                       Link {index + 1}
-                      {transferLinks.length > 1 ? ` of ${transferLinks.length}` : ""}
+                      {transferLinks.length > 1
+                        ? ` of ${transferLinks.length}`
+                        : ""}
                     </span>
                     <span style={styles.linkLength}>
                       {link.url.length} / {MAX_TRANSFER_LINK_LENGTH} characters
@@ -272,13 +279,16 @@ export default function TransferQrModal({
 
             <div style={styles.qrStatus}>
               <span style={styles.counter}>
-                QR {qrCodes.length ? currentLinkIndex + 1 : 0} of {qrCodes.length}
+                QR {qrCodes.length ? currentLinkIndex + 1 : 0} of{" "}
+                {qrCodes.length}
               </span>
               {qrCodes.length > 1 && (
                 <div style={styles.linkQrNav}>
                   <button
                     type="button"
-                    onClick={() => setCurrentLinkIndex((index) => Math.max(0, index - 1))}
+                    onClick={() =>
+                      setCurrentLinkIndex((index) => Math.max(0, index - 1))
+                    }
                     disabled={currentLinkIndex === 0}
                     style={styles.smallNavBtn}
                   >
@@ -286,7 +296,11 @@ export default function TransferQrModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCurrentLinkIndex((index) => Math.min(qrCodes.length - 1, index + 1))}
+                    onClick={() =>
+                      setCurrentLinkIndex((index) =>
+                        Math.min(qrCodes.length - 1, index + 1)
+                      )
+                    }
                     disabled={currentLinkIndex === qrCodes.length - 1}
                     style={styles.smallNavBtn}
                   >
