@@ -148,13 +148,13 @@ export default function TransferQrModal({
               <div>
                 <h3 style={styles.title}>Send from your phone</h3>
                 <p style={styles.desc}>
-                  This copies the full phonebank setup to your mobile: contacts,
-                  templates, dial code and extra channel settings.
+                  This creates a private transfer for the full phonebank setup:
+                  contacts, templates, dial code and extra channel settings.
                 </p>
                 {hostSessionEnabled && batches.length > 1 && (
                   <p style={styles.hostDesc}>
-                    Hosting mode is on. Each participant scans only their own QR
-                    code, then you move to the next participant.
+                    Hosting mode is on. Each participant should use only their
+                    own QR code or link, then you move to the next participant.
                   </p>
                 )}
               </div>
@@ -162,11 +162,17 @@ export default function TransferQrModal({
 
             <ol style={styles.steps}>
               <li style={styles.step}>
-                Open REACHOUT on your phone, or scan the QR code here with your
-                normal camera app to open the scanner automatically.
+                Choose whichever transfer method is easiest: scan the QR code or
+                share the unique link.
               </li>
-              <li style={styles.step}>Tap Scan data in the bottom menu.</li>
-              <li style={styles.step}>Point your camera at the QR code.</li>
+              <li style={styles.step}>
+                Both methods open REACHOUT on mobile and import the same
+                phonebank data.
+              </li>
+              <li style={styles.step}>
+                Anyone with the QR code or full link can open this phonebank, so
+                only share it with the people taking part.
+              </li>
             </ol>
 
             {hostSessionEnabled && batches.length > 1 && (
@@ -212,9 +218,9 @@ export default function TransferQrModal({
               <div>
                 <span style={styles.linkTitle}>Share a unique link</span>
                 <p style={styles.linkText}>
-                  Copy this compacted link and open it on your phone instead of
-                  scanning the QR code. Anyone with the full link can open the
-                  phonebank.
+                  Copy this compacted link and send it by WhatsApp, Signal,
+                  email or anything else. Opening it on mobile loads the same
+                  data as the QR code.
                 </p>
               </div>
               {linkMessage && <p style={styles.linkWarning}>{linkMessage}</p>}
@@ -263,6 +269,13 @@ export default function TransferQrModal({
           </div>
 
           <div style={styles.qrPane}>
+            <div style={styles.qrIntro}>
+              <span style={styles.qrTitle}>Scan the QR code</span>
+              <p style={styles.qrText}>
+                Use the phone's normal camera app. It will open the mobile
+                phonebank automatically.
+              </p>
+            </div>
             <div style={styles.qrFrame}>
               {qrCodes[currentLinkIndex] ? (
                 <img
@@ -356,6 +369,23 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     minWidth: 0,
+  },
+  qrIntro: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "3px",
+    marginBottom: "12px",
+  },
+  qrTitle: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-green)",
+    fontSize: "20px",
+    letterSpacing: "0.05em",
+  },
+  qrText: {
+    color: "rgba(247,244,236,0.66)",
+    fontSize: "12px",
+    lineHeight: 1.4,
   },
   header: {
     display: "flex",
@@ -501,18 +531,18 @@ const styles = {
     color: "rgba(247,244,236,0.68)",
   },
   helperText: {
-    marginTop: "auto",
+    marginTop: "4px",
     paddingTop: "14px",
     color: "rgba(247,244,236,0.58)",
     fontSize: "12px",
     lineHeight: 1.4,
   },
   linkPanel: {
-    marginTop: "14px",
-    padding: "12px",
-    border: "1px solid rgba(79, 159, 104, 0.22)",
-    borderRadius: "10px",
-    backgroundColor: "rgba(79, 159, 104, 0.07)",
+    marginTop: "8px",
+    padding: "14px",
+    border: "1px solid rgba(247,244,236,0.12)",
+    borderRadius: "12px",
+    backgroundColor: "rgba(244, 239, 228, 0.035)",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
