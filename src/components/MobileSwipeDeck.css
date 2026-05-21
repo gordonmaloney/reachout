@@ -1,0 +1,77 @@
+/* MobileSwipeDeck.css — @keyframes animations for swipe card transitions */
+
+/* Base card style */
+.swipe-card {
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+/* ── Exit animations ──────────────────────────────────────────────────── */
+
+/* Card exits to the LEFT (swiping to next) */
+@keyframes exitLeft {
+  0% {
+    transform: translateX(var(--swipe-start-x, 0)) rotate(var(--swipe-start-rot, 0deg));
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-120%) rotate(-12deg);
+    opacity: 0;
+  }
+}
+
+/* Card exits to the RIGHT (swiping to prev) */
+@keyframes exitRight {
+  0% {
+    transform: translateX(var(--swipe-start-x, 0)) rotate(var(--swipe-start-rot, 0deg));
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120%) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+/* ── Entry animations ─────────────────────────────────────────────────── */
+
+/* Card enters FROM the RIGHT (after swiping to next) */
+@keyframes enterFromRight {
+  0% {
+    transform: translateX(120%) rotate(12deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Card enters FROM the LEFT (after swiping to prev) */
+@keyframes enterFromLeft {
+  0% {
+    transform: translateX(-120%) rotate(-12deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* ── Animation classes applied by the component ───────────────────────── */
+
+.exit-left {
+  animation: exitLeft 0.3s ease-in forwards;
+}
+
+.exit-right {
+  animation: exitRight 0.3s ease-in forwards;
+}
+
+.enter-from-right {
+  animation: enterFromRight 0.3s ease-out forwards;
+}
+
+.enter-from-left {
+  animation: enterFromLeft 0.3s ease-out forwards;
+}
