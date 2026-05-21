@@ -55,8 +55,7 @@ export default function JourneyNav({
           onClick={onOpenOrganiserInfo}
           style={styles.organiserEdition}
         >
-          <span style={styles.organiserEditionKicker}>Organiser edition</span>
-          <span style={styles.organiserEditionTitle}>Campaign setup tools</span>
+          <span style={styles.organiserEditionTitle}>Organiser mode</span>
           <span style={styles.organiserEditionText}>Notes, reportbacks and session hosting enabled.</span>
         </button>
       )}
