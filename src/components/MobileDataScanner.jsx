@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { readEncryptedTransferLink } from "../linkTransferUtils";
 import { parseTransferChunk, reconstructTransfer } from "../transferUtils";
 
 export default function MobileDataScanner({
@@ -15,6 +16,30 @@ export default function MobileDataScanner({
   const [progress, setProgress] = useState("Ready to scan QR codes from desktop.");
   const chunksRef = useRef([]);
   const initialUrlProcessedRef = useRef(false);
+
+  const importTransfer = useCallback(
+    (reconstructed) => {
+      setContacts(reconstructed.contacts);
+      setTemplates(reconstructed.templates);
+      setSelectedDialCode(reconstructed.selectedDialCode);
+      setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
+      setCallNotes(reconstructed.callNotes || []);
+      setReportBackSettings(reconstructed.reportBackSettings || { enabled: false, phone: "" });
+      setProgress("All data imported.");
+      setIsScanning(false);
+      onImported?.();
+      return true;
+    },
+    [
+      onImported,
+      setCallNotes,
+      setContacts,
+      setExtraChannelsEnabled,
+      setReportBackSettings,
+      setSelectedDialCode,
+      setTemplates,
+    ]
+  );
 
   const processChunk = useCallback(
     (chunk) => {
@@ -38,25 +63,32 @@ export default function MobileDataScanner({
       const reconstructed = reconstructTransfer(chunksRef.current);
       if (!reconstructed) return false;
 
-      setContacts(reconstructed.contacts);
-      setTemplates(reconstructed.templates);
-      setSelectedDialCode(reconstructed.selectedDialCode);
-      setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
-      setCallNotes(reconstructed.callNotes || []);
-      setReportBackSettings(reconstructed.reportBackSettings || { enabled: false, phone: "" });
-      setProgress("All data imported.");
-      setIsScanning(false);
-      onImported?.();
-      return true;
+      return importTransfer(reconstructed);
+    },
+    [importTransfer]
+  );
+
+  const processDecodedText = useCallback(
+    async (decodedText) => {
+      const chunk = parseTransferChunk(decodedText);
+      if (chunk) return processChunk(chunk);
+
+      try {
+        const url = new URL(decodedText);
+        if (url.hash) {
+          const imported = await readEncryptedTransferLink(url.hash);
+          if (imported) return importTransfer(imported);
+        }
+      } catch {
+        // Fall through to the invalid QR message below.
+      }
+
+      setProgress("That QR code is not REACHOUT transfer data.");
+      return false;
     },
     [
-      onImported,
-      setContacts,
-      setExtraChannelsEnabled,
-      setCallNotes,
-      setReportBackSettings,
-      setSelectedDialCode,
-      setTemplates,
+      importTransfer,
+      processChunk,
     ]
   );
 
@@ -100,9 +132,8 @@ export default function MobileDataScanner({
       );
 
       scanner.render(
-        (decodedText) => {
-          const chunk = parseTransferChunk(decodedText);
-          const completed = processChunk(chunk);
+        async (decodedText) => {
+          const completed = await processDecodedText(decodedText);
           if (completed) scanner.clear().catch(() => {});
         },
         () => {}
@@ -117,7 +148,7 @@ export default function MobileDataScanner({
     };
   }, [
     isScanning,
-    processChunk,
+    processDecodedText,
   ]);
 
   return (
@@ -127,7 +158,7 @@ export default function MobileDataScanner({
         <div>
           <h2 style={styles.title}>Scan data</h2>
           <p style={styles.desc}>
-            Use this phone to scan the rotating QR codes shown on desktop.
+            Use this phone to scan the QR code shown on desktop.
           </p>
         </div>
       </div>
@@ -137,7 +168,7 @@ export default function MobileDataScanner({
         <p style={styles.instructionText}>
           Keep the QR window open on the desktop. Tap Start scanning below. Your
           browser may ask for camera access: choose Allow, then point the camera
-          at the desktop QR codes until the import completes.
+          at the desktop QR code until the import completes.
         </p>
         <p style={styles.instructionText}>
           If you opened this page by scanning a QR code with your normal camera

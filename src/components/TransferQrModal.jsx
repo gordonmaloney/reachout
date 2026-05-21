@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Link, X } from "lucide-react";
 import { createCompactTransferLinks, MAX_TRANSFER_LINK_LENGTH } from "../linkTransferUtils";
-import { createTransferChunks, createTransferUrl } from "../transferUtils";
 
 export default function TransferQrModal({
   contacts,
@@ -29,48 +28,49 @@ export default function TransferQrModal({
       return {
         label: hostSessionEnabled ? `Participant ${index + 1}` : "Your phone",
         contacts: batchContacts,
-        chunks: createTransferChunks({
-          contacts: batchContacts,
-          templates,
-          callNotes,
-          reportBackSettings,
-          selectedDialCode,
-          extraChannelsEnabled,
-        }),
       };
     });
   }, [
     contacts,
-    extraChannelsEnabled,
     hostSessionCallers,
     hostSessionEnabled,
-    callNotes,
-    reportBackSettings,
-    selectedDialCode,
-    templates,
   ]);
+  const [batchTransfers, setBatchTransfers] = useState([]);
   const [batchQrCodes, setBatchQrCodes] = useState([]);
   const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [transferLinks, setTransferLinks] = useState([]);
-  const [linkMessage, setLinkMessage] = useState("");
+  const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [linkStatus, setLinkStatus] = useState("");
   const [qrError, setQrError] = useState("");
   const currentBatch = batches[currentBatchIndex] || batches[0];
+  const currentTransfer = batchTransfers[currentBatchIndex] || {};
+  const transferLinks = currentTransfer.links || [];
+  const linkMessage = currentTransfer.message || "";
   const qrCodes = batchQrCodes[currentBatchIndex] || [];
 
   useEffect(() => {
     let cancelled = false;
 
-    async function generateQrCodes() {
+    async function generateTransfers() {
       try {
         const QRCode = await import("qrcode");
-        const nextCodes = await Promise.all(
+        const nextTransfers = await Promise.all(
           batches.map((batch) =>
+            createCompactTransferLinks({
+              contacts: batch.contacts || [],
+              templates,
+              callNotes,
+              reportBackSettings,
+              selectedDialCode,
+              extraChannelsEnabled,
+            })
+          )
+        );
+        const nextCodes = await Promise.all(
+          nextTransfers.map((transfer) =>
             Promise.all(
-              batch.chunks.map((chunk) =>
-                QRCode.default.toDataURL(createTransferUrl(chunk), {
-                  errorCorrectionLevel: "H",
+              (transfer.links || []).map((link) =>
+                QRCode.default.toDataURL(link.url, {
+                  errorCorrectionLevel: "M",
                   width: 760,
                   margin: 2,
                 })
@@ -80,80 +80,39 @@ export default function TransferQrModal({
         );
 
         if (!cancelled) {
+          setBatchTransfers(nextTransfers);
           setBatchQrCodes(nextCodes);
           setCurrentBatchIndex(0);
-          setCurrentIndex(0);
+          setCurrentLinkIndex(0);
+          setLinkStatus("");
           setQrError("");
         }
       } catch {
         if (!cancelled) {
+          setBatchTransfers([]);
           setBatchQrCodes([]);
           setQrError(
-            "These QR codes are too large to generate. Try the link transfer below, or shorten the message templates."
+            "This transfer is too large to fit cleanly in a QR code. Try copying the link below, or shorten the message templates."
           );
         }
       }
     }
 
-    generateQrCodes();
+    generateTransfers();
 
     return () => {
       cancelled = true;
     };
-  }, [batches]);
-
-  useEffect(() => {
-    if (qrCodes.length <= 1) return undefined;
-
-    const interval = window.setInterval(() => {
-      setCurrentIndex((index) => (index + 1) % qrCodes.length);
-    }, 1200);
-
-    return () => window.clearInterval(interval);
-  }, [qrCodes.length]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function generateLink() {
-      try {
-        const result = await createCompactTransferLinks({
-          contacts: currentBatch?.contacts || [],
-          templates,
-          callNotes,
-          reportBackSettings,
-          selectedDialCode,
-          extraChannelsEnabled,
-        });
-        if (!cancelled) {
-          setTransferLinks(result.links);
-          setLinkMessage(result.message || "");
-          setLinkStatus("");
-        }
-      } catch {
-        if (!cancelled) {
-          setTransferLinks([]);
-          setLinkMessage("");
-          setLinkStatus("Could not create a link in this browser.");
-        }
-      }
-    }
-
-    generateLink();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [callNotes, currentBatch, extraChannelsEnabled, reportBackSettings, selectedDialCode, templates]);
+  }, [batches, callNotes, extraChannelsEnabled, reportBackSettings, selectedDialCode, templates]);
 
   const showPreviousBatch = () => {
     setCurrentBatchIndex((index) => Math.max(0, index - 1));
-    setCurrentIndex(0);
+    setCurrentLinkIndex(0);
   };
 
   const showNextBatch = () => {
     setCurrentBatchIndex((index) => Math.min(batches.length - 1, index + 1));
-    setCurrentIndex(0);
+    setCurrentLinkIndex(0);
   };
 
   const copyTransferLink = async (url, index) => {
@@ -199,9 +158,8 @@ export default function TransferQrModal({
               </li>
               <li style={styles.step}>Tap Scan data in the bottom menu.</li>
               <li style={styles.step}>
-                Point your camera at this screen. The QR code will rotate
-                automatically, so keep scanning until your phone says all data
-                has imported.
+                Point your camera at the QR code. It contains the same compact
+                transfer link shown below, so one scan is usually enough.
               </li>
             </ol>
 
@@ -250,7 +208,7 @@ export default function TransferQrModal({
                 <span style={styles.linkTitle}>Experimental link transfer</span>
                 <p style={styles.linkText}>
                   Copy this compacted link and open it on your phone instead of
-                  scanning QR codes. Anyone with the full link can open the
+                  scanning the QR code. Anyone with the full link can open the
                   phonebank.
                 </p>
               </div>
@@ -299,10 +257,10 @@ export default function TransferQrModal({
 
           <div style={styles.qrPane}>
             <div style={styles.qrFrame}>
-              {qrCodes[currentIndex] ? (
+              {qrCodes[currentLinkIndex] ? (
                 <img
-                  src={qrCodes[currentIndex]}
-                  alt={`Transfer QR code ${currentIndex + 1}`}
+                  src={qrCodes[currentLinkIndex]}
+                  alt={`Transfer QR code ${currentLinkIndex + 1}`}
                   style={styles.qrImage}
                 />
               ) : (
@@ -314,8 +272,28 @@ export default function TransferQrModal({
 
             <div style={styles.qrStatus}>
               <span style={styles.counter}>
-                QR {qrCodes.length ? currentIndex + 1 : 0} of {qrCodes.length}
+                QR {qrCodes.length ? currentLinkIndex + 1 : 0} of {qrCodes.length}
               </span>
+              {qrCodes.length > 1 && (
+                <div style={styles.linkQrNav}>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentLinkIndex((index) => Math.max(0, index - 1))}
+                    disabled={currentLinkIndex === 0}
+                    style={styles.smallNavBtn}
+                  >
+                    Previous link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentLinkIndex((index) => Math.min(qrCodes.length - 1, index + 1))}
+                    disabled={currentLinkIndex === qrCodes.length - 1}
+                    style={styles.smallNavBtn}
+                  >
+                    Next link
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -465,9 +443,23 @@ const styles = {
   },
   qrStatus: {
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: "8px",
     marginTop: "16px",
+  },
+  linkQrNav: {
+    display: "flex",
+    gap: "8px",
+  },
+  smallNavBtn: {
+    background: "transparent",
+    border: "1px solid rgba(79, 159, 104, 0.35)",
+    color: "var(--ta-green)",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontSize: "12px",
   },
   navBtn: {
     display: "flex",

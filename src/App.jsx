@@ -6,6 +6,7 @@ import MessagesStage from './components/MessagesStage';
 import CallNotesStage from './components/CallNotesStage';
 import ReviewLinksStage from './components/ReviewLinksStage';
 import HelpDrawer from './components/HelpDrawer';
+import OrganiserModeModal from './components/OrganiserModeModal';
 import ProductTour from './components/ProductTour';
 import { initialContacts, initialTemplates } from './data/mockData';
 import { organiserTourSteps, productTourSteps } from './data/productTourSteps';
@@ -18,7 +19,9 @@ const defaultReportBackQuestions = [
 ];
 
 export default function App() {
-  const isOrganiser = window.location.pathname.replace(/\/+$/, '') === '/organiser';
+  const isOrganiserRoute = window.location.pathname.replace(/\/+$/, '') === '/organiser';
+  const [organiserModeEnabled, setOrganiserModeEnabled] = useState(isOrganiserRoute);
+  const isOrganiser = isOrganiserRoute || organiserModeEnabled;
   const totalStages = isOrganiser ? 4 : 3;
   const finalStage = totalStages;
   const tourSteps = isOrganiser ? organiserTourSteps : productTourSteps;
@@ -36,6 +39,7 @@ export default function App() {
   const [hostSessionEnabled, setHostSessionEnabled] = useState(false);
   const [hostSessionCallers, setHostSessionCallers] = useState(2);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [transferLoaded, setTransferLoaded] = useState(false);
@@ -54,6 +58,21 @@ export default function App() {
 
   const toggleHelp = () => {
     setIsHelpOpen(prev => !prev);
+  };
+
+  const handleOrganiserModeToggle = () => {
+    setOrganiserModeEnabled((enabled) => {
+      const nextEnabled = !enabled;
+      if (nextEnabled) {
+        setIsOrganiserInfoOpen(true);
+      } else if (activeStage > 3) {
+        setActiveStage(3);
+      }
+      if (!nextEnabled) {
+        setHostSessionEnabled(false);
+      }
+      return nextEnabled;
+    });
   };
 
   const markTourSeen = () => {
@@ -183,6 +202,10 @@ export default function App() {
             setActiveStage={setActiveStage}
             onToggleHelp={toggleHelp}
             isOrganiser={isOrganiser}
+            canToggleOrganiser={!isOrganiserRoute}
+            organiserModeEnabled={isOrganiser}
+            onToggleOrganiser={handleOrganiserModeToggle}
+            onOpenOrganiserInfo={() => setIsOrganiserInfoOpen(true)}
           />
         </aside>
 
@@ -235,6 +258,7 @@ export default function App() {
               setHostSessionEnabled={setHostSessionEnabled}
               hostSessionCallers={hostSessionCallers}
               setHostSessionCallers={setHostSessionCallers}
+              isOrganiser={isOrganiser}
               stageNumLabel={`Stage ${finalStage} of ${totalStages}`}
               backLabel={isOrganiser ? "Back to notes & reportbacks" : "Back to messages"}
               onPrev={handlePrevStage}
@@ -247,6 +271,9 @@ export default function App() {
 
       {/* Global help training guide overlay */}
       <HelpDrawer isOpen={isHelpOpen} onClose={toggleHelp} />
+      {isOrganiserInfoOpen && (
+        <OrganiserModeModal onClose={() => setIsOrganiserInfoOpen(false)} />
+      )}
       {isTourOpen && (
         <ProductTour
           currentStep={tourStep}

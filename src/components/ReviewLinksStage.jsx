@@ -15,6 +15,7 @@ export default function ReviewLinksStage({
   setHostSessionEnabled,
   hostSessionCallers,
   setHostSessionCallers,
+  isOrganiser = false,
   callNotes = [],
   reportBackSettings = { enabled: false, phone: "" },
   stageNumLabel = "Stage 3 of 3",
@@ -76,24 +77,26 @@ export default function ReviewLinksStage({
             </button>
           </div>
 
-          <div style={styles.hostInline}>
-            <div style={styles.hostInlineCopy}>
-              <Users size={16} color="var(--ta-green)" />
-              <span>Running this with a group?</span>
+          {isOrganiser && (
+            <div style={styles.hostInline}>
+              <div style={styles.hostInlineCopy}>
+                <Users size={16} color="var(--ta-green)" />
+                <span>Running this with a group?</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHostSessionEnabled(!hostSessionEnabled)}
+                style={{
+                  ...styles.hostToggle,
+                  ...(hostSessionEnabled ? styles.hostToggleActive : {}),
+                }}
+              >
+                {hostSessionEnabled ? "Splitting on" : "Split between participants"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setHostSessionEnabled(!hostSessionEnabled)}
-              style={{
-                ...styles.hostToggle,
-                ...(hostSessionEnabled ? styles.hostToggleActive : {}),
-              }}
-            >
-              {hostSessionEnabled ? "Splitting on" : "Split between participants"}
-            </button>
-          </div>
+          )}
 
-          {hostSessionEnabled && (
+          {isOrganiser && hostSessionEnabled && (
             <div style={styles.hostControls}>
               <div style={styles.hostControlsMain}>
                 <label style={styles.hostLabel} htmlFor="caller-count">
@@ -203,7 +206,7 @@ export default function ReviewLinksStage({
             extraChannelsEnabled={extraChannelsEnabled}
             callNotes={callNotes}
             reportBackSettings={reportBackSettings}
-            hostSessionEnabled={hostSessionEnabled}
+            hostSessionEnabled={isOrganiser && hostSessionEnabled}
             hostSessionCallers={hostSessionCallers}
             onClose={handleCloseQR}
           />

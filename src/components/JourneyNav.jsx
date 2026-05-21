@@ -1,6 +1,15 @@
 import { FileText } from 'lucide-react';
 
-export default function JourneyNav({ activeStage, setActiveStage, onToggleHelp, isOrganiser = false }) {
+export default function JourneyNav({
+  activeStage,
+  setActiveStage,
+  onToggleHelp,
+  isOrganiser = false,
+  canToggleOrganiser = false,
+  organiserModeEnabled = false,
+  onToggleOrganiser = () => {},
+  onOpenOrganiserInfo = () => {},
+}) {
   const steps = [
     {
       id: 1,
@@ -36,7 +45,18 @@ export default function JourneyNav({ activeStage, setActiveStage, onToggleHelp, 
 
   return (
     <nav style={styles.navContainer}>
-      <div style={styles.journeyHeader}>SET UP YOUR REACHOUT</div>
+      <div style={styles.topRow}>
+        <div style={styles.journeyHeader}>SET UP YOUR REACHOUT</div>
+        {organiserModeEnabled && (
+          <button
+            type="button"
+            onClick={onOpenOrganiserInfo}
+            style={styles.modeBadge}
+          >
+            Organiser mode
+          </button>
+        )}
+      </div>
       
       <div style={styles.stepsWrapper}>
         <div style={styles.connectingLine}></div>
@@ -81,6 +101,33 @@ export default function JourneyNav({ activeStage, setActiveStage, onToggleHelp, 
         })}
       </div>
 
+      {canToggleOrganiser && (
+        <div style={styles.organiserToggleBox}>
+          <div>
+            <span style={styles.organiserToggleTitle}>Organiser mode</span>
+            <p style={styles.organiserToggleText}>
+              Add call notes, reportbacks and hosting tools.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onToggleOrganiser}
+            style={{
+              ...styles.switchBtn,
+              ...(organiserModeEnabled ? styles.switchBtnActive : {}),
+            }}
+            aria-pressed={organiserModeEnabled}
+          >
+            <span
+              style={{
+                ...styles.switchKnob,
+                ...(organiserModeEnabled ? styles.switchKnobActive : {}),
+              }}
+            />
+          </button>
+        </div>
+      )}
+
       {/* NEED HELP */}
       <div style={styles.helpBox} className="glass-card">
         <h4 style={styles.helpTitle}>NEED HELP?</h4>
@@ -113,13 +160,31 @@ const styles = {
     height: '100%',
     paddingRight: '12px',
   },
+  topRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '10px',
+    marginBottom: '28px',
+  },
   journeyHeader: {
     fontFamily: 'var(--font-mono)',
     fontSize: '11px',
     color: 'var(--ta-green)',
     letterSpacing: '0.1em',
-    marginBottom: '28px',
     fontWeight: 'bold',
+  },
+  modeBadge: {
+    backgroundColor: 'rgba(79, 159, 104, 0.12)',
+    border: '1px solid rgba(79, 159, 104, 0.3)',
+    color: 'var(--ta-green)',
+    borderRadius: '999px',
+    padding: '4px 8px',
+    fontFamily: 'var(--font-body)',
+    fontSize: '10.5px',
+    letterSpacing: 0,
+    textTransform: 'none',
+    whiteSpace: 'nowrap',
   },
   stepsWrapper: {
     display: 'flex',
@@ -221,6 +286,57 @@ const styles = {
     padding: '20px',
     marginBottom: '24px',
     marginTop: '40px',
+  },
+  organiserToggleBox: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    backgroundColor: 'rgba(244, 239, 228, 0.03)',
+    border: '1px solid rgba(244, 239, 228, 0.09)',
+    borderRadius: '10px',
+    padding: '14px',
+    marginTop: '40px',
+    marginBottom: '-16px',
+  },
+  organiserToggleTitle: {
+    display: 'block',
+    fontFamily: 'var(--font-heading)',
+    color: 'var(--ta-green)',
+    fontSize: '16px',
+    letterSpacing: '0.05em',
+    marginBottom: '2px',
+  },
+  organiserToggleText: {
+    fontSize: '11px',
+    color: 'rgba(247, 244, 236, 0.55)',
+    lineHeight: 1.35,
+  },
+  switchBtn: {
+    width: '44px',
+    height: '24px',
+    borderRadius: '999px',
+    border: '1px solid rgba(247, 244, 236, 0.2)',
+    backgroundColor: 'rgba(247, 244, 236, 0.08)',
+    padding: '2px',
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  switchBtnActive: {
+    borderColor: 'rgba(79, 159, 104, 0.45)',
+    backgroundColor: 'rgba(79, 159, 104, 0.18)',
+  },
+  switchKnob: {
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(247, 244, 236, 0.55)',
+    transition: 'transform 0.2s ease, background-color 0.2s ease',
+  },
+  switchKnobActive: {
+    transform: 'translateX(18px)',
+    backgroundColor: 'var(--ta-green)',
   },
   helpTitle: {
     fontFamily: 'var(--font-heading)',
