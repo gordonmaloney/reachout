@@ -155,6 +155,16 @@ export default function MobileDataScanner({
     processDecodedText,
   ]);
 
+  useEffect(() => {
+    if (!importSummary) return undefined;
+
+    const timeout = window.setTimeout(() => {
+      onImported?.();
+    }, 2600);
+
+    return () => window.clearTimeout(timeout);
+  }, [importSummary, onImported]);
+
   return (
     <div style={styles.container} className="glass-card">
       <div style={styles.header}>
@@ -181,19 +191,17 @@ export default function MobileDataScanner({
       </div>
 
       {importSummary && (
-        <div style={styles.successBox}>
-          <CheckCircle size={24} color="var(--ta-green)" />
-          <div style={styles.successCopy}>
+        <div style={styles.successOverlay}>
+          <div style={styles.successModal}>
+            <CheckCircle size={34} color="var(--ta-green)" />
             <span style={styles.successTitle}>Phonebank imported</span>
             <p style={styles.successText}>
               Loaded {importSummary.contactCount} contacts and{" "}
               {importSummary.templateCount} message templates
               {importSummary.hasReportBack ? ", with reportbacks enabled" : ""}.
             </p>
+            <span style={styles.redirectText}>Opening contacts...</span>
           </div>
-          <button type="button" onClick={onImported} style={styles.continueBtn}>
-            Start phonebanking
-          </button>
         </div>
       )}
 
@@ -276,19 +284,30 @@ const styles = {
     fontSize: "13px",
     color: "rgba(247,244,236,0.72)",
   },
-  successBox: {
+  successOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1400,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px",
+  },
+  successModal: {
+    width: "min(320px, 100%)",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    alignItems: "center",
+    textAlign: "center",
+    gap: "10px",
     backgroundColor: "rgba(79, 159, 104, 0.1)",
     border: "1px solid rgba(79, 159, 104, 0.32)",
     borderRadius: "12px",
-    padding: "14px",
-  },
-  successCopy: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
+    padding: "22px",
+    color: "var(--ta-cream)",
+    boxShadow: "0 22px 70px rgba(0,0,0,0.45)",
+    backdropFilter: "blur(6px)",
   },
   successTitle: {
     fontFamily: "var(--font-heading)",
@@ -301,13 +320,9 @@ const styles = {
     fontSize: "13px",
     lineHeight: 1.4,
   },
-  continueBtn: {
-    backgroundColor: "var(--ta-green)",
-    color: "var(--ta-dark)",
-    border: "none",
-    borderRadius: "8px",
-    padding: "10px 14px",
-    fontFamily: "var(--font-heading)",
-    fontSize: "15px",
+  redirectText: {
+    color: "rgba(247,244,236,0.52)",
+    fontSize: "12px",
+    fontFamily: "var(--font-mono)",
   },
 };
