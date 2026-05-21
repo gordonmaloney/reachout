@@ -47,16 +47,19 @@ export default function JourneyNav({
     <nav style={styles.navContainer}>
       <div style={styles.topRow}>
         <div style={styles.journeyHeader}>SET UP YOUR REACHOUT</div>
-        {organiserModeEnabled && (
-          <button
-            type="button"
-            onClick={onOpenOrganiserInfo}
-            style={styles.modeBadge}
-          >
-            Organiser mode
-          </button>
-        )}
       </div>
+
+      {organiserModeEnabled && (
+        <button
+          type="button"
+          onClick={onOpenOrganiserInfo}
+          style={styles.organiserEdition}
+        >
+          <span style={styles.organiserEditionKicker}>Organiser edition</span>
+          <span style={styles.organiserEditionTitle}>Campaign setup tools</span>
+          <span style={styles.organiserEditionText}>Notes, reportbacks and session hosting enabled.</span>
+        </button>
+      )}
       
       <div style={styles.stepsWrapper}>
         <div style={styles.connectingLine}></div>
@@ -163,9 +166,7 @@ const styles = {
   topRow: {
     display: 'flex',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: '10px',
-    marginBottom: '28px',
+    marginBottom: '16px',
   },
   journeyHeader: {
     fontFamily: 'var(--font-mono)',
@@ -174,17 +175,40 @@ const styles = {
     letterSpacing: '0.1em',
     fontWeight: 'bold',
   },
-  modeBadge: {
-    backgroundColor: 'rgba(79, 159, 104, 0.12)',
-    border: '1px solid rgba(79, 159, 104, 0.3)',
+  organiserEdition: {
+    width: '100%',
+    textAlign: 'left',
+    backgroundColor: 'rgba(79, 159, 104, 0.08)',
+    border: '1px solid rgba(79, 159, 104, 0.28)',
+    borderLeft: '3px solid var(--ta-green)',
+    borderRadius: '10px',
+    padding: '11px 12px',
+    marginBottom: '26px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    boxShadow: '0 10px 28px rgba(0,0,0,0.14)',
+  },
+  organiserEditionKicker: {
+    fontFamily: 'var(--font-mono)',
     color: 'var(--ta-green)',
-    borderRadius: '999px',
-    padding: '4px 8px',
+    fontSize: '10px',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+  },
+  organiserEditionTitle: {
+    fontFamily: 'var(--font-heading)',
+    color: 'var(--ta-cream)',
+    fontSize: '18px',
+    letterSpacing: '0.05em',
+  },
+  organiserEditionText: {
+    color: 'rgba(247, 244, 236, 0.58)',
     fontFamily: 'var(--font-body)',
-    fontSize: '10.5px',
+    fontSize: '11.5px',
+    lineHeight: 1.35,
     letterSpacing: 0,
     textTransform: 'none',
-    whiteSpace: 'nowrap',
   },
   stepsWrapper: {
     display: 'flex',
