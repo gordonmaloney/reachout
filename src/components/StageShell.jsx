@@ -2,35 +2,15 @@ function BrushStroke({ variant = 0 }) {
   const brush = brushVariants[variant % brushVariants.length];
 
   return (
-    <svg
-      viewBox="0 0 180 22"
-      preserveAspectRatio="none"
+    <img
+      src={brush.src}
+      alt=""
       style={{
         ...styles.wordBrush,
         transform: brush.transform,
       }}
       aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d={brush.primary}
-        fill="none"
-        stroke="rgba(79, 159, 104, 0.78)"
-        strokeWidth={brush.strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {brush.secondary && (
-        <path
-          d={brush.secondary}
-          fill="none"
-          stroke="rgba(79, 159, 104, 0.34)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-    </svg>
+    />
   );
 }
 
@@ -141,11 +121,12 @@ const styles = {
     right: '-0.06em',
     bottom: '-0.17em',
     width: 'calc(100% + 0.14em)',
-    height: '0.32em',
+    height: '0.36em',
     zIndex: -1,
     transformOrigin: 'left center',
     opacity: 0.92,
     pointerEvents: 'none',
+    objectFit: 'fill',
   },
   subtitle: {
     fontSize: '14px',
@@ -169,27 +150,19 @@ const styles = {
 
 const brushVariants = [
   {
-    primary: 'M5 14 C24 10, 38 15, 57 11 S91 7, 112 11 S147 17, 175 10',
-    secondary: 'M19 16 C47 18, 79 12, 113 14 S150 15, 168 12',
-    strokeWidth: 8,
+    src: '/brand-assets/brush-contacts.png',
     transform: 'rotate(-1.4deg)',
   },
   {
-    primary: 'M6 12 C29 17, 45 8, 66 13 S102 18, 124 12 S151 7, 174 13',
-    secondary: 'M16 9 C40 11, 64 16, 91 13 S139 11, 164 16',
-    strokeWidth: 7,
+    src: '/brand-assets/brush-messages.png',
     transform: 'rotate(0.9deg)',
   },
   {
-    primary: 'M4 13 C20 8, 41 9, 61 14 S94 15, 116 10 S152 8, 176 15',
-    secondary: 'M13 16 C39 14, 67 17, 96 13 S140 12, 166 10',
-    strokeWidth: 8,
+    src: '/brand-assets/brush-call-notes.png',
     transform: 'rotate(-0.5deg)',
   },
   {
-    primary: 'M7 15 C31 11, 53 17, 75 12 S112 6, 133 12 S160 17, 176 11',
-    secondary: 'M22 11 C49 8, 73 14, 102 12 S143 15, 162 9',
-    strokeWidth: 7,
+    src: '/brand-assets/brush-start.png',
     transform: 'rotate(1.5deg)',
   },
 ];
