@@ -210,7 +210,7 @@ export default function TransferQrModal({
 
             <div style={styles.linkPanel}>
               <div>
-                <span style={styles.linkTitle}>Share a unique link link</span>
+                <span style={styles.linkTitle}>Share a unique link</span>
                 <p style={styles.linkText}>
                   Copy this compacted link and open it on your phone instead of
                   scanning the QR code. Anyone with the full link can open the
