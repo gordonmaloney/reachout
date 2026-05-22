@@ -3,6 +3,7 @@ import { Clipboard, FileText, ArrowRight, Check } from "lucide-react";
 import StageShell from "./StageShell";
 import ContactsPreview from "./ContactsPreview";
 import { dialCodeOptions } from "../utils";
+import { initialContacts } from "../data/mockData";
 
 export default function ContactsStage({
   contacts,
@@ -15,7 +16,11 @@ export default function ContactsStage({
   const [pasteOverlayText, setPasteOverlayText] = useState("");
   const [showClipboardSuccess, setShowClipboardSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showFormattingHelp, setShowFormattingHelp] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const hasExampleContacts = contacts.some((contact) =>
+    initialContacts.some((example) => example.id === contact.id)
+  );
 
   const parsePasteText = (text) => {
     const lines = text.split("\n");
@@ -64,12 +69,14 @@ export default function ContactsStage({
       if (parsed.length > 0) {
         setContacts([...contacts, ...parsed]);
         setErrorMsg("");
+        setShowFormattingHelp(false);
         setPasteOverlayText(`Imported ${parsed.length} contacts!`);
         setTimeout(() => setPasteOverlayText(""), 3000);
       } else {
         setErrorMsg(
           "Format unrecognized. Check formatting instructions below."
         );
+        setShowFormattingHelp(true);
         setTimeout(() => setErrorMsg(""), 4000);
       }
     }
@@ -88,12 +95,14 @@ export default function ContactsStage({
         if (parsed.length > 0) {
           setContacts([...contacts, ...parsed]);
           setErrorMsg("");
+          setShowFormattingHelp(false);
           setShowClipboardSuccess(true);
           setTimeout(() => setShowClipboardSuccess(false), 3000);
         } else {
           setErrorMsg(
             "Could not parse any contacts from clipboard. Check formatting below."
           );
+          setShowFormattingHelp(true);
           setTimeout(() => setErrorMsg(""), 4000);
         }
       } else {
@@ -209,6 +218,29 @@ export default function ContactsStage({
             </div>
           </div>
 
+          {showFormattingHelp && (
+            <div style={styles.formatGuide} className="glass-card">
+              <div style={styles.formatGuideHeader}>
+                <span style={styles.formatGuideTitle}>Formatting example</span>
+                <span style={styles.formatGuideText}>
+                  Use one contact per row, with a name and phone number in
+                  separate columns.
+                </span>
+              </div>
+              <div style={styles.mockSheet}>
+                <div style={styles.mockSheetHeader}>Name</div>
+                <div style={styles.mockSheetHeader}>Phone number</div>
+                <div style={styles.mockSheetCell}>Sandy Mills</div>
+                <div style={styles.mockSheetCell}>+44 7712 345678</div>
+                <div style={styles.mockSheetCell}>Mia Benson</div>
+                <div style={styles.mockSheetCell}>07712 345678</div>
+              </div>
+              <p style={styles.formatGuideHint}>
+                Commas, tabs, semicolons, or spreadsheet columns are all fine.
+              </p>
+            </div>
+          )}
+
           <div style={styles.dialCodePanel} className="glass-card">
             <div style={styles.dialCodeCopy}>
               <span style={styles.dialCodeTitle}>DIAL CODE</span>
@@ -235,10 +267,15 @@ export default function ContactsStage({
         <div style={styles.previewColumn}>
           <div style={styles.previewCard} className="glass-card">
             <div style={styles.previewHeader}>
-              <h3 style={styles.cardTitle}>
-                CONTACTS PREVIEW{" "}
-                <span style={styles.countBadge}>({contacts.length})</span>
-              </h3>
+              <div style={styles.previewTitleGroup}>
+                <h3 style={styles.cardTitle}>
+                  CONTACTS PREVIEW{" "}
+                  <span style={styles.countBadge}>({contacts.length})</span>
+                </h3>
+                {hasExampleContacts && (
+                  <span style={styles.examplePill}>Example contacts loaded</span>
+                )}
+              </div>
 
               <button
                 onClick={clearAllContacts}
@@ -414,6 +451,60 @@ const styles = {
     fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
     color: "var(--ta-muted)",
   },
+  formatGuide: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    backgroundColor: "var(--ta-dark-2)",
+    border: "1px solid rgba(211, 106, 88, 0.36)",
+    borderRadius: "14px",
+    padding: "14px",
+  },
+  formatGuideHeader: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  },
+  formatGuideTitle: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-red)",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+  },
+  formatGuideText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
+  },
+  mockSheet: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+    overflow: "hidden",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "8px",
+  },
+  mockSheetHeader: {
+    backgroundColor: "rgba(79, 159, 104, 0.12)",
+    borderBottom: "1px solid var(--ta-border-subtle)",
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
+    padding: "7px 8px",
+  },
+  mockSheetCell: {
+    borderTop: "1px solid var(--ta-border-subtle)",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    padding: "7px 8px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  formatGuideHint: {
+    color: "var(--ta-muted)",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
   previewColumn: {
     display: "flex",
     flexDirection: "column",
@@ -435,11 +526,18 @@ const styles = {
   previewHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: "12px",
     borderBottom: "1px solid var(--ta-border-subtle)",
     paddingBottom: "14px",
     marginBottom: "14px",
     flexShrink: 0,
+  },
+  previewTitleGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    minWidth: 0,
   },
   cardTitle: {
     fontFamily: "var(--font-heading)",
@@ -450,6 +548,18 @@ const styles = {
   countBadge: {
     color: "var(--ta-green)",
     fontFamily: "var(--font-mono)",
+  },
+  examplePill: {
+    alignSelf: "flex-start",
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "999px",
+    padding: "3px 8px",
+    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
+    fontFamily: "var(--font-body)",
+    letterSpacing: 0,
+    textTransform: "none",
   },
   clearBtn: {
     backgroundColor: "transparent",
@@ -542,12 +652,13 @@ const styles = {
   errorFloatingAlert: {
     position: "absolute",
     bottom: "16px",
-    backgroundColor: "rgba(255, 77, 77, 0.15)",
+    backgroundColor: "var(--ta-dark-2)",
     border: "1px solid var(--ta-red)",
     color: "var(--ta-red)",
     borderRadius: "8px",
     padding: "6px 16px",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    boxShadow: "var(--modal-card-shadow)",
     zIndex: 20,
     pointerEvents: "none",
   },

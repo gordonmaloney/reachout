@@ -534,8 +534,8 @@ const styles = {
     width: '28px',
     height: '28px',
     objectFit: 'contain',
-    filter: 'grayscale(1) contrast(1.05)',
-    opacity: 0.76,
+    filter: 'none',
+    opacity: 0.9,
     flexShrink: 0,
   },
   imprintText: {

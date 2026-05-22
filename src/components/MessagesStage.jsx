@@ -36,6 +36,10 @@ export default function MessagesStage({
   const deleteTemplate = (id) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   };
+  const starterTemplateIds = new Set(initialTemplates.map((template) => template.id));
+  const hasStarterTemplates = templates.some((template) =>
+    starterTemplateIds.has(template.id)
+  );
 
   return (
     <StageShell
@@ -54,12 +58,22 @@ export default function MessagesStage({
           <code style={styles.code}>_italics_</code> for WhatsApp messages.
         </div>
 
+        {hasStarterTemplates && (
+          <div style={styles.exampleNotice}>
+            Example templates are included to get you started. Edit or delete
+            them before sending.
+          </div>
+        )}
+
         {/* Templates List */}
         <div style={styles.templatesGrid}>
           {templates.map((t) => (
             <div key={t.id} style={styles.card} className="glass-card">
               <div style={styles.cardHeader}>
                 <label style={styles.titleField}>
+                  {starterTemplateIds.has(t.id) && (
+                    <span style={styles.examplePill}>Example template</span>
+                  )}
                   <input
                     type="text"
                     value={t.title}
@@ -160,6 +174,16 @@ const styles = {
     lineHeight: "1.5",
     padding: "10px 12px",
   },
+  exampleNotice: {
+    marginTop: "-10px",
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "10px",
+    padding: "9px 12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
+  },
   card: {
     display: "flex",
     flexDirection: "column",
@@ -177,7 +201,20 @@ const styles = {
     flex: 1,
     display: "flex",
     flexDirection: "column",
+    gap: "5px",
     minWidth: 0,
+  },
+  examplePill: {
+    alignSelf: "flex-start",
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "999px",
+    padding: "3px 8px",
+    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
+    fontFamily: "var(--font-body)",
+    letterSpacing: 0,
+    textTransform: "none",
   },
   titleInput: {
     width: "100%",
