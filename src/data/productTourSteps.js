@@ -20,6 +20,15 @@ export const productTourSteps = [
     body:
       "The recommended path is to send the phonebank to your mobile with QR codes. You can also split a session between participants or use desktop links instead.",
   },
+  {
+    stage: 3,
+    highlightTarget: "organiser-toggle",
+    eyebrow: "Optional organiser tools",
+    title: "Need a fuller phonebank?",
+    body:
+      "Use Organiser mode near the bottom of the sidebar when you need more structure. It adds an extra setup stage and extra tools for coordinated sessions.",
+    highlights: ["Call notes", "Reportbacks", "Session hosting"],
+  },
 ];
 
 export const organiserTourSteps = [

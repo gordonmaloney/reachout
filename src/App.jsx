@@ -302,6 +302,14 @@ export default function App() {
             canIncreaseFontScale={fontScale < FONT_SCALE_MAX}
             onDecreaseFontScale={() => updateFontScale(-1)}
             onIncreaseFontScale={() => updateFontScale(1)}
+            tourHighlightStage={
+              isTourOpen && !tourSteps[tourStep]?.highlightTarget
+                ? tourSteps[tourStep]?.stage
+                : null
+            }
+            tourHighlightTarget={
+              isTourOpen ? tourSteps[tourStep]?.highlightTarget : null
+            }
           />
         </aside>
 
@@ -380,6 +388,11 @@ export default function App() {
         <ProductTour
           currentStep={tourStep}
           steps={tourSteps}
+          spotlightSelector={
+            tourSteps[tourStep]?.highlightTarget
+              ? `[data-tour-target="${tourSteps[tourStep].highlightTarget}"]`
+              : `[data-tour-target="stage-${tourSteps[tourStep]?.stage}"]`
+          }
           onNext={handleTourNext}
           onPrev={handleTourPrev}
           onClose={closeProductTour}

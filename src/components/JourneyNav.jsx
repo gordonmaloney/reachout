@@ -16,6 +16,8 @@ export default function JourneyNav({
   canIncreaseFontScale = true,
   onDecreaseFontScale = () => {},
   onIncreaseFontScale = () => {},
+  tourHighlightStage = null,
+  tourHighlightTarget = null,
 }) {
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
   const fontScalePercent = Math.round(fontScale * 100);
@@ -75,22 +77,25 @@ export default function JourneyNav({
         {steps.map((step) => {
           const isActive = activeStage === step.id;
           const isPast = activeStage > step.id;
+          const isTourHighlighted = tourHighlightStage === step.id;
           
           return (
             <button
               key={step.id}
               type="button"
+              data-tour-target={`stage-${step.id}`}
               onClick={() => setActiveStage(step.id)}
               aria-current={isActive ? 'step' : undefined}
               style={{
                 ...styles.stepRow,
                 ...(isActive ? styles.stepRowActive : {}),
+                ...(isTourHighlighted ? styles.tourSpotlight : {}),
               }}
             >
               <div style={{
                 ...styles.circle,
                 ...(isActive ? styles.circleActive : {}),
-                ...(isPast ? styles.circlePast : {})
+                ...(isPast ? styles.circlePast : {}),
               }}>
                 {step.id}
               </div>
@@ -99,12 +104,12 @@ export default function JourneyNav({
                 <span style={{
                   ...styles.stepTitle,
                   ...(isActive ? styles.stepTitleActive : {}),
-                  ...(isPast ? styles.stepTitlePast : {})
+                  ...(isPast ? styles.stepTitlePast : {}),
                 }}>{step.title}</span>
                 <span style={{
                   ...styles.stepSub,
                   ...(isActive ? styles.stepSubActive : {}),
-                  ...(isPast ? styles.stepSubPast : {})
+                  ...(isPast ? styles.stepSubPast : {}),
                 }}>{step.sub}</span>
               </div>
             </button>
@@ -113,7 +118,15 @@ export default function JourneyNav({
       </div>
 
       {canToggleOrganiser && (
-        <div style={styles.organiserToggleBox}>
+        <div
+          data-tour-target="organiser-toggle"
+          style={{
+            ...styles.organiserToggleBox,
+            ...(tourHighlightTarget === 'organiser-toggle'
+              ? styles.tourSpotlight
+              : {}),
+          }}
+        >
           <div>
             <span style={styles.organiserToggleTitle}>Organiser mode</span>
             <p style={styles.organiserToggleText}>
@@ -297,6 +310,10 @@ const styles = {
   },
   stepRowActive: {
     cursor: 'default',
+  },
+  tourSpotlight: {
+    position: 'relative',
+    zIndex: 1201,
   },
   circle: {
     width: '40px',

@@ -1,18 +1,101 @@
+import { useEffect, useState } from "react";
 import { ArrowRight, Check, X } from "lucide-react";
 import { productTourSteps } from "../data/productTourSteps";
 
 export default function ProductTour({
   currentStep,
   steps = productTourSteps,
+  spotlightSelector,
   onNext,
   onPrev,
   onClose,
 }) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
+  const [spotlightRect, setSpotlightRect] = useState(null);
+
+  useEffect(() => {
+    let frame = 0;
+
+    if (!spotlightSelector) {
+      frame = window.requestAnimationFrame(() => setSpotlightRect(null));
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const updateSpotlight = () => {
+      const element = document.querySelector(spotlightSelector);
+      if (!element) {
+        setSpotlightRect(null);
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const inset = 8;
+      setSpotlightRect({
+        top: Math.max(0, rect.top - inset),
+        left: Math.max(0, rect.left - inset),
+        right: Math.min(window.innerWidth, rect.right + inset),
+        bottom: Math.min(window.innerHeight, rect.bottom + inset),
+      });
+    };
+
+    frame = window.requestAnimationFrame(updateSpotlight);
+    window.addEventListener("resize", updateSpotlight);
+    window.addEventListener("scroll", updateSpotlight, true);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", updateSpotlight);
+      window.removeEventListener("scroll", updateSpotlight, true);
+    };
+  }, [spotlightSelector, currentStep]);
+
+  const overlayPieces = spotlightRect
+    ? [
+        { top: 0, left: 0, right: 0, height: spotlightRect.top },
+        {
+          top: spotlightRect.bottom,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        },
+        {
+          top: spotlightRect.top,
+          left: 0,
+          width: spotlightRect.left,
+          height: spotlightRect.bottom - spotlightRect.top,
+        },
+        {
+          top: spotlightRect.top,
+          left: spotlightRect.right,
+          right: 0,
+          height: spotlightRect.bottom - spotlightRect.top,
+        },
+      ]
+    : [{ inset: 0 }];
 
   return (
-    <div style={styles.overlay}>
+    <>
+      {overlayPieces.map((piece, index) => (
+        <div
+          key={`${piece.top || 0}-${piece.left || 0}-${index}`}
+          style={{
+            ...styles.overlayPiece,
+            ...piece,
+          }}
+        />
+      ))}
+      {spotlightRect && (
+        <div
+          style={{
+            ...styles.spotlightClickBlocker,
+            top: spotlightRect.top,
+            left: spotlightRect.left,
+            width: spotlightRect.right - spotlightRect.left,
+            height: spotlightRect.bottom - spotlightRect.top,
+          }}
+        />
+      )}
       <div style={styles.card}>
         <button
           type="button"
@@ -26,11 +109,20 @@ export default function ProductTour({
         <span style={styles.eyebrow}>{step.eyebrow}</span>
         <h3 style={styles.title}>{step.title}</h3>
         <p style={styles.body}>{step.body}</p>
+        {step.highlights?.length > 0 && (
+          <div style={styles.highlights}>
+            {step.highlights.map((highlight) => (
+              <span key={highlight} style={styles.highlightPill}>
+                {highlight}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div style={styles.progressRow}>
           {steps.map((item, index) => (
             <span
-              key={item.stage}
+              key={`${item.stage}-${index}`}
               style={{
                 ...styles.progressDot,
                 ...(index === currentStep ? styles.progressDotActive : {}),
@@ -64,26 +156,32 @@ export default function ProductTour({
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 const styles = {
-  overlay: {
+  overlayPiece: {
     position: "fixed",
-    inset: 0,
     zIndex: 1100,
     backgroundColor: "var(--tour-overlay)",
-    display: "flex",
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    padding: "24px",
     pointerEvents: "auto",
     backdropFilter: "blur(1px)",
   },
+  spotlightClickBlocker: {
+    position: "fixed",
+    zIndex: 1101,
+    backgroundColor: "transparent",
+    pointerEvents: "auto",
+  },
   card: {
-    position: "relative",
-    width: "min(420px, 100%)",
+    position: "fixed",
+    right: "24px",
+    bottom: "24px",
+    zIndex: 1102,
+    width: "min(420px, calc(100vw - 48px))",
+    display: "flex",
+    flexDirection: "column",
     backgroundColor: "var(--tour-card-bg)",
     border: "1px solid rgba(79, 159, 104, 0.32)",
     borderRadius: "14px",
@@ -125,6 +223,22 @@ const styles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
     paddingRight: "18px",
+  },
+  highlights: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "7px",
+    marginTop: "12px",
+  },
+  highlightPill: {
+    border: "1px solid rgba(79, 159, 104, 0.32)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    color: "var(--ta-green)",
+    borderRadius: "999px",
+    padding: "4px 9px",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    fontFamily: "var(--font-body)",
+    fontWeight: 700,
   },
   progressRow: {
     display: "flex",
