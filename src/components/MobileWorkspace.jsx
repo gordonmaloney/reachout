@@ -5,6 +5,7 @@ import MobileSwipeDeck from "./MobileSwipeDeck";
 import MobileTemplateEditor from "./MobileTemplateEditor";
 import MobileDataScanner from "./MobileDataScanner";
 import { FileText, QrCode, Smartphone } from "lucide-react";
+import { initialContacts, initialTemplates } from "../data/mockData";
 
 export default function MobileWorkspace({
   contacts,
@@ -27,15 +28,37 @@ export default function MobileWorkspace({
   const [view, setView] = useState(initialView); // 'deck', 'templates', or 'scan'
   const [currentIdx, setCurrentIdx] = useState(0);
   const [contactReports, setContactReports] = useState({});
+  const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const deckCount = contacts.length + (reportBackSettings.enabled ? 1 : 0);
+  const isExampleData =
+    contacts.length === initialContacts.length &&
+    templates.length === initialTemplates.length &&
+    contacts.every(
+      (contact, index) =>
+        contact.name === initialContacts[index]?.name &&
+        contact.phone === initialContacts[index]?.phone
+    ) &&
+    templates.every(
+      (template, index) =>
+        template.title === initialTemplates[index]?.title &&
+        template.body === initialTemplates[index]?.body
+    );
+  const showExampleToast = isMobile && isExampleData && !exampleToastDismissed;
 
   // Simple responsive check (optional)
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    if (!showExampleToast) return undefined;
+
+    const timeout = window.setTimeout(() => setExampleToastDismissed(true), 4200);
+    return () => window.clearTimeout(timeout);
+  }, [showExampleToast]);
 
   if (!isMobile) {
     // Fallback – render nothing; parent App handles desktop layout.
@@ -111,6 +134,17 @@ export default function MobileWorkspace({
           />
         )}
       </main>
+
+      {showExampleToast && (
+        <div style={styles.exampleToast} role="status" aria-live="polite">
+          <span style={styles.exampleToastTitle}>Example data</span>
+          <span style={styles.exampleToastText}>
+            These contacts and templates are here to demo the phonebank. Scan
+            data or open a transfer link to load your real setup.
+          </span>
+          <span className="example-data-toast-progress" aria-hidden="true" />
+        </div>
+      )}
 
       {/* Bottom navbar */}
       <nav style={styles.navBar} className="glass-card">
@@ -216,6 +250,36 @@ const styles = {
     justifyContent: "space-around",
     padding: "4px",
     borderTop: "1px solid var(--ta-border-subtle)",
+  },
+  exampleToast: {
+    position: "fixed",
+    left: "50%",
+    top: "50%",
+    width: "min(340px, calc(100vw - 24px))",
+    transform: "translate(-50%, -50%)",
+    zIndex: 2000,
+    backgroundColor: "var(--modal-card-bg)",
+    border: "1.5px solid rgba(79, 159, 104, 0.58)",
+    borderRadius: "12px",
+    color: "var(--ta-muted-strong)",
+    boxShadow: "var(--modal-card-shadow)",
+    padding: "13px 14px 15px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "3px",
+    overflow: "hidden",
+  },
+  exampleToastTitle: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-green)",
+    fontSize: "calc(17px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+    lineHeight: 1,
+  },
+  exampleToastText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
   },
   navBtn: {
     background: "transparent",

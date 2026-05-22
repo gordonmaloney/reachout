@@ -473,6 +473,27 @@ select:focus-visible {
   border-radius: 999px;
 }
 
+.example-data-toast-progress {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--ta-green);
+  transform-origin: left center;
+  animation: example-toast-progress 4.2s linear forwards;
+}
+
+@keyframes example-toast-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @media (max-width: 1024px) {
   .main-content {
     flex-direction: column;
