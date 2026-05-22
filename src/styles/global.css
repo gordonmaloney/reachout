@@ -8,7 +8,7 @@
   --ta-green-dark: #377349;
   --ta-cream: #f4efe4;
   --ta-white: #ffffff;
-  
+
   --ta-gray: #a1aa9c;
   --ta-gray-dark: #283129;
   --ta-red: #d36a58;
@@ -17,21 +17,22 @@
   --ta-border-subtle: rgba(244, 239, 228, 0.1);
   --ta-border-medium: rgba(244, 239, 228, 0.28);
   --ta-divider: rgba(247, 244, 236, 0.25);
-  --tour-overlay: rgba(0, 0, 0, 0.72);
+  --tour-overlay: rgba(0, 0, 0, 0.6);
   --tour-card-bg: rgba(12, 20, 15, 0.97);
-  --tour-card-shadow: 0 24px 80px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(247, 244, 236, 0.06);
+  --tour-card-shadow: 0 24px 80px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(247, 244, 236, 0.06);
   --modal-overlay: rgba(0, 0, 0, 0.64);
   --modal-card-bg: var(--ta-dark-2);
   --modal-card-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
   --surface-subtle: rgba(244, 239, 228, 0.045);
   --surface-raised: rgba(16, 24, 23, 0.6);
-  
+
   --border-glow: 0 4px 10px rgba(0, 0, 0, 0.28);
   --green-glow: 0 0 0 1px rgba(79, 159, 104, 0.2);
-  
-  --font-heading: 'Bebas Neue', sans-serif;
-  --font-body: 'Roboto', sans-serif;
-  --font-mono: 'Space Mono', monospace;
+
+  --font-heading: "Bebas Neue", sans-serif;
+  --font-body: "Roboto", sans-serif;
+  --font-mono: "Space Mono", monospace;
 }
 
 * {
@@ -51,14 +52,20 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   letter-spacing: 0.055em;
   font-weight: 400;
   text-transform: uppercase;
 }
 
-button, .btn {
+button,
+.btn {
   font-family: var(--font-heading);
   font-weight: 400;
   letter-spacing: 0.055em;
@@ -68,14 +75,19 @@ button, .btn {
   border: none;
 }
 
-button:focus-visible, input:focus-visible, textarea:focus-visible {
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--ta-green);
   outline-offset: 2px;
 }
 
 /* Background Dotted Texture overlay */
 .bg-texture {
-  background-image: radial-gradient(rgba(79, 159, 104, 0.04) 1px, transparent 1px);
+  background-image: radial-gradient(
+    rgba(79, 159, 104, 0.04) 1px,
+    transparent 1px
+  );
   background-size: 24px 24px;
 }
 
@@ -94,8 +106,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(120deg, rgba(20, 25, 19, 0.9) 0%, rgba(25, 31, 24, 0.28) 58%, rgba(79, 159, 104, 0.018) 100%),
+  background-image: linear-gradient(
+      120deg,
+      rgba(20, 25, 19, 0.9) 0%,
+      rgba(25, 31, 24, 0.28) 58%,
+      rgba(79, 159, 104, 0.018) 100%
+    ),
     radial-gradient(rgba(79, 159, 104, 0.09) 0.7px, transparent 0.8px);
   background-size: 100% 100%, 24px 24px;
   background-position: 0 0, 0 0;
@@ -192,7 +208,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   --ta-divider: rgba(21, 29, 23, 0.2);
   --tour-overlay: rgba(21, 29, 23, 0.46);
   --tour-card-bg: rgba(249, 250, 248, 0.98);
-  --tour-card-shadow: 0 24px 80px rgba(27, 38, 31, 0.24), 0 0 0 1px rgba(21, 29, 23, 0.08);
+  --tour-card-shadow: 0 24px 80px rgba(27, 38, 31, 0.24),
+    0 0 0 1px rgba(21, 29, 23, 0.08);
   --modal-overlay: rgba(21, 29, 23, 0.38);
   --modal-card-bg: rgba(249, 250, 248, 0.98);
   --modal-card-shadow: 0 22px 70px rgba(27, 38, 31, 0.22);
@@ -203,28 +220,37 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 
 :where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card,
-:where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card-mobile {
+:where(.app-container, .mobile-workspace)[data-theme="light"]
+  .glass-card-mobile {
   background: rgba(255, 255, 255, 0.58);
   border-color: rgba(21, 29, 23, 0.12);
 }
 
-:where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card:hover {
+:where(.app-container, .mobile-workspace)[data-theme="light"]
+  .glass-card:hover {
   border-color: rgba(21, 29, 23, 0.2);
 }
 
-:where(.app-container, .mobile-workspace)[data-theme="light"] .stage-shell::before {
-  background-image:
-    linear-gradient(120deg, rgba(249, 250, 248, 0.9) 0%, rgba(232, 238, 233, 0.42) 62%, rgba(54, 124, 77, 0.03) 100%),
+:where(.app-container, .mobile-workspace)[data-theme="light"]
+  .stage-shell::before {
+  background-image: linear-gradient(
+      120deg,
+      rgba(249, 250, 248, 0.9) 0%,
+      rgba(232, 238, 233, 0.42) 62%,
+      rgba(54, 124, 77, 0.03) 100%
+    ),
     radial-gradient(rgba(54, 124, 77, 0.14) 0.7px, transparent 0.8px);
   opacity: 0.7;
 }
 
-:where(.app-container, .mobile-workspace)[data-theme="light"] .message-link-card {
+:where(.app-container, .mobile-workspace)[data-theme="light"]
+  .message-link-card {
   background-color: rgba(255, 255, 255, 0.52);
   border-color: rgba(21, 29, 23, 0.12);
 }
 
-:where(.app-container, .mobile-workspace)[data-theme="light"] .message-link-preview {
+:where(.app-container, .mobile-workspace)[data-theme="light"]
+  .message-link-preview {
   color: rgba(54, 124, 77, 0.78);
 }
 
@@ -237,8 +263,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .mobile-card-scroll {
   scrollbar-color: rgba(79, 159, 104, 0.72) rgba(244, 239, 228, 0.1);
   scrollbar-width: thin;
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 30px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 30px),
+    transparent 100%
+  );
 }
 
 .mobile-card-scroll::-webkit-scrollbar {

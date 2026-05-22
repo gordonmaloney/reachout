@@ -79,7 +79,7 @@ const styles = {
     alignItems: "flex-end",
     padding: "24px",
     pointerEvents: "auto",
-    backdropFilter: "blur(1.5px)",
+    backdropFilter: "blur(1px)",
   },
   card: {
     position: "relative",
