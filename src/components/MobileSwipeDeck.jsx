@@ -34,6 +34,7 @@ export default function MobileSwipeDeck({
   const startXRef = useRef(null);
   const startYRef = useRef(null);
   const startInScrollableCardRef = useRef(false);
+  const gestureAxisRef = useRef(null);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [blockMessage, setBlockMessage] = useState("");
@@ -63,13 +64,36 @@ export default function MobileSwipeDeck({
     startXRef.current = touch.clientX;
     startYRef.current = touch.clientY;
     startInScrollableCardRef.current = Boolean(e.target.closest?.(".mobile-card-scroll"));
+    gestureAxisRef.current = null;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e) => {
     if (!isDragging) return;
     const touch = e.touches ? e.touches[0] : e;
-    setDragX(touch.clientX - startXRef.current);
+    const dx = touch.clientX - startXRef.current;
+    const dy = touch.clientY - startYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const AXIS_LOCK_THRESHOLD = 10;
+    const HORIZONTAL_DOMINANCE = 1.35;
+
+    if (!gestureAxisRef.current && (absDx > AXIS_LOCK_THRESHOLD || absDy > AXIS_LOCK_THRESHOLD)) {
+      if (absDy > absDx * 1.1) {
+        gestureAxisRef.current = "vertical";
+      } else if (absDx > absDy * HORIZONTAL_DOMINANCE) {
+        gestureAxisRef.current = "horizontal";
+      }
+    }
+
+    if (gestureAxisRef.current === "vertical") {
+      setDragX(0);
+      return;
+    }
+
+    if (gestureAxisRef.current === "horizontal") {
+      setDragX(dx);
+    }
   };
 
   const handleTouchEnd = (e) => {
@@ -78,15 +102,23 @@ export default function MobileSwipeDeck({
     const dx = touch.clientX - startXRef.current;
     const dy = touch.clientY - startYRef.current;
 
-    const THRESHOLD = 50;
+    const THRESHOLD = 56;
+    const HORIZONTAL_DOMINANCE = 1.35;
 
     if (Math.abs(dx) >= THRESHOLD || Math.abs(dy) >= THRESHOLD) {
       // Pick dominant axis
-      if (Math.abs(dx) >= Math.abs(dy)) {
+      if (
+        gestureAxisRef.current === "horizontal" &&
+        Math.abs(dx) > Math.abs(dy) * HORIZONTAL_DOMINANCE
+      ) {
         // Horizontal: swipe left = next, swipe right = prev
         if (dx < -THRESHOLD) triggerSwipe(1, dx);
         else if (dx > THRESHOLD) triggerSwipe(-1, dx);
-      } else if (!startInScrollableCardRef.current) {
+      } else if (
+        !startInScrollableCardRef.current &&
+        gestureAxisRef.current !== "horizontal" &&
+        Math.abs(dy) > Math.abs(dx) * 1.2
+      ) {
         // Vertical: swipe up = next, swipe down = prev
         if (dy < -THRESHOLD) triggerSwipe(1, dx);
         else if (dy > THRESHOLD) triggerSwipe(-1, dx);
@@ -99,6 +131,7 @@ export default function MobileSwipeDeck({
     startXRef.current = null;
     startYRef.current = null;
     startInScrollableCardRef.current = false;
+    gestureAxisRef.current = null;
   };
 
   // ── Trigger a swipe (dir: 1=next, -1=prev) ────────────────────────────
