@@ -485,7 +485,28 @@ select:focus-visible {
   animation: example-toast-progress 4.2s linear forwards;
 }
 
+.scan-success-progress {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--ta-green);
+  transform-origin: left center;
+  animation: scan-success-progress 2.6s linear forwards;
+}
+
 @keyframes example-toast-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes scan-success-progress {
   from {
     transform: scaleX(0);
   }

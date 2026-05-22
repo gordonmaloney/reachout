@@ -25,7 +25,9 @@ export default function MobileDataScanner({
       setSelectedDialCode(reconstructed.selectedDialCode);
       setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
       setCallNotes(reconstructed.callNotes || []);
-      setReportBackSettings(reconstructed.reportBackSettings || { enabled: false, phone: "" });
+      setReportBackSettings(
+        reconstructed.reportBackSettings || { enabled: false, phone: "" }
+      );
       setImportSummary({
         contactCount: reconstructed.contacts?.length || 0,
         templateCount: reconstructed.templates?.length || 0,
@@ -90,10 +92,7 @@ export default function MobileDataScanner({
       setProgress("That QR code is not REACHOUT transfer data.");
       return false;
     },
-    [
-      importTransfer,
-      processChunk,
-    ]
+    [importTransfer, processChunk]
   );
 
   useEffect(() => {
@@ -122,38 +121,72 @@ export default function MobileDataScanner({
     let active = true;
 
     async function startScanner() {
-      const { Html5QrcodeScanner } = await import("html5-qrcode");
+      const { Html5Qrcode } = await import("html5-qrcode");
       if (!active) return;
 
-      scanner = new Html5QrcodeScanner(
-        "reachout-reader",
-        {
-          fps: 12,
-          qrbox: { width: 240, height: 240 },
-          rememberLastUsedCamera: true,
-        },
-        false
-      );
+      scanner = new Html5Qrcode("reachout-reader", false);
 
-      scanner.render(
-        async (decodedText) => {
-          const completed = await processDecodedText(decodedText);
-          if (completed) scanner.clear().catch(() => {});
-        },
-        () => {}
-      );
+      const config = {
+        fps: 12,
+        qrbox: { width: 240, height: 240 },
+      };
+
+      const onScanSuccess = async (decodedText) => {
+        const completed = await processDecodedText(decodedText);
+        if (completed) {
+          scanner?.stop().then(() => scanner?.clear()).catch(() => {});
+        }
+      };
+
+      const onScanFailure = () => {};
+
+      try {
+        await scanner.start(
+          { facingMode: { ideal: "environment" } },
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+      } catch {
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          const backCamera =
+            cameras.find((camera) =>
+              /back|rear|environment/i.test(camera.label || "")
+            ) || cameras[cameras.length - 1];
+
+          if (!backCamera) {
+            setProgress("No camera found on this device.");
+            setIsScanning(false);
+            return;
+          }
+
+          await scanner.start(
+            { deviceId: { exact: backCamera.id } },
+            config,
+            onScanSuccess,
+            onScanFailure
+          );
+        } catch {
+          setProgress(
+            "Could not start the camera. Check camera permission and try again."
+          );
+          setIsScanning(false);
+        }
+      }
     }
 
     startScanner();
 
     return () => {
       active = false;
-      scanner?.clear().catch(() => {});
+      if (scanner?.isScanning) {
+        scanner.stop().then(() => scanner.clear()).catch(() => {});
+      } else {
+        scanner?.clear().catch(() => {});
+      }
     };
-  }, [
-    isScanning,
-    processDecodedText,
-  ]);
+  }, [isScanning, processDecodedText]);
 
   useEffect(() => {
     if (!importSummary) return undefined;
@@ -181,8 +214,8 @@ export default function MobileDataScanner({
         <span style={styles.instructionTitle}>How to scan</span>
         <p style={styles.instructionText}>
           Keep the QR window open on the desktop. Tap Start scanning below. Your
-          browser may ask for camera access: choose Allow, then point the camera
-          at the desktop QR code until the import completes.
+          browser may ask for camera access: choose Allow, then point the back
+          camera at the desktop QR code until the import completes.
         </p>
         <p style={styles.instructionText}>
           If you opened this page by scanning a QR code with your normal camera
@@ -201,6 +234,7 @@ export default function MobileDataScanner({
               {importSummary.hasReportBack ? ", with reportbacks enabled" : ""}.
             </p>
             <span style={styles.redirectText}>Opening contacts...</span>
+            <span className="scan-success-progress" aria-hidden="true" />
           </div>
         </div>
       )}
@@ -279,6 +313,8 @@ const styles = {
     width: "100%",
     overflow: "hidden",
     borderRadius: "10px",
+    border: "1px solid var(--ta-border-subtle)",
+    backgroundColor: "var(--ta-dark-2)",
   },
   progress: {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
@@ -302,12 +338,14 @@ const styles = {
     textAlign: "center",
     gap: "10px",
     backgroundColor: "var(--modal-card-bg)",
-    border: "1px solid rgba(79, 159, 104, 0.32)",
+    border: "1px solid rgba(79, 159, 104, 0.42)",
     borderRadius: "12px",
-    padding: "22px",
+    padding: "22px 22px 25px",
     color: "var(--ta-cream)",
     boxShadow: "var(--modal-card-shadow)",
     backdropFilter: "blur(6px)",
+    position: "relative",
+    overflow: "hidden",
   },
   successTitle: {
     fontFamily: "var(--font-heading)",
