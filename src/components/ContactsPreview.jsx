@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Trash2, Edit2, Check, X } from 'lucide-react';
 import { normalizePhoneNumber } from '../utils';
 
-const organisingTags = ['Spoke before', 'Needs follow-up', 'Branch meeting', 'Rent issue'];
-
 export default function ContactsPreview({ contacts, setContacts, selectedDialCode }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -57,7 +55,7 @@ export default function ContactsPreview({ contacts, setContacts, selectedDialCod
             <p style={styles.emptySubText}>Use the paste dropzone on the left to add names and numbers.</p>
           </div>
         ) : (
-          contacts.map((contact, index) => {
+          contacts.map((contact) => {
             const isEditing = editingId === contact.id;
             
             return (
@@ -88,9 +86,6 @@ export default function ContactsPreview({ contacts, setContacts, selectedDialCod
                     <div style={styles.staticValues}>
                       <div style={styles.nameGroup}>
                         <span style={styles.contactName}>{contact.name}</span>
-                        <span style={styles.contextTag}>
-                          {organisingTags[index % organisingTags.length]}
-                        </span>
                       </div>
                       <span style={styles.contactPhone}>{normalizePhoneNumber(contact.phone, selectedDialCode)}</span>
                     </div>
@@ -154,13 +149,13 @@ const styles = {
   tableHeader: {
     display: 'flex',
     padding: '0 12px 10px 12px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    borderBottom: '1px solid var(--ta-border-subtle)',
     marginBottom: '8px',
   },
   headerLabel: {
     fontFamily: 'var(--font-mono)',
-    fontSize: '11px',
-    color: 'rgba(247, 244, 236, 0.4)',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
     letterSpacing: '0.05em',
     width: '45%',
   },
@@ -175,8 +170,8 @@ const styles = {
   contactRow: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-cream) 3%, transparent)',
+    border: '1px solid var(--ta-border-subtle)',
     borderRadius: '12px',
     padding: '10px 16px',
     gap: '16px',
@@ -193,7 +188,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     fontFamily: 'var(--font-mono)',
-    fontSize: '12px',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     fontWeight: 'bold',
     flexShrink: 0,
   },
@@ -215,26 +210,16 @@ const styles = {
     minWidth: 0,
   },
   contactName: {
-    fontSize: '14px',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-cream)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     fontWeight: '500',
   },
-  contextTag: {
-    flexShrink: 0,
-    border: '1px solid rgba(79, 159, 104, 0.24)',
-    backgroundColor: 'rgba(79, 159, 104, 0.08)',
-    color: 'rgba(244, 239, 228, 0.62)',
-    borderRadius: '999px',
-    padding: '2px 7px',
-    fontSize: '10.5px',
-    lineHeight: 1,
-  },
   contactPhone: {
-    fontSize: '13.5px',
-    color: 'rgba(247, 244, 236, 0.75)',
+    fontSize: "calc(13.5px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted-strong)',
     fontFamily: 'var(--font-mono)',
     width: '50%',
     whiteSpace: 'nowrap',
@@ -247,12 +232,12 @@ const styles = {
     width: '100%',
   },
   editInput: {
-    backgroundColor: 'rgba(16, 24, 23, 0.8)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-dark-2) 82%, transparent)',
     border: '1px solid var(--ta-green)',
     color: 'var(--ta-cream)',
     padding: '4px 10px',
     borderRadius: '6px',
-    fontSize: '13px',
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     fontFamily: 'var(--font-body)',
     width: '50%',
     outline: 'none',
@@ -266,7 +251,7 @@ const styles = {
   actionBtn: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: 'rgba(247, 244, 236, 0.4)',
+    color: 'var(--ta-muted)',
     cursor: 'pointer',
     padding: '6px',
     borderRadius: '6px',
@@ -277,7 +262,7 @@ const styles = {
   actionBtnDelete: {
     backgroundColor: 'transparent',
     border: 'none',
-    color: 'rgba(247, 244, 236, 0.4)',
+    color: 'var(--ta-muted)',
     cursor: 'pointer',
     padding: '6px',
     borderRadius: '6px',
@@ -317,12 +302,12 @@ const styles = {
   },
   emptyText: {
     fontFamily: 'var(--font-heading)',
-    fontSize: '20px',
-    color: 'rgba(247, 244, 236, 0.4)',
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
   },
   emptySubText: {
-    fontSize: '12px',
-    color: 'rgba(247, 244, 236, 0.25)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
     maxWidth: '280px',
   }
 };

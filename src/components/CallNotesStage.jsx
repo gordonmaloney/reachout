@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, Lightbulb, Plus, X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ArrowLeft, ArrowRight, ClipboardList, Lightbulb, Plus, X } from "lucide-react";
 import StageShell from "./StageShell";
 
 const defaultReportQuestions = [
@@ -9,15 +10,34 @@ const defaultReportQuestions = [
 export default function CallNotesStage({
   callNotes,
   setCallNotes,
-  reportBackSettings = { enabled: false, phone: "", questions: defaultReportQuestions },
+  reportBackSettings = { enabled: false, phone: "", mandatory: false, questions: defaultReportQuestions },
   setReportBackSettings = () => {},
+  reportbackPhoneFocusToken = 0,
   stageNumLabel = "Stage 3 of 4",
   onPrev,
   onNext,
 }) {
+  const phoneInputRef = useRef(null);
   const reportQuestions = reportBackSettings.questions?.length
     ? reportBackSettings.questions
     : defaultReportQuestions;
+
+  useEffect(() => {
+    if (!reportbackPhoneFocusToken || !reportBackSettings.enabled) return undefined;
+
+    const input = phoneInputRef.current;
+    if (!input) return undefined;
+
+    input.focus({ preventScroll: true });
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+    input.classList.add("reportback-number-attention");
+
+    const timeout = window.setTimeout(() => {
+      input.classList.remove("reportback-number-attention");
+    }, 2200);
+
+    return () => window.clearTimeout(timeout);
+  }, [reportbackPhoneFocusToken, reportBackSettings.enabled]);
 
   const addNote = () => {
     setCallNotes((notes) => [
@@ -77,63 +97,84 @@ export default function CallNotesStage({
       allowOverflow
     >
       <div className="glass-card" style={styles.container}>
-        <div style={styles.helper}>
-          <Lightbulb size={18} color="var(--ta-green)" />
-          <span>
-            Use these for campaign-specific reminders, like asking about an AGM,
-            confirming membership details, or mentioning a local issue.
-          </span>
-        </div>
-
-        <div style={styles.notesList}>
-          {callNotes.map((note, index) => (
-            <div key={note.id} style={styles.noteRow}>
-              <span style={styles.noteNumber}>{index + 1}</span>
-              <input
-                value={note.text}
-                onChange={(event) => updateNote(note.id, event.target.value)}
-                placeholder="e.g. Remind them about the AGM on the 18th"
-                style={styles.noteInput}
-              />
-              <button
-                type="button"
-                onClick={() => deleteNote(note.id)}
-                style={styles.deleteBtn}
-                title="Remove note"
-              >
-                <X size={16} />
-              </button>
+        <section style={styles.settingPanel}>
+          <div style={styles.settingHeader}>
+            <div style={styles.settingTitleRow}>
+              <span style={styles.settingIcon}>
+                <Lightbulb size={17} />
+              </span>
+              <div>
+                <h3 style={styles.settingTitle}>Call notes</h3>
+              </div>
             </div>
-          ))}
-        </div>
+            <p style={styles.settingText}>
+              Add short reminders that appear on every contact card while people
+              are phonebanking. Useful for campaign context, asks, or local issues.
+            </p>
+          </div>
 
-        <button type="button" onClick={addNote} style={styles.addBtn}>
-          <Plus size={16} />
-          Add note
-        </button>
+          <div style={styles.notesList}>
+            {callNotes.map((note, index) => (
+              <div key={note.id} style={styles.noteRow}>
+                <span style={styles.noteNumber}>{index + 1}</span>
+                <input
+                  value={note.text}
+                  onChange={(event) => updateNote(note.id, event.target.value)}
+                  placeholder="e.g. Remind them about the AGM on the 18th"
+                  style={styles.noteInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => deleteNote(note.id)}
+                  style={styles.deleteBtn}
+                  title="Remove note"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
 
-        <div style={styles.previewBox}>
-          <span style={styles.previewTitle}>How this appears to phonebankers</span>
-          {callNotes.filter((note) => note.text.trim()).length > 0 ? (
-            <ul style={styles.previewList}>
-              {callNotes
-                .filter((note) => note.text.trim())
-                .map((note) => (
-                  <li key={note.id}>{note.text}</li>
-                ))}
-            </ul>
-          ) : (
-            <p style={styles.emptyPreview}>No call notes yet.</p>
-          )}
-        </div>
+          <button type="button" onClick={addNote} style={styles.addBtn}>
+            <Plus size={16} />
+            Add call note
+          </button>
 
-        <div style={styles.reportBox}>
+          <div style={styles.previewBox}>
+            <span style={styles.previewTitle}>How this appears to phonebankers</span>
+            {callNotes.filter((note) => note.text.trim()).length > 0 ? (
+              <ul style={styles.previewList}>
+                {callNotes
+                  .filter((note) => note.text.trim())
+                  .map((note) => (
+                    <li key={note.id}>{note.text}</li>
+                  ))}
+              </ul>
+            ) : (
+              <p style={styles.emptyPreview}>No call notes yet. Phonebankers will just see the contact details and message buttons.</p>
+            )}
+          </div>
+        </section>
+
+        <section
+          style={{
+            ...styles.settingPanel,
+            ...(reportBackSettings.enabled ? styles.settingPanelActive : {}),
+          }}
+        >
           <div style={styles.reportHeader}>
             <div>
-              <span style={styles.previewTitle}>Report back</span>
-              <p style={styles.reportText}>
-                Ask phonebankers to answer your questions after each contact,
-                then send you a summary at the end.
+              <div style={styles.settingTitleRow}>
+                <span style={styles.settingIcon}>
+                  <ClipboardList size={17} />
+                </span>
+                <div>
+                  <h3 style={styles.settingTitle}>Reportbacks</h3>
+                </div>
+              </div>
+              <p style={styles.settingText}>
+                Turn this on if phonebankers should record what happened after
+                each contact and send you a summary at the end.
               </p>
             </div>
             <button
@@ -152,14 +193,39 @@ export default function CallNotesStage({
 
           {reportBackSettings.enabled && (
             <>
+              <p style={styles.reportText}>
+                Add the number that should receive reports, then choose the
+                questions people should answer after each contact.
+              </p>
+
               <label style={styles.reportLabel}>
                 Your phone number
                 <input
+                  ref={phoneInputRef}
+                  className="reportback-number-input"
                   value={reportBackSettings.phone}
                   onChange={(event) => updateReportBack({ phone: event.target.value })}
                   placeholder="e.g. +44 7712 345678"
                   style={styles.noteInput}
                 />
+              </label>
+
+              <label style={styles.mandatoryRow}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(reportBackSettings.mandatory)}
+                  onChange={(event) =>
+                    updateReportBack({ mandatory: event.target.checked })
+                  }
+                  style={styles.checkbox}
+                />
+                <span>
+                  <strong style={styles.mandatoryTitle}>Make reportback mandatory</strong>
+                  <span style={styles.mandatoryText}>
+                    Phonebankers cannot move to the next contact until these
+                    questions are answered.
+                  </span>
+                </span>
               </label>
 
               <div style={styles.questionsList}>
@@ -202,7 +268,7 @@ export default function CallNotesStage({
               </button>
             </>
           )}
-        </div>
+        </section>
 
         <div style={styles.footerRow}>
           <button onClick={onPrev} style={styles.backBtn} className="hover-lift">
@@ -223,21 +289,60 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "18px",
+    gap: "16px",
     height: "auto",
     minHeight: "100%",
   },
-  helper: {
+  settingPanel: {
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "14px",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  settingPanelActive: {
+    border: "1px solid rgba(79, 159, 104, 0.24)",
+    backgroundColor: "rgba(79, 159, 104, 0.055)",
+  },
+  settingHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "16px",
+    alignItems: "flex-start",
+  },
+  settingTitleRow: {
     display: "flex",
     gap: "10px",
-    alignItems: "flex-start",
-    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    alignItems: "center",
+    minWidth: 0,
+  },
+  settingIcon: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "50%",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
     border: "1px solid rgba(79, 159, 104, 0.24)",
-    borderRadius: "10px",
-    padding: "12px",
-    color: "rgba(247, 241, 232, 0.74)",
-    fontSize: "13px",
+    color: "var(--ta-green)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  settingTitle: {
+    color: "var(--ta-cream)",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+    lineHeight: 1,
+    margin: 0,
+  },
+  settingText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
+    margin: 0,
+    maxWidth: "680px",
   },
   notesList: {
     display: "flex",
@@ -262,16 +367,16 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontFamily: "var(--font-heading)",
-    fontSize: "15px",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
   },
   noteInput: {
-    backgroundColor: "rgba(255,255,255,0.035)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "8px",
     color: "var(--ta-cream)",
     padding: "10px 12px",
     fontFamily: "var(--font-body)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
   },
   deleteBtn: {
     width: "36px",
@@ -294,18 +399,12 @@ const styles = {
     color: "var(--ta-green)",
     borderRadius: "8px",
     padding: "9px 14px",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
   },
   previewBox: {
-    border: "1px solid rgba(255,255,255,0.1)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "10px",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: "14px",
-  },
-  reportBox: {
-    border: "1px solid rgba(79, 159, 104, 0.24)",
-    borderRadius: "10px",
-    backgroundColor: "rgba(79, 159, 104, 0.06)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
     padding: "14px",
   },
   reportHeader: {
@@ -315,8 +414,8 @@ const styles = {
     alignItems: "flex-start",
   },
   reportText: {
-    color: "rgba(247, 241, 232, 0.66)",
-    fontSize: "13px",
+    color: "var(--ta-muted)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
     margin: 0,
   },
@@ -324,9 +423,37 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "7px",
-    color: "rgba(247, 241, 232, 0.72)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     marginTop: "12px",
+  },
+  mandatoryRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+    border: "1px solid rgba(79, 159, 104, 0.22)",
+    borderRadius: "10px",
+    backgroundColor: "rgba(79, 159, 104, 0.06)",
+    padding: "11px",
+    marginTop: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  checkbox: {
+    marginTop: "2px",
+    accentColor: "var(--ta-green)",
+    flexShrink: 0,
+  },
+  mandatoryTitle: {
+    display: "block",
+    color: "var(--ta-cream)",
+    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
+    marginBottom: "2px",
+  },
+  mandatoryText: {
+    display: "block",
+    color: "var(--ta-muted)",
+    lineHeight: 1.35,
   },
   questionsList: {
     display: "flex",
@@ -342,21 +469,21 @@ const styles = {
     alignItems: "center",
   },
   questionType: {
-    backgroundColor: "rgba(255,255,255,0.035)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "8px",
     color: "var(--ta-cream)",
     padding: "10px 8px",
     fontFamily: "var(--font-body)",
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
   toggleBtn: {
-    border: "1px solid rgba(247, 241, 232, 0.24)",
+    border: "1px solid var(--ta-border-medium)",
     backgroundColor: "transparent",
     color: "var(--ta-cream)",
     borderRadius: "8px",
     padding: "8px 12px",
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     flexShrink: 0,
   },
   toggleBtnActive: {
@@ -369,24 +496,24 @@ const styles = {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
     letterSpacing: "0.05em",
-    fontSize: "16px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     marginBottom: "6px",
   },
   previewList: {
     paddingLeft: "20px",
-    color: "rgba(247, 241, 232, 0.76)",
-    fontSize: "13px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
   },
   emptyPreview: {
-    color: "rgba(247, 241, 232, 0.45)",
-    fontSize: "13px",
+    color: "var(--ta-muted)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
   footerRow: {
     display: "flex",
     justifyContent: "space-between",
     gap: "16px",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
+    borderTop: "1px solid var(--ta-border-subtle)",
     paddingTop: "16px",
     marginTop: "auto",
   },
@@ -395,11 +522,11 @@ const styles = {
     alignItems: "center",
     gap: "8px",
     backgroundColor: "transparent",
-    border: "1px solid rgba(247,241,232,0.25)",
+    border: "1px solid var(--ta-border-medium)",
     color: "var(--ta-cream)",
     borderRadius: "10px",
     padding: "10px 20px",
-    fontSize: "15px",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
   },
   continueBtn: {
     display: "flex",
@@ -409,7 +536,7 @@ const styles = {
     color: "var(--ta-dark)",
     borderRadius: "10px",
     padding: "10px 24px",
-    fontSize: "16px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     boxShadow: "var(--border-glow)",
   },
 };

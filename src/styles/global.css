@@ -12,6 +12,19 @@
   --ta-gray: #a1aa9c;
   --ta-gray-dark: #283129;
   --ta-red: #d36a58;
+  --ta-muted: rgba(244, 239, 228, 0.66);
+  --ta-muted-strong: rgba(244, 239, 228, 0.78);
+  --ta-border-subtle: rgba(244, 239, 228, 0.1);
+  --ta-border-medium: rgba(244, 239, 228, 0.28);
+  --ta-divider: rgba(247, 244, 236, 0.25);
+  --tour-overlay: rgba(0, 0, 0, 0.72);
+  --tour-card-bg: rgba(12, 20, 15, 0.97);
+  --tour-card-shadow: 0 24px 80px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(247, 244, 236, 0.06);
+  --modal-overlay: rgba(0, 0, 0, 0.64);
+  --modal-card-bg: var(--ta-dark-2);
+  --modal-card-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+  --surface-subtle: rgba(244, 239, 228, 0.045);
+  --surface-raised: rgba(16, 24, 23, 0.6);
   
   --border-glow: 0 4px 10px rgba(0, 0, 0, 0.28);
   --green-glow: 0 0 0 1px rgba(79, 159, 104, 0.2);
@@ -149,6 +162,101 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   height: 100dvh;
   background-color: var(--ta-dark-2);
   overflow: hidden;
+}
+
+.app-container :where(p, label, input, textarea, select, li),
+.mobile-workspace :where(p, label, input, textarea, select, li) {
+  font-size: calc(1em * var(--reachout-text-scale, 1));
+}
+
+.app-container :where(button, a),
+.mobile-workspace :where(button, a) {
+  font-size: calc(1em * var(--reachout-text-scale, 1));
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] {
+  --ta-dark: #eef2ef;
+  --ta-dark-2: #e3e8e4;
+  --ta-ink: #f9faf8;
+  --ta-cream: #151d17;
+  --ta-white: #0f1712;
+  --ta-gray: #5d6960;
+  --ta-gray-dark: #d2d9d3;
+  --ta-green: #367c4d;
+  --ta-green-dark: #2b633e;
+  --ta-red: #a24b43;
+  --ta-muted: rgba(21, 29, 23, 0.62);
+  --ta-muted-strong: rgba(21, 29, 23, 0.76);
+  --ta-border-subtle: rgba(21, 29, 23, 0.11);
+  --ta-border-medium: rgba(21, 29, 23, 0.22);
+  --ta-divider: rgba(21, 29, 23, 0.2);
+  --tour-overlay: rgba(21, 29, 23, 0.46);
+  --tour-card-bg: rgba(249, 250, 248, 0.98);
+  --tour-card-shadow: 0 24px 80px rgba(27, 38, 31, 0.24), 0 0 0 1px rgba(21, 29, 23, 0.08);
+  --modal-overlay: rgba(21, 29, 23, 0.38);
+  --modal-card-bg: rgba(249, 250, 248, 0.98);
+  --modal-card-shadow: 0 22px 70px rgba(27, 38, 31, 0.22);
+  --surface-subtle: rgba(255, 255, 255, 0.52);
+  --surface-raised: rgba(255, 255, 255, 0.72);
+  --border-glow: 0 4px 12px rgba(27, 38, 31, 0.12);
+  --green-glow: 0 0 0 1px rgba(54, 124, 77, 0.2);
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card,
+:where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card-mobile {
+  background: rgba(255, 255, 255, 0.58);
+  border-color: rgba(21, 29, 23, 0.12);
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card:hover {
+  border-color: rgba(21, 29, 23, 0.2);
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] .stage-shell::before {
+  background-image:
+    linear-gradient(120deg, rgba(249, 250, 248, 0.9) 0%, rgba(232, 238, 233, 0.42) 62%, rgba(54, 124, 77, 0.03) 100%),
+    radial-gradient(rgba(54, 124, 77, 0.14) 0.7px, transparent 0.8px);
+  opacity: 0.7;
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] .message-link-card {
+  background-color: rgba(255, 255, 255, 0.52);
+  border-color: rgba(21, 29, 23, 0.12);
+}
+
+:where(.app-container, .mobile-workspace)[data-theme="light"] .message-link-preview {
+  color: rgba(54, 124, 77, 0.78);
+}
+
+.reportback-number-input.reportback-number-attention {
+  border-color: var(--ta-green) !important;
+  background-color: rgba(79, 159, 104, 0.12) !important;
+  box-shadow: 0 0 0 4px rgba(79, 159, 104, 0.18);
+}
+
+.mobile-card-scroll {
+  scrollbar-color: rgba(79, 159, 104, 0.72) rgba(244, 239, 228, 0.1);
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent 100%);
+}
+
+.mobile-card-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mobile-card-scroll::-webkit-scrollbar-track {
+  background: rgba(244, 239, 228, 0.08);
+  border-radius: 999px;
+}
+
+.mobile-card-scroll::-webkit-scrollbar-thumb {
+  background: rgba(79, 159, 104, 0.72);
+  border-radius: 999px;
+}
+
+.mobile-card-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ta-green);
 }
 
 .main-content {

@@ -1,6 +1,6 @@
-import { CheckCircle, Users, X } from "lucide-react";
+import { Phone, X } from "lucide-react";
 
-export default function OrganiserModeModal({ onClose }) {
+export default function ReportbackNumberModal({ onClose }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(event) => event.stopPropagation()}>
@@ -8,22 +8,16 @@ export default function OrganiserModeModal({ onClose }) {
           <X size={18} />
         </button>
         <div style={styles.iconWrap}>
-          <Users size={22} />
+          <Phone size={22} />
         </div>
-        <span style={styles.eyebrow}>Organiser mode</span>
-        <h3 style={styles.title}>Set up a fuller phonebank</h3>
+        <span style={styles.eyebrow}>Reportbacks enabled</span>
+        <h3 style={styles.title}>Add your number first</h3>
         <p style={styles.text}>
-          Organiser mode adds an extra setup stage for call notes and reportback
-          questions. It also unlocks hosting tools so you can split contacts
-          between participants.
+          Phonebankers need somewhere to send their reportbacks. Add your phone
+          number here, or turn reportbacks off before leaving this stage.
         </p>
-        <div style={styles.list}>
-          <span style={styles.item}><CheckCircle size={15} /> Add prompts for callers</span>
-          <span style={styles.item}><CheckCircle size={15} /> Collect reportbacks from each contact</span>
-          <span style={styles.item}><CheckCircle size={15} /> Split a session between participants</span>
-        </div>
         <button type="button" onClick={onClose} style={styles.primaryBtn}>
-          Got it
+          Back to setup
         </button>
       </div>
     </div>
@@ -42,7 +36,7 @@ const styles = {
     padding: "24px",
   },
   modal: {
-    width: "min(430px, 100%)",
+    width: "min(390px, 100%)",
     position: "relative",
     backgroundColor: "var(--modal-card-bg)",
     border: "1px solid rgba(79, 159, 104, 0.28)",
@@ -58,7 +52,7 @@ const styles = {
     width: "30px",
     height: "30px",
     borderRadius: "8px",
-    border: "1px solid var(--ta-border-subtle)",
+    border: "1px solid var(--ta-border-medium)",
     backgroundColor: "transparent",
     color: "var(--ta-cream)",
     display: "flex",
@@ -94,19 +88,7 @@ const styles = {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
-  },
-  list: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    margin: "16px 0",
-  },
-  item: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    color: "var(--ta-muted-strong)",
-    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    marginBottom: "16px",
   },
   primaryBtn: {
     width: "100%",

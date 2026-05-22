@@ -70,8 +70,8 @@ export default function StageShell({
 const styles = {
   shell: {
     padding: '36px',
-    backgroundColor: 'rgba(22, 27, 23, 0.72)',
-    border: '1px solid rgba(244, 239, 228, 0.09)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-dark) 72%, transparent)',
+    border: '1px solid var(--ta-border-subtle)',
     borderRadius: '18px',
     height: '100%',
     minHeight: 0,
@@ -91,21 +91,21 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    borderBottom: '1px solid rgba(247, 244, 236, 0.08)',
+    borderBottom: '1px solid var(--ta-border-subtle)',
     paddingBottom: '20px',
     position: 'relative',
     zIndex: 1,
   },
   stageNum: {
     fontFamily: 'var(--font-mono)',
-    fontSize: '11px',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-green)',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
   },
   title: {
     fontFamily: 'var(--font-heading)',
-    fontSize: '40px',
+    fontSize: "calc(40px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-cream)',
     letterSpacing: '0.025em',
     lineHeight: 0.95,
@@ -129,8 +129,8 @@ const styles = {
     objectFit: 'fill',
   },
   subtitle: {
-    fontSize: '14px',
-    color: 'rgba(247, 244, 236, 0.7)',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted-strong)',
     fontWeight: '300',
   },
   content: {

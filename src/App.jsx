@@ -7,12 +7,18 @@ import CallNotesStage from './components/CallNotesStage';
 import ReviewLinksStage from './components/ReviewLinksStage';
 import HelpDrawer from './components/HelpDrawer';
 import OrganiserModeModal from './components/OrganiserModeModal';
+import ReportbackNumberModal from './components/ReportbackNumberModal';
 import ProductTour from './components/ProductTour';
 import { initialContacts, initialTemplates } from './data/mockData';
 import { organiserTourSteps, productTourSteps } from './data/productTourSteps';
 import { hasTransferLink, readEncryptedTransferLink } from './linkTransferUtils';
 import MobileWorkspace from './components/MobileWorkspace';
 const TOUR_STORAGE_KEY = 'reachout.productTourSeen';
+const THEME_STORAGE_KEY = 'reachout.theme';
+const FONT_SCALE_STORAGE_KEY = 'reachout.fontScale';
+const FONT_SCALE_MIN = 0.95;
+const FONT_SCALE_MAX = 1.16;
+const FONT_SCALE_STEP = 0.07;
 const defaultReportBackQuestions = [
   { id: 'pickedUp', label: 'Did they pick up?', type: 'yes_no' },
   { id: 'notes', label: 'Notes', type: 'text' },
@@ -32,6 +38,7 @@ export default function App() {
   const [reportBackSettings, setReportBackSettings] = useState({
     enabled: false,
     phone: '',
+    mandatory: false,
     questions: defaultReportBackQuestions,
   });
   const [selectedDialCode, setSelectedDialCode] = useState('+44');
@@ -40,24 +47,96 @@ export default function App() {
   const [hostSessionCallers, setHostSessionCallers] = useState(2);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
+  const [isReportbackNumberModalOpen, setIsReportbackNumberModalOpen] = useState(false);
+  const [reportbackPhoneFocusToken, setReportbackPhoneFocusToken] = useState(0);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [transferLoaded, setTransferLoaded] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return window.localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+  const [fontScale, setFontScale] = useState(() => {
+    try {
+      const storedScale = Number(window.localStorage.getItem(FONT_SCALE_STORAGE_KEY));
+      if (Number.isFinite(storedScale)) {
+        return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, storedScale));
+      }
+    } catch {
+      // Fall back to default sizing if storage is unavailable.
+    }
+    return 1;
+  });
+
+  const verifyCanLeaveStage = (targetStage) => {
+    const leavingReportbackStage =
+      isOrganiser &&
+      activeStage === 3 &&
+      targetStage !== 3 &&
+      reportBackSettings.enabled &&
+      !reportBackSettings.phone.trim();
+
+    if (!leavingReportbackStage) return true;
+
+    setIsReportbackNumberModalOpen(true);
+    return false;
+  };
+
+  const goToStage = (targetStage) => {
+    if (targetStage === activeStage) return;
+    if (!verifyCanLeaveStage(targetStage)) return;
+    setActiveStage(targetStage);
+  };
 
   const handleNextStage = () => {
-    if (activeStage < totalStages) {
-      setActiveStage(activeStage + 1);
-    }
+    if (activeStage < totalStages) goToStage(activeStage + 1);
   };
 
   const handlePrevStage = () => {
-    if (activeStage > 1) {
-      setActiveStage(activeStage - 1);
-    }
+    if (activeStage > 1) goToStage(activeStage - 1);
   };
 
   const toggleHelp = () => {
     setIsHelpOpen(prev => !prev);
+  };
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => {
+      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      } catch {
+        // Theme still changes for this render if storage is unavailable.
+      }
+      return nextTheme;
+    });
+  };
+
+  const updateFontScale = (direction) => {
+    setFontScale((currentScale) => {
+      const nextScale = Number(
+        Math.min(
+          FONT_SCALE_MAX,
+          Math.max(FONT_SCALE_MIN, currentScale + direction * FONT_SCALE_STEP)
+        ).toFixed(2)
+      );
+
+      try {
+        window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(nextScale));
+      } catch {
+        // Font scale still changes for this render if storage is unavailable.
+      }
+
+      return nextScale;
+    });
+  };
+
+  const closeReportbackNumberModal = () => {
+    setIsReportbackNumberModalOpen(false);
+    setReportbackPhoneFocusToken((token) => token + 1);
   };
 
   const handleOrganiserModeToggle = () => {
@@ -89,7 +168,7 @@ export default function App() {
 
   const openProductTour = () => {
     setTourStep(0);
-    setActiveStage(getTourStage(0));
+    goToStage(getTourStage(0));
     setIsTourOpen(true);
   };
 
@@ -99,13 +178,16 @@ export default function App() {
   };
 
   const finishProductTour = () => {
+    if (!verifyCanLeaveStage(1)) return;
     closeProductTour();
     setActiveStage(1);
   };
 
   const goToTourStep = (nextStep) => {
+    const targetStage = getTourStage(nextStep);
+    if (!verifyCanLeaveStage(targetStage)) return;
     setTourStep(nextStep);
-    setActiveStage(getTourStage(nextStep));
+    setActiveStage(targetStage);
   };
 
   const handleTourNext = () => {
@@ -145,6 +227,7 @@ export default function App() {
         setReportBackSettings({
           enabled: false,
           phone: '',
+          mandatory: false,
           questions: defaultReportBackQuestions,
           ...(imported.reportBackSettings || {}),
         });
@@ -185,12 +268,18 @@ export default function App() {
       new URLSearchParams(window.location.search).get('scan') === '1' ||
       new URLSearchParams(window.location.search).has('data');
 
-    return <MobileWorkspace contacts={contacts} setContacts={setContacts} templates={templates} setTemplates={setTemplates} callNotes={callNotes} setCallNotes={setCallNotes} reportBackSettings={reportBackSettings} setReportBackSettings={setReportBackSettings} selectedDialCode={selectedDialCode} setSelectedDialCode={setSelectedDialCode} extraChannelsEnabled={extraChannelsEnabled} setExtraChannelsEnabled={setExtraChannelsEnabled} initialView={shouldOpenScanner ? 'scan' : 'deck'} />;
+    return <MobileWorkspace contacts={contacts} setContacts={setContacts} templates={templates} setTemplates={setTemplates} callNotes={callNotes} setCallNotes={setCallNotes} reportBackSettings={reportBackSettings} setReportBackSettings={setReportBackSettings} selectedDialCode={selectedDialCode} setSelectedDialCode={setSelectedDialCode} extraChannelsEnabled={extraChannelsEnabled} setExtraChannelsEnabled={setExtraChannelsEnabled} initialView={shouldOpenScanner ? 'scan' : 'deck'} theme={theme} onToggleTheme={toggleTheme} fontScale={fontScale} />;
   }
   return (
-    <div className="app-container">
+    <div
+      className="app-container"
+      data-theme={theme}
+      style={{ "--reachout-text-scale": fontScale }}
+    >
       {/* Top Brand Header */}
-      <Header onStartTour={openProductTour} />
+      <Header
+        onStartTour={openProductTour}
+      />
 
       {/* Main Layout Grid */}
       <main className="main-content">
@@ -199,13 +288,20 @@ export default function App() {
         <aside className="sidebar-panel">
           <JourneyNav 
             activeStage={activeStage} 
-            setActiveStage={setActiveStage}
+            setActiveStage={goToStage}
             onToggleHelp={toggleHelp}
             isOrganiser={isOrganiser}
             canToggleOrganiser={!isOrganiserRoute}
             organiserModeEnabled={isOrganiser}
             onToggleOrganiser={handleOrganiserModeToggle}
             onOpenOrganiserInfo={() => setIsOrganiserInfoOpen(true)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            fontScale={fontScale}
+            canDecreaseFontScale={fontScale > FONT_SCALE_MIN}
+            canIncreaseFontScale={fontScale < FONT_SCALE_MAX}
+            onDecreaseFontScale={() => updateFontScale(-1)}
+            onIncreaseFontScale={() => updateFontScale(1)}
           />
         </aside>
 
@@ -239,6 +335,7 @@ export default function App() {
               setCallNotes={setCallNotes}
               reportBackSettings={reportBackSettings}
               setReportBackSettings={setReportBackSettings}
+              reportbackPhoneFocusToken={reportbackPhoneFocusToken}
               stageNumLabel="Stage 3 of 4"
               onPrev={handlePrevStage}
               onNext={handleNextStage}
@@ -273,6 +370,11 @@ export default function App() {
       <HelpDrawer isOpen={isHelpOpen} onClose={toggleHelp} />
       {isOrganiserInfoOpen && (
         <OrganiserModeModal onClose={() => setIsOrganiserInfoOpen(false)} />
+      )}
+      {isReportbackNumberModalOpen && (
+        <ReportbackNumberModal
+          onClose={closeReportbackNumberModal}
+        />
       )}
       {isTourOpen && (
         <ProductTour

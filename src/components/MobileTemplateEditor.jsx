@@ -1,8 +1,16 @@
-import { Plus, X } from "lucide-react";
+import { Moon, Plus, Sun, X } from "lucide-react";
 import { useState } from "react";
 
-export default function MobileTemplateEditor({ templates, setTemplates, extraChannelsEnabled, setExtraChannelsEnabled }) {
+export default function MobileTemplateEditor({
+  templates,
+  setTemplates,
+  extraChannelsEnabled,
+  setExtraChannelsEnabled,
+  theme = "dark",
+  onToggleTheme = () => {},
+}) {
   const [showChannelModal, setShowChannelModal] = useState(false);
+  const nextTheme = theme === "dark" ? "light" : "dark";
 
   const handleChange = (id, field, value) => {
     setTemplates((prev) =>
@@ -43,6 +51,22 @@ export default function MobileTemplateEditor({ templates, setTemplates, extraCha
         <h2 style={styles.title}>Edit Templates</h2>
         <button onClick={handleAddTemplate} style={styles.addBtn} className="hover-lift">
           <Plus size={16} /> Add
+        </button>
+      </div>
+      <div style={styles.displayRow}>
+        <div>
+          <span style={styles.displayTitle}>Display</span>
+          <p style={styles.displayText}>Switch colour mode for this phone.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          style={styles.themeBtn}
+          aria-label={`Switch to ${nextTheme} mode`}
+          title={`Switch to ${nextTheme} mode`}
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === "dark" ? "Light" : "Dark"}
         </button>
       </div>
       <button onClick={handleChannelToggle} style={styles.channelBtn} className="hover-lift">
@@ -114,7 +138,7 @@ const styles = {
   },
   title: {
     fontFamily: "var(--font-heading)",
-    fontSize: "20px",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
     margin: 0,
     color: "var(--ta-green)",
   },
@@ -124,6 +148,43 @@ const styles = {
     gap: "8px",
     overflowY: "auto",
     flex: 1,
+  },
+  displayRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "10px",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
+    padding: "10px 12px",
+  },
+  displayTitle: {
+    display: "block",
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-cream)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+    marginBottom: "1px",
+  },
+  displayText: {
+    color: "var(--ta-muted)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.3,
+    margin: 0,
+  },
+  themeBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    backgroundColor: "transparent",
+    color: "var(--ta-green)",
+    border: "1px solid rgba(79, 159, 104, 0.45)",
+    borderRadius: "999px",
+    padding: "7px 10px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    flexShrink: 0,
   },
   item: {
     display: "flex",
@@ -151,7 +212,7 @@ const styles = {
     color: "var(--ta-cream)",
     padding: "4px 8px",
     fontFamily: "var(--font-body)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
     minHeight: "128px",
     resize: "none",
@@ -163,7 +224,7 @@ const styles = {
     borderRadius: "6px",
     padding: "6px 10px",
     fontFamily: "var(--font-heading)",
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     display: "flex",
     alignItems: "center",
     gap: "4px",
@@ -176,7 +237,7 @@ const styles = {
     borderRadius: "8px",
     padding: "8px 10px",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     cursor: "pointer",
   },
   removeBtn: {
@@ -194,7 +255,7 @@ const styles = {
   modalOverlay: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "rgba(0,0,0,0.65)",
+    backgroundColor: "var(--modal-overlay)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -204,22 +265,23 @@ const styles = {
   modalContent: {
     width: "100%",
     maxWidth: "360px",
-    backgroundColor: "var(--ta-dark-2)",
+    backgroundColor: "var(--modal-card-bg)",
     border: "1px solid rgba(79, 159, 104, 0.28)",
     borderRadius: "12px",
     padding: "18px",
     color: "var(--ta-cream)",
+    boxShadow: "var(--modal-card-shadow)",
   },
   modalTitle: {
     fontFamily: "var(--font-heading)",
-    fontSize: "20px",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
     color: "var(--ta-green)",
     marginBottom: "8px",
   },
   modalText: {
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
-    color: "rgba(247,244,236,0.72)",
+    color: "var(--ta-muted-strong)",
     marginBottom: "10px",
   },
   modalActions: {
@@ -230,7 +292,7 @@ const styles = {
   },
   modalSecondary: {
     background: "transparent",
-    border: "1px solid rgba(247,244,236,0.25)",
+    border: "1px solid var(--ta-border-subtle)",
     color: "var(--ta-cream)",
     borderRadius: "8px",
     padding: "8px 12px",

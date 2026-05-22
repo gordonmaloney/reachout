@@ -141,19 +141,19 @@ const styles = {
   eyebrow: {
     color: "var(--ta-green)",
     fontFamily: "var(--font-mono)",
-    fontSize: "11px",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
     letterSpacing: "0.1em",
     textTransform: "uppercase",
   },
   title: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-cream)",
-    fontSize: "28px",
+    fontSize: "calc(28px * var(--reachout-text-scale, 1))",
     margin: "4px 0 6px",
   },
   text: {
-    color: "rgba(247, 241, 232, 0.72)",
-    fontSize: "13px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
     margin: 0,
   },
@@ -165,8 +165,8 @@ const styles = {
     backgroundColor: "rgba(79, 159, 104, 0.07)",
     borderRadius: "8px",
     padding: "10px",
-    color: "rgba(247, 241, 232, 0.78)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   actions: {
     display: "flex",
@@ -183,7 +183,7 @@ const styles = {
     borderRadius: "8px",
     padding: "10px",
     fontFamily: "var(--font-heading)",
-    fontSize: "15px",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     textDecoration: "none",
   },
   secondaryBtn: {
@@ -197,7 +197,7 @@ const styles = {
     borderRadius: "8px",
     padding: "10px",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     textDecoration: "none",
   },
 };

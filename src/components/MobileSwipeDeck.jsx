@@ -33,8 +33,28 @@ export default function MobileSwipeDeck({
   // Drag state for live finger-follow
   const startXRef = useRef(null);
   const startYRef = useRef(null);
+  const startInScrollableCardRef = useRef(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [blockMessage, setBlockMessage] = useState("");
+  const reportQuestions = reportBackSettings.questions?.filter((question) =>
+    question.label?.trim()
+  ) || [];
+
+  const isCurrentReportComplete = () => {
+    if (!reportBackSettings.enabled || !reportBackSettings.mandatory) return true;
+    if (index >= contacts.length) return true;
+
+    const contact = contacts[index];
+    const report = contactReports[contact?.id];
+    if (!report?.contacted) return false;
+    if (reportQuestions.length === 0) return true;
+
+    return reportQuestions.every((question) => {
+      const answer = report.answers?.[question.id];
+      return String(answer || "").trim().length > 0;
+    });
+  };
 
   // ── Gesture handlers ──────────────────────────────────────────────────
   const handleTouchStart = (e) => {
@@ -42,6 +62,7 @@ export default function MobileSwipeDeck({
     const touch = e.touches ? e.touches[0] : e;
     startXRef.current = touch.clientX;
     startYRef.current = touch.clientY;
+    startInScrollableCardRef.current = Boolean(e.target.closest?.(".mobile-card-scroll"));
     setIsDragging(true);
   };
 
@@ -65,7 +86,7 @@ export default function MobileSwipeDeck({
         // Horizontal: swipe left = next, swipe right = prev
         if (dx < -THRESHOLD) triggerSwipe(1, dx);
         else if (dx > THRESHOLD) triggerSwipe(-1, dx);
-      } else {
+      } else if (!startInScrollableCardRef.current) {
         // Vertical: swipe up = next, swipe down = prev
         if (dy < -THRESHOLD) triggerSwipe(1, dx);
         else if (dy > THRESHOLD) triggerSwipe(-1, dx);
@@ -77,6 +98,7 @@ export default function MobileSwipeDeck({
     setIsDragging(false);
     startXRef.current = null;
     startYRef.current = null;
+    startInScrollableCardRef.current = false;
   };
 
   // ── Trigger a swipe (dir: 1=next, -1=prev) ────────────────────────────
@@ -84,7 +106,13 @@ export default function MobileSwipeDeck({
     if (phase !== "idle") return false;
     const newIdx = index + dir;
     if (newIdx < 0 || newIdx >= itemCount) return false;
+    if (dir > 0 && !isCurrentReportComplete()) {
+      setBlockMessage("Complete the reportback before moving to the next contact.");
+      window.setTimeout(() => setBlockMessage(""), 2200);
+      return false;
+    }
 
+    setBlockMessage("");
     pendingIndexRef.current = newIdx;
     setExitStartX(startX);
     setDirection(dir);
@@ -189,10 +217,13 @@ export default function MobileSwipeDeck({
                   [displayContact.id]: report,
                 }))
               }
+              reportBackRequired={Boolean(reportBackSettings.mandatory)}
             />
           )}
         </div>
       </div>
+
+      {blockMessage && <div style={styles.blockMessage}>{blockMessage}</div>}
 
       {/* Navigation buttons */}
       <div style={styles.navRow}>
@@ -206,7 +237,12 @@ export default function MobileSwipeDeck({
         </button>
         <button
           onClick={triggerNext}
-          style={styles.navBtn}
+          style={{
+            ...styles.navBtn,
+            ...(index < contacts.length && reportBackSettings.mandatory && !isCurrentReportComplete()
+              ? styles.navBtnBlocked
+              : {}),
+          }}
           disabled={index >= itemCount - 1 || phase !== "idle"}
           className="hover-lift"
         >
@@ -240,13 +276,24 @@ const styles = {
   counter: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
-    fontSize: "16px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     marginBottom: "8px",
   },
   navRow: {
     display: "flex",
     gap: "24px",
     marginTop: "auto",
+  },
+  blockMessage: {
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "8px",
+    padding: "8px 10px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    textAlign: "center",
+    width: "100%",
+    maxWidth: "380px",
   },
   navBtn: {
     background: "transparent",
@@ -255,10 +302,13 @@ const styles = {
     borderRadius: "8px",
     padding: "8px 16px",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: "4px",
+  },
+  navBtnBlocked: {
+    opacity: 0.58,
   },
 };

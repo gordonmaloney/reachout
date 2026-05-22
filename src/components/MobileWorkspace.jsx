@@ -20,6 +20,9 @@ export default function MobileWorkspace({
   reportBackSettings = { enabled: false, phone: "" },
   setReportBackSettings = () => {},
   initialView = "deck",
+  theme = "dark",
+  onToggleTheme = () => {},
+  fontScale = 1,
 }) {
   const [view, setView] = useState(initialView); // 'deck', 'templates', or 'scan'
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -42,7 +45,11 @@ export default function MobileWorkspace({
   return (
     <div
       className="mobile-workspace glass-card-mobile bg-texture"
-      style={styles.container}
+      data-theme={theme}
+      style={{
+        ...styles.container,
+        "--reachout-text-scale": fontScale,
+      }}
     >
       {/* Top Header */}
       <header style={styles.header} className="glow-text">
@@ -80,6 +87,8 @@ export default function MobileWorkspace({
             setTemplates={setTemplates}
             extraChannelsEnabled={extraChannelsEnabled}
             setExtraChannelsEnabled={setExtraChannelsEnabled}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
           />
         ) : (
           <MobileDataScanner
@@ -141,7 +150,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     height: "100dvh",
-    backgroundColor: "var(--ta-dark-2)",
+    backgroundColor: "var(--modal-card-bg)",
     color: "var(--ta-cream)",
     overflow: "hidden",
   },
@@ -150,16 +159,16 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    borderBottom: "1px solid var(--ta-border-subtle)",
   },
   title: {
     fontFamily: "var(--font-heading)",
-    fontSize: "24px",
+    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
     margin: 0,
   },
   progress: {
     fontFamily: "var(--font-mono)",
-    fontSize: "12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     color: "var(--ta-green)",
   },
   main: {
@@ -172,14 +181,14 @@ const styles = {
     display: "flex",
     justifyContent: "space-around",
     padding: "4px",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
+    borderTop: "1px solid var(--ta-border-subtle)",
   },
   navBtn: {
     background: "transparent",
     border: "none",
     color: "var(--ta-cream)",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     display: "flex",
     alignItems: "center",
     gap: "4px",

@@ -333,7 +333,7 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "rgba(0,0,0,0.68)",
+    backgroundColor: "var(--modal-overlay)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -343,12 +343,12 @@ const styles = {
   modal: {
     width: "min(1040px, 100%)",
     maxHeight: "min(720px, calc(100dvh - 48px))",
-    backgroundColor: "var(--ta-dark-2)",
+    backgroundColor: "var(--modal-card-bg)",
     border: "1px solid rgba(79, 159, 104, 0.28)",
     borderRadius: "16px",
     padding: "22px",
     color: "var(--ta-cream)",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
+    boxShadow: "var(--modal-card-shadow)",
     position: "relative",
     overflow: "hidden",
   },
@@ -379,12 +379,12 @@ const styles = {
   qrTitle: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
-    fontSize: "20px",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
     letterSpacing: "0.05em",
   },
   qrText: {
-    color: "rgba(247,244,236,0.66)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
   },
   header: {
@@ -396,17 +396,17 @@ const styles = {
   title: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
-    fontSize: "24px",
+    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
     marginBottom: "4px",
   },
   desc: {
-    color: "rgba(247,244,236,0.72)",
-    fontSize: "13px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
   },
   hostDesc: {
     color: "rgba(53,168,102,0.9)",
-    fontSize: "12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
     marginTop: "6px",
   },
@@ -414,8 +414,8 @@ const styles = {
     display: "grid",
     gap: "8px",
     margin: "0 0 16px 18px",
-    color: "rgba(247,244,236,0.8)",
-    fontSize: "13px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
   },
   step: {
@@ -428,9 +428,9 @@ const styles = {
     gap: "8px",
     marginBottom: "12px",
     padding: "10px",
-    border: "1px solid rgba(247,244,236,0.1)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "10px",
-    backgroundColor: "rgba(255,255,255,0.025)",
+    backgroundColor: "var(--surface-subtle)",
   },
   batchLabel: {
     display: "flex",
@@ -442,12 +442,12 @@ const styles = {
   batchTitle: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-cream)",
-    fontSize: "19px",
+    fontSize: "calc(19px * var(--reachout-text-scale, 1))",
     letterSpacing: "0.05em",
   },
   batchMeta: {
-    color: "rgba(247,244,236,0.58)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   iconBtn: {
     position: "absolute",
@@ -457,7 +457,7 @@ const styles = {
     width: "34px",
     height: "34px",
     background: "transparent",
-    border: "1px solid rgba(247,244,236,0.22)",
+    border: "1px solid var(--ta-border-subtle)",
     color: "var(--ta-cream)",
     borderRadius: "8px",
     display: "flex",
@@ -465,7 +465,7 @@ const styles = {
     justifyContent: "center",
   },
   qrFrame: {
-    backgroundColor: "var(--ta-cream)",
+    backgroundColor: "#ffffff",
     borderRadius: "12px",
     minHeight: "min(560px, calc(100dvh - 164px))",
     display: "flex",
@@ -481,9 +481,9 @@ const styles = {
     objectFit: "contain",
   },
   loading: {
-    color: "var(--ta-dark)",
+    color: "#151d17",
     fontFamily: "var(--font-mono)",
-    fontSize: "12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   qrStatus: {
     display: "flex",
@@ -503,7 +503,7 @@ const styles = {
     color: "var(--ta-green)",
     borderRadius: "8px",
     padding: "7px 10px",
-    fontSize: "12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   navBtn: {
     display: "flex",
@@ -515,7 +515,7 @@ const styles = {
     color: "var(--ta-green)",
     borderRadius: "8px",
     padding: "8px 12px",
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     minWidth: "92px",
     lineHeight: 1.05,
   },
@@ -527,22 +527,22 @@ const styles = {
   },
   counter: {
     fontFamily: "var(--font-mono)",
-    fontSize: "12px",
-    color: "rgba(247,244,236,0.68)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    color: "var(--ta-muted-strong)",
   },
   helperText: {
     marginTop: "4px",
     paddingTop: "14px",
-    color: "rgba(247,244,236,0.58)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
   },
   linkPanel: {
     marginTop: "8px",
     padding: "14px",
-    border: "1px solid rgba(247,244,236,0.12)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "12px",
-    backgroundColor: "rgba(244, 239, 228, 0.035)",
+    backgroundColor: "var(--surface-subtle)",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
@@ -550,12 +550,12 @@ const styles = {
   linkTitle: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
-    fontSize: "16px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     letterSpacing: "0.05em",
   },
   linkText: {
-    color: "rgba(247,244,236,0.66)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
   },
   linkBtn: {
@@ -568,7 +568,7 @@ const styles = {
     color: "var(--ta-green)",
     borderRadius: "8px",
     padding: "8px 10px",
-    fontSize: "13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     flexShrink: 0,
   },
   linkBtnDisabled: {
@@ -576,12 +576,12 @@ const styles = {
     cursor: "not-allowed",
   },
   linkLength: {
-    color: "rgba(247,244,236,0.48)",
-    fontSize: "11px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
   },
   linkWarning: {
-    color: "rgba(247,244,236,0.72)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.35,
   },
   linkRow: {
@@ -590,9 +590,9 @@ const styles = {
     justifyContent: "space-between",
     gap: "10px",
     padding: "8px",
-    border: "1px solid rgba(247,244,236,0.08)",
+    border: "1px solid var(--ta-border-subtle)",
     borderRadius: "8px",
-    backgroundColor: "rgba(16,24,23,0.34)",
+    backgroundColor: "var(--surface-raised)",
   },
   linkMeta: {
     display: "flex",
@@ -602,11 +602,11 @@ const styles = {
   },
   linkName: {
     color: "var(--ta-cream)",
-    fontSize: "12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     fontWeight: 700,
   },
   linkStatus: {
-    color: "rgba(247,244,236,0.68)",
-    fontSize: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
 };

@@ -1,6 +1,8 @@
 import { ExternalLink, HelpCircle } from "lucide-react";
 
-export default function Header({ onStartTour }) {
+export default function Header({
+  onStartTour,
+}) {
   return (
     <header style={styles.header}>
       <div style={styles.logoGroup}>
@@ -42,8 +44,8 @@ export default function Header({ onStartTour }) {
 const styles = {
   header: {
     height: "80px",
-    backgroundColor: "rgba(27, 34, 28, 0.98)",
-    borderBottom: "1px solid rgba(244, 239, 228, 0.1)",
+    backgroundColor: "var(--ta-ink)",
+    borderBottom: "1px solid var(--ta-border-subtle)",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -59,7 +61,7 @@ const styles = {
   },
   tenantAct: {
     fontFamily: "var(--font-heading)",
-    fontSize: "34px",
+    fontSize: "calc(34px * var(--reachout-text-scale, 1))",
     color: "var(--ta-cream)",
     letterSpacing: "0.035em",
   },
@@ -68,13 +70,13 @@ const styles = {
     textShadow: "none",
   },
   divider: {
-    color: "rgba(247, 244, 236, 0.25)",
-    fontSize: "24px",
+    color: "var(--ta-divider)",
+    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
     fontWeight: "300",
   },
   reachout: {
     fontFamily: "var(--font-heading)",
-    fontSize: "34px",
+    fontSize: "calc(34px * var(--reachout-text-scale, 1))",
     color: "var(--ta-cream)",
     letterSpacing: "0.035em",
   },
@@ -93,7 +95,7 @@ const styles = {
     padding: "8px 16px",
     borderRadius: "6px",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     fontWeight: 600,
     letterSpacing: "0.055em",
   },
@@ -102,12 +104,12 @@ const styles = {
     alignItems: "center",
     gap: "8px",
     backgroundColor: "transparent",
-    border: "1px solid rgba(247, 244, 236, 0.28)",
+    border: "1px solid var(--ta-border-medium)",
     color: "var(--ta-cream)",
     padding: "8px 20px",
     borderRadius: "6px",
     fontFamily: "var(--font-heading)",
-    fontSize: "14px",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     fontWeight: 600,
     letterSpacing: "0.055em",
     textDecoration: "none",

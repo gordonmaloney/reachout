@@ -14,7 +14,7 @@ const callButtonStyle = {
   alignItems: 'center',
   gap: '4px',
   fontFamily: 'var(--font-heading)',
-  fontSize: '12px',
+  fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   cursor: 'pointer',
   textDecoration: 'none',
   flexShrink: 0,
@@ -31,6 +31,7 @@ export default function MobileContactCard({
   reportBackSettings = { enabled: false, phone: "" },
   report = null,
   setReport = () => {},
+  reportBackRequired = false,
 }) {
   const callLink = generateCallLink(contact, selectedDialCode);
   const previewPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
@@ -101,76 +102,84 @@ export default function MobileContactCard({
           </a>
         )}
       </div>
-      {isReporting ? (
-        <div style={styles.reportForm}>
-          <span style={styles.reportTitle}>Contact report</span>
-          {reportQuestions.map((question) =>
-            question.type === "yes_no" ? (
-              <div key={question.id} style={styles.questionBlock}>
-                <span style={styles.question}>{question.label}</span>
-                <div style={styles.answerRow}>
-                  <button
-                    type="button"
-                    onClick={() => updateAnswer(question.id, "yes")}
-                    style={{
-                      ...styles.answerBtn,
-                      ...(report?.answers?.[question.id] === "yes" ? styles.answerBtnActive : {}),
-                    }}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateAnswer(question.id, "no")}
-                    style={{
-                      ...styles.answerBtn,
-                      ...(report?.answers?.[question.id] === "no" ? styles.answerBtnActive : {}),
-                    }}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label key={question.id} style={styles.notesLabel}>
-                {question.label}
-                <textarea
-                  value={report?.answers?.[question.id] || ""}
-                  onChange={(event) => updateAnswer(question.id, event.target.value)}
-                  placeholder="Anything useful to pass back?"
-                  style={styles.notesInput}
-                />
-              </label>
-            )
-          )}
-          {reportQuestions.length === 0 && (
-            <span style={styles.question}>No reportback questions set.</span>
-          )}
-        </div>
-      ) : callNotes.filter((note) => note.text?.trim()).length > 0 && (
-        <div style={styles.callNotesBox}>
-          <span style={styles.callNotesTitle}>Call notes</span>
-          <ul style={styles.callNotesList}>
-            {callNotes
-              .filter((note) => note.text?.trim())
-              .map((note) => (
-                <li key={note.id}>{note.text}</li>
-              ))}
-          </ul>
-        </div>
-      )}
-      {!isReporting && (
-        <div style={styles.templates}>
-          {templates.map((t) => (
-            <div key={t.id} style={styles.templateBlock}>
-              <Links contact={contact} template={t} dialCode={selectedDialCode} extraChannelsEnabled={extraChannelsEnabled} />
+      <div style={styles.scrollShell}>
+        <div style={styles.scrollBody} className="mobile-card-scroll">
+          {isReporting ? (
+            <div style={styles.reportForm}>
+              <span style={styles.reportTitle}>Contact report</span>
+              {reportBackRequired && (
+                <span style={styles.requiredHint}>Required before moving on</span>
+              )}
+              {reportQuestions.map((question) =>
+                question.type === "yes_no" ? (
+                  <div key={question.id} style={styles.questionBlock}>
+                    <span style={styles.question}>{question.label}</span>
+                    <div style={styles.answerRow}>
+                      <button
+                        type="button"
+                        onClick={() => updateAnswer(question.id, "yes")}
+                        style={{
+                          ...styles.answerBtn,
+                          ...(report?.answers?.[question.id] === "yes" ? styles.answerBtnActive : {}),
+                        }}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateAnswer(question.id, "no")}
+                        style={{
+                          ...styles.answerBtn,
+                          ...(report?.answers?.[question.id] === "no" ? styles.answerBtnActive : {}),
+                        }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label key={question.id} style={styles.notesLabel}>
+                    {question.label}
+                    <textarea
+                      value={report?.answers?.[question.id] || ""}
+                      onChange={(event) => updateAnswer(question.id, event.target.value)}
+                      placeholder="Anything useful to pass back?"
+                      style={styles.notesInput}
+                    />
+                  </label>
+                )
+              )}
+              {reportQuestions.length === 0 && (
+                <span style={styles.question}>No reportback questions set.</span>
+              )}
             </div>
-          ))}
+          ) : callNotes.filter((note) => note.text?.trim()).length > 0 && (
+            <div style={styles.callNotesBox}>
+              <span style={styles.callNotesTitle}>Call notes</span>
+              <ul style={styles.callNotesList}>
+                {callNotes
+                  .filter((note) => note.text?.trim())
+                  .map((note) => (
+                    <li key={note.id}>{note.text}</li>
+                  ))}
+              </ul>
+            </div>
+          )}
+          {!isReporting && (
+            <div style={styles.templates}>
+              {templates.map((t) => (
+                <div key={t.id} style={styles.templateBlock}>
+                  <Links contact={contact} template={t} dialCode={selectedDialCode} extraChannelsEnabled={extraChannelsEnabled} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
       {reportEnabled && !isReporting && (
         <button type="button" onClick={startReport} style={styles.contactedBtn}>
-          Contacted
+          {reportBackRequired ? "Contacted - report required" : "Contacted"}
         </button>
       )}
     </div>
@@ -185,11 +194,16 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    height: '100%',
+    maxHeight: '100%',
+    minHeight: 0,
+    overflow: 'hidden',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    flexShrink: 0,
   },
   avatar: {
     width: '34px',
@@ -207,7 +221,7 @@ const styles = {
     flex: 1,
     minWidth: 0,
   },
-  name: { fontSize: '18px', color: 'var(--ta-cream)', fontFamily: 'var(--font-heading)' },
+  name: { fontSize: "calc(18px * var(--reachout-text-scale, 1))", color: 'var(--ta-cream)', fontFamily: 'var(--font-heading)' },
   phone: {
     display: 'flex',
     alignItems: 'center',
@@ -215,7 +229,7 @@ const styles = {
     backgroundColor: 'transparent',
     border: 'none',
     padding: 0,
-    fontSize: '14px',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     color: 'rgba(79, 159, 104, 0.68)',
     fontFamily: 'var(--font-body)',
     letterSpacing: 0,
@@ -231,27 +245,46 @@ const styles = {
     display: 'block',
     fontFamily: 'var(--font-heading)',
     color: 'var(--ta-green)',
-    fontSize: '14px',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
     marginBottom: '4px',
   },
   callNotesList: {
     paddingLeft: '17px',
-    color: 'rgba(247, 241, 232, 0.74)',
-    fontSize: '12px',
+    color: 'var(--ta-muted-strong)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.35,
+  },
+  scrollShell: {
+    position: 'relative',
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  scrollBody: {
+    height: '100%',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    paddingRight: '10px',
+    paddingBottom: '22px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    overscrollBehavior: 'contain',
+    WebkitOverflowScrolling: 'touch',
   },
   templates: { display: 'flex', flexDirection: 'column', gap: '12px' },
   templateBlock: { display: 'flex', flexDirection: 'column', gap: '4px' },
   contactedBtn: {
     marginTop: '2px',
+    flexShrink: 0,
     backgroundColor: 'var(--ta-green)',
     color: 'var(--ta-dark)',
     border: 'none',
     borderRadius: '8px',
     padding: '10px 12px',
     fontFamily: 'var(--font-heading)',
-    fontSize: '15px',
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
   },
   reportForm: {
     display: 'flex',
@@ -265,8 +298,13 @@ const styles = {
   reportTitle: {
     fontFamily: 'var(--font-heading)',
     color: 'var(--ta-green)',
-    fontSize: '16px',
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
+  },
+  requiredHint: {
+    color: 'var(--ta-muted)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    marginTop: '-6px',
   },
   questionBlock: {
     display: 'flex',
@@ -274,8 +312,8 @@ const styles = {
     gap: '8px',
   },
   question: {
-    color: 'rgba(247, 241, 232, 0.78)',
-    fontSize: '13px',
+    color: 'var(--ta-muted-strong)',
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
   answerRow: {
     display: 'grid',
@@ -284,12 +322,12 @@ const styles = {
   },
   answerBtn: {
     backgroundColor: 'transparent',
-    border: '1px solid rgba(247, 241, 232, 0.2)',
+    border: '1px solid var(--ta-border-subtle)',
     color: 'var(--ta-cream)',
     borderRadius: '8px',
     padding: '8px',
     fontFamily: 'var(--font-heading)',
-    fontSize: '14px',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
   },
   answerBtnActive: {
     borderColor: 'rgba(79, 159, 104, 0.55)',
@@ -300,18 +338,18 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
-    color: 'rgba(247, 241, 232, 0.78)',
-    fontSize: '13px',
+    color: 'var(--ta-muted-strong)',
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
   notesInput: {
     minHeight: '92px',
     resize: 'vertical',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    backgroundColor: 'var(--surface-subtle)',
+    border: '1px solid var(--ta-border-subtle)',
     borderRadius: '8px',
     color: 'var(--ta-cream)',
     fontFamily: 'var(--font-body)',
-    fontSize: '14px',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     padding: '9px',
   },
 };

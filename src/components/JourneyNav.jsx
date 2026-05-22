@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { FileText, Moon, Sun } from 'lucide-react';
 
 export default function JourneyNav({
   activeStage,
@@ -9,7 +9,16 @@ export default function JourneyNav({
   organiserModeEnabled = false,
   onToggleOrganiser = () => {},
   onOpenOrganiserInfo = () => {},
+  theme = 'dark',
+  onToggleTheme = () => {},
+  fontScale = 1,
+  canDecreaseFontScale = true,
+  canIncreaseFontScale = true,
+  onDecreaseFontScale = () => {},
+  onIncreaseFontScale = () => {},
 }) {
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+  const fontScalePercent = Math.round(fontScale * 100);
   const steps = [
     {
       id: 1,
@@ -140,6 +149,50 @@ export default function JourneyNav({
         </button>
       </div>
 
+      <div style={styles.displayBox}>
+        <div style={styles.displayCopy}>
+          <span style={styles.displayTitle}>Display</span>
+          <span style={styles.displayHint}>Text size and colour mode</span>
+        </div>
+        <div style={styles.displayControls} aria-label="Display controls">
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            style={styles.displayIconBtn}
+            title={`Switch to ${nextTheme} mode`}
+            aria-label={`Switch to ${nextTheme} mode`}
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={onDecreaseFontScale}
+            disabled={!canDecreaseFontScale}
+            style={{
+              ...styles.fontScaleBtn,
+              ...(!canDecreaseFontScale ? styles.fontScaleBtnDisabled : {}),
+            }}
+            title={`Make text smaller. Current size ${fontScalePercent}%`}
+            aria-label={`Make text smaller. Current size ${fontScalePercent}%`}
+          >
+            A-
+          </button>
+          <button
+            type="button"
+            onClick={onIncreaseFontScale}
+            disabled={!canIncreaseFontScale}
+            style={{
+              ...styles.fontScaleBtn,
+              ...(!canIncreaseFontScale ? styles.fontScaleBtnDisabled : {}),
+            }}
+            title={`Make text bigger. Current size ${fontScalePercent}%`}
+            aria-label={`Make text bigger. Current size ${fontScalePercent}%`}
+          >
+            A+
+          </button>
+        </div>
+      </div>
+
       {/* ORGANISING IMPRINT */}
       <div style={styles.imprintRow}>
         <img
@@ -169,7 +222,7 @@ const styles = {
   },
   journeyHeader: {
     fontFamily: 'var(--font-mono)',
-    fontSize: '11px',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-green)',
     letterSpacing: '0.1em',
     fontWeight: 'bold',
@@ -191,20 +244,20 @@ const styles = {
   organiserEditionKicker: {
     fontFamily: 'var(--font-mono)',
     color: 'var(--ta-green)',
-    fontSize: '10px',
+    fontSize: "calc(10px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
   },
   organiserEditionTitle: {
     fontFamily: 'var(--font-heading)',
     color: 'var(--ta-cream)',
-    fontSize: '18px',
+    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
   },
   organiserEditionText: {
-    color: 'rgba(247, 244, 236, 0.58)',
+    color: 'var(--ta-muted)',
     fontFamily: 'var(--font-body)',
-    fontSize: '11.5px',
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
     lineHeight: 1.35,
     letterSpacing: 0,
     textTransform: 'none',
@@ -222,7 +275,7 @@ const styles = {
     top: '12px',
     bottom: '12px',
     width: '2px',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'var(--ta-border-subtle)',
     zIndex: 1,
   },
   stepRow: {
@@ -250,12 +303,12 @@ const styles = {
     height: '40px',
     borderRadius: '50%',
     backgroundColor: 'var(--ta-dark-2)',
-    border: '2px solid rgba(255, 255, 255, 0.15)',
-    color: 'rgba(247, 244, 236, 0.4)',
+    border: '2px solid var(--ta-border-subtle)',
+    color: 'var(--ta-muted)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '15px',
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     fontFamily: 'var(--font-heading)',
     fontWeight: 'bold',
     transition: 'all 0.3s ease',
@@ -279,9 +332,9 @@ const styles = {
   },
   stepTitle: {
     fontFamily: 'var(--font-heading)',
-    fontSize: '18px',
+    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
-    color: 'rgba(247, 244, 236, 0.35)',
+    color: 'color-mix(in srgb, var(--ta-cream) 38%, transparent)',
     transition: 'color 0.3s ease',
   },
   stepTitleActive: {
@@ -289,34 +342,98 @@ const styles = {
     textShadow: 'none',
   },
   stepTitlePast: {
-    color: 'rgba(247, 244, 236, 0.8)',
+    color: 'var(--ta-muted-strong)',
   },
   stepSub: {
-    fontSize: '12px',
-    color: 'rgba(247, 244, 236, 0.25)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    color: 'color-mix(in srgb, var(--ta-cream) 34%, transparent)',
     lineHeight: '1.3',
   },
   stepSubActive: {
-    color: 'rgba(247, 244, 236, 0.65)',
+    color: 'var(--ta-muted)',
   },
   stepSubPast: {
-    color: 'rgba(247, 244, 236, 0.5)',
+    color: 'var(--ta-muted)',
   },
   helpBox: {
-    backgroundColor: 'rgba(244, 239, 228, 0.03)',
-    border: '1px solid rgba(244, 239, 228, 0.09)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-cream) 3%, transparent)',
+    border: '1px solid var(--ta-border-subtle)',
     borderRadius: '10px',
     padding: '20px',
     marginBottom: '24px',
     marginTop: '40px',
+  },
+  displayBox: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    border: '1px solid var(--ta-border-subtle)',
+    borderRadius: '10px',
+    backgroundColor: 'color-mix(in srgb, var(--ta-cream) 2.5%, transparent)',
+    padding: '10px 12px',
+    marginBottom: '18px',
+  },
+  displayCopy: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1px',
+    minWidth: 0,
+  },
+  displayTitle: {
+    fontFamily: 'var(--font-heading)',
+    color: 'var(--ta-cream)',
+    fontSize: 'calc(14px * var(--reachout-text-scale, 1))',
+    letterSpacing: '0.05em',
+  },
+  displayHint: {
+    color: 'var(--ta-muted)',
+    fontSize: 'calc(10.5px * var(--reachout-text-scale, 1))',
+    lineHeight: 1.25,
+  },
+  displayControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '3px',
+    flexShrink: 0,
+  },
+  displayIconBtn: {
+    width: '30px',
+    height: '30px',
+    borderRadius: '999px',
+    backgroundColor: 'transparent',
+    border: '1px solid var(--ta-border-subtle)',
+    color: 'var(--ta-muted-strong)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+  },
+  fontScaleBtn: {
+    minWidth: '30px',
+    height: '30px',
+    borderRadius: '999px',
+    backgroundColor: 'transparent',
+    border: '1px solid var(--ta-border-subtle)',
+    color: 'var(--ta-muted-strong)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 'calc(11px * var(--reachout-text-scale, 1))',
+    fontWeight: 700,
+    letterSpacing: 0,
+    textTransform: 'none',
+    padding: '0 7px',
+  },
+  fontScaleBtnDisabled: {
+    color: 'color-mix(in srgb, var(--ta-muted) 42%, transparent)',
+    cursor: 'not-allowed',
   },
   organiserToggleBox: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '12px',
-    backgroundColor: 'rgba(244, 239, 228, 0.03)',
-    border: '1px solid rgba(244, 239, 228, 0.09)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-cream) 3%, transparent)',
+    border: '1px solid var(--ta-border-subtle)',
     borderRadius: '10px',
     padding: '14px',
     marginTop: '40px',
@@ -326,21 +443,21 @@ const styles = {
     display: 'block',
     fontFamily: 'var(--font-heading)',
     color: 'var(--ta-green)',
-    fontSize: '16px',
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
     marginBottom: '2px',
   },
   organiserToggleText: {
-    fontSize: '11px',
-    color: 'rgba(247, 244, 236, 0.55)',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
     lineHeight: 1.35,
   },
   switchBtn: {
     width: '44px',
     height: '24px',
     borderRadius: '999px',
-    border: '1px solid rgba(247, 244, 236, 0.2)',
-    backgroundColor: 'rgba(247, 244, 236, 0.08)',
+    border: '1px solid var(--ta-border-medium)',
+    backgroundColor: 'color-mix(in srgb, var(--ta-cream) 8%, transparent)',
     padding: '2px',
     display: 'flex',
     alignItems: 'center',
@@ -354,7 +471,7 @@ const styles = {
     width: '18px',
     height: '18px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(247, 244, 236, 0.55)',
+    backgroundColor: 'var(--ta-muted)',
     transition: 'transform 0.2s ease, background-color 0.2s ease',
   },
   switchKnobActive: {
@@ -363,14 +480,14 @@ const styles = {
   },
   helpTitle: {
     fontFamily: 'var(--font-heading)',
-    fontSize: '16px',
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-green)',
     letterSpacing: '0.05em',
     marginBottom: '6px',
   },
   helpDesc: {
-    fontSize: '12px',
-    color: 'rgba(247, 244, 236, 0.65)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
     lineHeight: '1.4',
     marginBottom: '14px',
   },
@@ -380,11 +497,11 @@ const styles = {
     justifyContent: 'center',
     gap: '8px',
     backgroundColor: 'transparent',
-    border: '1px solid rgba(247, 244, 236, 0.24)',
+    border: '1px solid var(--ta-border-medium)',
     color: 'var(--ta-cream)',
     padding: '8px 16px',
     borderRadius: '6px',
-    fontSize: '13px',
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     fontWeight: 'bold',
     width: '100%',
   },
@@ -394,7 +511,7 @@ const styles = {
     gap: '10px',
     paddingLeft: '2px',
     paddingTop: '10px',
-    borderTop: '1px solid rgba(244, 239, 228, 0.08)',
+    borderTop: '1px solid var(--ta-border-subtle)',
   },
   imprintLogo: {
     width: '28px',
@@ -405,8 +522,8 @@ const styles = {
     flexShrink: 0,
   },
   imprintText: {
-    fontSize: '11px',
-    color: 'rgba(247, 244, 236, 0.48)',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    color: 'var(--ta-muted)',
     lineHeight: 1.35,
   }
 };

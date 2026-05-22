@@ -28,6 +28,7 @@ export function createTransferChunks({
         reportBackSettings: {
           enabled: Boolean(reportBackSettings.enabled),
           phone: reportBackSettings.phone || "",
+          mandatory: Boolean(reportBackSettings.mandatory),
           questions: Array.isArray(reportBackSettings.questions)
             ? reportBackSettings.questions
             : [],
