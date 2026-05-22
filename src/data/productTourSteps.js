@@ -26,7 +26,7 @@ export const productTourSteps = [
     eyebrow: "Optional organiser tools",
     title: "Need a fuller phonebank?",
     body:
-      "Use Organiser mode near the bottom of the sidebar when you need more structure. It adds an extra setup stage and extra tools for coordinated sessions.",
+      "Use Organiser mode to add the ability to give call notes, enable reporting back, and to run group sessions.",
     highlights: ["Call notes", "Reportbacks", "Session hosting"],
   },
 ];
