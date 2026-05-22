@@ -216,7 +216,7 @@ export async function createCompactTransferLinks(data, maxLength = MAX_TRANSFER_
     wasSplit: true,
     overLimit: links.some((link) => link.url.length > maxLength),
     message:
-      "There is a limit to how many contacts can go in one link, so contacts have been split into batches. Each link includes all templates.",
+      "This phonebank is too large for one compact link, so the contacts have been split into batches. Each link includes all templates and only the contacts shown for that batch.",
   };
 }
 

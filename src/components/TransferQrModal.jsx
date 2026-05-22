@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Link, X } from "lucide-react";
 import {
   createCompactTransferLinks,
-  MAX_TRANSFER_LINK_LENGTH,
 } from "../linkTransferUtils";
 
 export default function TransferQrModal({
@@ -48,6 +47,18 @@ export default function TransferQrModal({
   const transferLinks = currentTransfer.links || [];
   const linkMessage = currentTransfer.message || "";
   const qrCodes = batchQrCodes[currentBatchIndex] || [];
+  const currentQrLink = transferLinks[currentLinkIndex];
+  const currentBatchContactCount = currentBatch?.contacts.length || 0;
+  const isSplitTransfer = transferLinks.length > 1 || currentTransfer.wasSplit;
+
+  const getLinkContactSummary = (link) => {
+    const count = link?.contactCount ?? 0;
+    const total = currentBatchContactCount || count;
+    const suffix =
+      hostSessionEnabled && batches.length > 1 ? " for this participant" : "";
+
+    return `Contains ${count}/${total} contacts${suffix}`;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -246,9 +257,11 @@ export default function TransferQrModal({
                         ? ` of ${transferLinks.length}`
                         : ""}
                     </span>
-                    <span style={styles.linkLength}>
-                      {link.url.length} / {MAX_TRANSFER_LINK_LENGTH} characters
-                    </span>
+                    {isSplitTransfer && (
+                      <span style={styles.linkContactSummary}>
+                        {getLinkContactSummary(link)}
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -290,36 +303,48 @@ export default function TransferQrModal({
               )}
             </div>
 
-            <div style={styles.qrStatus}>
+            <div
+              style={{
+                ...styles.qrStatus,
+                ...(qrCodes.length <= 1 ? styles.qrStatusSingle : {}),
+              }}
+            >
+              {qrCodes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentLinkIndex((index) => Math.max(0, index - 1))
+                  }
+                  disabled={currentLinkIndex === 0}
+                  style={{ ...styles.smallNavBtn, justifySelf: "start" }}
+                >
+                  Prev link
+                </button>
+              )}
+              <div style={styles.qrStatusSummary}>
               <span style={styles.counter}>
                 QR {qrCodes.length ? currentLinkIndex + 1 : 0} of{" "}
                 {qrCodes.length}
               </span>
+              {isSplitTransfer && currentQrLink && (
+                <span style={styles.qrContactSummary}>
+                  {getLinkContactSummary(currentQrLink)}
+                </span>
+              )}
+              </div>
               {qrCodes.length > 1 && (
-                <div style={styles.linkQrNav}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentLinkIndex((index) => Math.max(0, index - 1))
-                    }
-                    disabled={currentLinkIndex === 0}
-                    style={styles.smallNavBtn}
-                  >
-                    Previous link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentLinkIndex((index) =>
-                        Math.min(qrCodes.length - 1, index + 1)
-                      )
-                    }
-                    disabled={currentLinkIndex === qrCodes.length - 1}
-                    style={styles.smallNavBtn}
-                  >
-                    Next link
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentLinkIndex((index) =>
+                      Math.min(qrCodes.length - 1, index + 1)
+                    )
+                  }
+                  disabled={currentLinkIndex === qrCodes.length - 1}
+                  style={{ ...styles.smallNavBtn, justifySelf: "end" }}
+                >
+                  Next link
+                </button>
               )}
             </div>
           </div>
@@ -486,12 +511,23 @@ const styles = {
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   qrStatus: {
+    display: "grid",
+    gridTemplateColumns: "minmax(78px, 1fr) auto minmax(78px, 1fr)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    marginTop: "10px",
+  },
+  qrStatusSingle: {
+    gridTemplateColumns: "1fr",
+  },
+  qrStatusSummary: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-    marginTop: "16px",
+    gap: "3px",
+    textAlign: "center",
+    minWidth: 0,
   },
   linkQrNav: {
     display: "flex",
@@ -502,8 +538,9 @@ const styles = {
     border: "1px solid rgba(79, 159, 104, 0.35)",
     color: "var(--ta-green)",
     borderRadius: "8px",
-    padding: "7px 10px",
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    padding: "6px 8px",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    whiteSpace: "nowrap",
   },
   navBtn: {
     display: "flex",
@@ -529,6 +566,11 @@ const styles = {
     fontFamily: "var(--font-mono)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     color: "var(--ta-muted-strong)",
+  },
+  qrContactSummary: {
+    color: "var(--ta-green)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
   },
   helperText: {
     marginTop: "4px",
@@ -575,9 +617,10 @@ const styles = {
     opacity: 0.45,
     cursor: "not-allowed",
   },
-  linkLength: {
-    color: "var(--ta-muted-strong)",
-    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+  linkContactSummary: {
+    color: "var(--ta-green)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
   },
   linkWarning: {
     color: "var(--ta-muted-strong)",
