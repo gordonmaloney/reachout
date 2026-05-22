@@ -15,7 +15,7 @@ export const initialTemplates = [
   {
     id: "t2",
     title: "No answer",
-    body: "Hey {FIRSTNAME}! Gordon from Living Rent here. I was just phoning to tell you about this action we've got coming up...",
+    body: "Hey {FIRSTNAME}! I'm getting in touch from Living Rent. I was just phoning to tell you about this action we've got coming up...",
   },
 ];
 
