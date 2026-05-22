@@ -18,12 +18,23 @@ export default function CallNotesStage({
   onNext,
 }) {
   const phoneInputRef = useRef(null);
+  const lastFocusTokenRef = useRef(reportbackPhoneFocusToken);
   const reportQuestions = reportBackSettings.questions?.length
     ? reportBackSettings.questions
     : defaultReportQuestions;
 
   useEffect(() => {
-    if (!reportbackPhoneFocusToken || !reportBackSettings.enabled) return undefined;
+    const isNewFocusRequest = reportbackPhoneFocusToken !== lastFocusTokenRef.current;
+    lastFocusTokenRef.current = reportbackPhoneFocusToken;
+
+    if (
+      !isNewFocusRequest ||
+      !reportbackPhoneFocusToken ||
+      !reportBackSettings.enabled ||
+      reportBackSettings.phone.trim()
+    ) {
+      return undefined;
+    }
 
     const input = phoneInputRef.current;
     if (!input) return undefined;
@@ -37,7 +48,7 @@ export default function CallNotesStage({
     }, 2200);
 
     return () => window.clearTimeout(timeout);
-  }, [reportbackPhoneFocusToken, reportBackSettings.enabled]);
+  }, [reportbackPhoneFocusToken, reportBackSettings.enabled, reportBackSettings.phone]);
 
   const addNote = () => {
     setCallNotes((notes) => [

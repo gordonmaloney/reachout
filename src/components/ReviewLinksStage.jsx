@@ -25,6 +25,7 @@ export default function ReviewLinksStage({
   const [showQR, setShowQR] = useState(false);
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [copiedPhoneId, setCopiedPhoneId] = useState('');
+  const sharedCallNotes = callNotes.filter((note) => note.text?.trim());
 
   const handleOpenQR = () => setShowQR(true);
   const handleCloseQR = () => setShowQR(false);
@@ -59,6 +60,7 @@ export default function ReviewLinksStage({
       accentPhrase="START"
       accentVariant={3}
       subtitle="The easiest route is to transfer everything to your phone, then call and message from there."
+      allowOverflow
     >
       <div style={styles.container}>
         <div style={styles.phoneTransferPanel}>
@@ -146,7 +148,21 @@ export default function ReviewLinksStage({
           </button>
         </div>
 
-        <div style={styles.contactsList} className="links-stage-scroll">
+        {sharedCallNotes.length > 0 && (
+          <div style={styles.callNotesBox}>
+            <span style={styles.callNotesTitle}>Call notes</span>
+            <p style={styles.callNotesIntro}>
+              These prompts apply to everyone in this phonebank.
+            </p>
+            <ul style={styles.callNotesList}>
+              {sharedCallNotes.map((note) => (
+                <li key={note.id}>{note.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div style={styles.contactsList}>
           {contacts.map((c) => (
             <div key={c.id} style={styles.contactCard} className="glass-card">
               <div style={styles.contactHeader}>
@@ -164,18 +180,6 @@ export default function ReviewLinksStage({
                 </div>
               </div>
               <div style={styles.linksWrapper}>
-                {callNotes.filter((note) => note.text?.trim()).length > 0 && (
-                  <div style={styles.callNotesBox}>
-                    <span style={styles.callNotesTitle}>Call notes</span>
-                    <ul style={styles.callNotesList}>
-                      {callNotes
-                        .filter((note) => note.text?.trim())
-                        .map((note) => (
-                          <li key={note.id}>{note.text}</li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
                 {templates.map((t) => (
                   <Links
                     key={t.id}
@@ -239,8 +243,8 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '14px',
-    flex: 1,
-    minHeight: 0,
+    flex: '0 0 auto',
+    minHeight: 'auto',
   },
   phoneTransferPanel: {
     display: 'flex',
@@ -380,10 +384,10 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    paddingRight: '8px',
+    flex: '0 0 auto',
+    minHeight: 'auto',
+    overflow: 'visible',
+    paddingRight: 0,
   },
   contactCard: {
     display: 'flex',
@@ -393,6 +397,7 @@ const styles = {
     backgroundColor: 'color-mix(in srgb, var(--ta-cream) 5%, transparent)',
     border: '1px solid var(--ta-border-subtle)',
     borderRadius: '12px',
+    minWidth: 0,
   },
   contactHeader: {
     display: 'flex',
@@ -429,14 +434,15 @@ const styles = {
   },
   linksWrapper: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: '8px',
   },
   callNotesBox: {
     backgroundColor: 'rgba(79, 159, 104, 0.07)',
     border: '1px solid rgba(79, 159, 104, 0.22)',
-    borderRadius: '8px',
-    padding: '10px 12px',
+    borderRadius: '12px',
+    padding: '12px 14px',
   },
   callNotesTitle: {
     display: 'block',
@@ -444,7 +450,13 @@ const styles = {
     color: 'var(--ta-green)',
     fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     letterSpacing: '0.05em',
-    marginBottom: '4px',
+    marginBottom: '3px',
+  },
+  callNotesIntro: {
+    color: 'var(--ta-muted)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+    marginBottom: '8px',
   },
   callNotesList: {
     paddingLeft: '18px',

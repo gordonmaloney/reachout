@@ -53,10 +53,15 @@ export default function MobileWorkspace({
     >
       {/* Top Header */}
       <header style={styles.header} className="glow-text">
-        <h2 style={styles.title}>
-          TENANT<span style={styles.actGreen}>ACT</span> |{" "}
-          <span style={styles.actGreen}>REACH</span>OUT
-        </h2>
+        <div style={styles.logoGroup}>
+          <h2 style={styles.title}>
+            <span style={styles.actGreen}>REACH</span>OUT
+          </h2>
+          <span style={styles.divider}>|</span>
+          <span style={styles.tenantCredit}>
+            by Tenant<span style={styles.actGreen}>Act</span>
+          </span>
+        </div>
         {view === "deck" && (
           <span style={styles.progress}>
             {Math.min(currentIdx + 1, deckCount)} of {deckCount}
@@ -155,21 +160,50 @@ const styles = {
     overflow: "hidden",
   },
   header: {
-    padding: "2px 6px",
+    minHeight: "36px",
+    padding: "4px 8px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottom: "1px solid var(--ta-border-subtle)",
+    gap: "8px",
+  },
+  logoGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    minWidth: 0,
   },
   title: {
     fontFamily: "var(--font-heading)",
-    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(25px * var(--reachout-text-scale, 1))",
     margin: 0,
+    color: "var(--ta-cream)",
+    lineHeight: 1,
+    letterSpacing: "0.035em",
+    whiteSpace: "nowrap",
+  },
+  divider: {
+    color: "var(--ta-divider)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    display: "flex",
+    alignItems: "center",
+  },
+  tenantCredit: {
+    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
+    color: "var(--ta-muted-strong)",
+    letterSpacing: "0.01em",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+    display: "flex",
+    alignItems: "center",
   },
   progress: {
     fontFamily: "var(--font-mono)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     color: "var(--ta-green)",
+    flexShrink: 0,
   },
   main: {
     height: "100dvh",

@@ -6,12 +6,12 @@ export default function Header({
   return (
     <header style={styles.header}>
       <div style={styles.logoGroup}>
-        <span style={styles.tenantAct}>
-          TENANT<span style={styles.actGreen}>ACT</span>
-        </span>
-        <span style={styles.divider}>|</span>
         <span style={styles.reachout}>
           <span style={styles.actGreen}>REACH</span>OUT
+        </span>
+        <span style={styles.divider}>|</span>
+        <span style={styles.tenantCredit}>
+          by Tenant<span style={styles.actGreen}>Act</span>
         </span>
       </div>
 
@@ -59,26 +59,28 @@ const styles = {
     alignItems: "center",
     gap: "16px",
   },
-  tenantAct: {
-    fontFamily: "var(--font-heading)",
-    fontSize: "calc(34px * var(--reachout-text-scale, 1))",
-    color: "var(--ta-cream)",
-    letterSpacing: "0.035em",
-  },
   actGreen: {
     color: "var(--ta-green)",
     textShadow: "none",
   },
   divider: {
     color: "var(--ta-divider)",
-    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(22px * var(--reachout-text-scale, 1))",
     fontWeight: "300",
   },
   reachout: {
     fontFamily: "var(--font-heading)",
-    fontSize: "calc(34px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(38px * var(--reachout-text-scale, 1))",
     color: "var(--ta-cream)",
     letterSpacing: "0.035em",
+  },
+  tenantCredit: {
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    color: "var(--ta-muted-strong)",
+    letterSpacing: "0.02em",
+    textTransform: "none",
+    whiteSpace: "nowrap",
   },
   headerActions: {
     display: "flex",

@@ -154,8 +154,8 @@ export default function MobileContactCard({
               )}
             </div>
           ) : callNotes.filter((note) => note.text?.trim()).length > 0 && (
-            <div style={styles.callNotesBox}>
-              <span style={styles.callNotesTitle}>Call notes</span>
+            <div style={styles.callNotesBlock}>
+              <span style={styles.callNotesTitle}>Talking point reminders:</span>
               <ul style={styles.callNotesList}>
                 {callNotes
                   .filter((note) => note.text?.trim())
@@ -235,25 +235,25 @@ const styles = {
     letterSpacing: 0,
     textTransform: 'none',
   },
-  callNotesBox: {
-    backgroundColor: 'rgba(79, 159, 104, 0.07)',
-    border: '1px solid rgba(79, 159, 104, 0.22)',
-    borderRadius: '8px',
-    padding: '9px 10px',
+  callNotesBlock: {
+    padding: '3px 0 4px 2px',
   },
   callNotesTitle: {
     display: 'block',
-    fontFamily: 'var(--font-heading)',
-    color: 'var(--ta-green)',
-    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
-    letterSpacing: '0.05em',
-    marginBottom: '4px',
+    color: 'var(--ta-muted-strong)',
+    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+    letterSpacing: 0,
+    marginBottom: '6px',
   },
   callNotesList: {
-    paddingLeft: '17px',
+    paddingLeft: '16px',
     color: 'var(--ta-muted-strong)',
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
-    lineHeight: 1.35,
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.45,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
   },
   scrollShell: {
     position: 'relative',

@@ -135,6 +135,7 @@ export default function ContactsStage({
           </a>
         </>
       }
+      allowOverflow
     >
       <div style={styles.contentGrid}>
         {/* Left Side: Paste Box Card */}
@@ -285,20 +286,24 @@ export default function ContactsStage({
 
 const styles = {
   contentGrid: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
     gap: "32px",
-    flex: 1,
-    minHeight: "380px",
+    alignItems: "start",
+    width: "100%",
+    overflow: "visible",
   },
   pasteColumn: {
-    flex: 1,
     display: "flex",
     flexDirection: "column",
     gap: "14px",
     minWidth: 0,
+    width: "100%",
+    overflow: "visible",
   },
   pasteCard: {
-    flex: 1,
+    flex: "0 0 auto",
+    minHeight: "340px",
     position: "relative",
     display: "flex",
     flexDirection: "column",
@@ -410,11 +415,12 @@ const styles = {
     color: "var(--ta-muted)",
   },
   previewColumn: {
-    flex: 1,
     display: "flex",
     flexDirection: "column",
     gap: "14px",
     minWidth: 0,
+    width: "100%",
+    overflow: "visible",
   },
   previewCard: {
     display: "flex",
@@ -422,9 +428,8 @@ const styles = {
     backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
     border: "1px solid var(--ta-border-medium)",
     borderRadius: "18px",
-    height: "380px",
-    maxHeight: "min(380px, calc(100vh - 300px))",
-    minHeight: "260px",
+    height: "clamp(320px, 48vh, 420px)",
+    minHeight: 0,
     overflow: "hidden",
   },
   previewHeader: {
@@ -496,7 +501,7 @@ const styles = {
     justifyContent: "flex-end",
     borderTop: "1px solid var(--ta-border-subtle)",
     paddingTop: "20px",
-    marginTop: "auto",
+    marginTop: 0,
   },
   continueBtn: {
     backgroundColor: "var(--ta-green)",

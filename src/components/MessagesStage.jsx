@@ -44,6 +44,7 @@ export default function MessagesStage({
       accentPhrase="MESSAGES"
       accentVariant={1}
       subtitle="Create the message templates you want to send to each contact."
+      allowOverflow
     >
       <div className="glass-card" style={styles.container}>
         <div style={styles.tokenHelper}>
@@ -139,16 +140,16 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "24px",
-    height: "100%",
-    minHeight: 0,
+    height: "auto",
+    minHeight: "100%",
   },
   templatesGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
     gap: "20px",
-    flex: 1,
-    overflowY: "auto",
-    paddingRight: "8px",
+    flex: "0 0 auto",
+    overflow: "visible",
+    paddingRight: 0,
   },
   tokenHelper: {
     backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
