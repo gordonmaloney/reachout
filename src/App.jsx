@@ -23,9 +23,22 @@ const defaultReportBackQuestions = [
   { id: 'pickedUp', label: 'Did they pick up?', type: 'yes_no' },
   { id: 'notes', label: 'Notes', type: 'text' },
 ];
+const reportbackRouteCallNotes = [
+  { id: 'route_note_1', text: 'Remind them about the branch meeting next Thursday.' },
+  { id: 'route_note_2', text: 'Ask whether they have any current rent or repairs issues.' },
+  { id: 'route_note_3', text: 'Check if they would be up for taking one small action this week.' },
+];
+const reportbackRouteSettings = {
+  enabled: true,
+  phone: '+44 7700 900123',
+  mandatory: false,
+  questions: defaultReportBackQuestions,
+};
 
 export default function App() {
-  const isOrganiserRoute = window.location.pathname.replace(/\/+$/, '') === '/organiser';
+  const routePath = window.location.pathname.replace(/\/+$/, '');
+  const isOrganiserRoute = routePath === '/organiser';
+  const isReportbackRoute = routePath === '/reportback';
   const [organiserModeEnabled, setOrganiserModeEnabled] = useState(isOrganiserRoute);
   const isOrganiser = isOrganiserRoute || organiserModeEnabled;
   const totalStages = isOrganiser ? 4 : 3;
@@ -267,8 +280,17 @@ export default function App() {
     const shouldOpenScanner =
       new URLSearchParams(window.location.search).get('scan') === '1' ||
       new URLSearchParams(window.location.search).has('data');
+    const shouldUseReportbackDemo = isReportbackRoute && !hasTransferLink();
+    const mobileCallNotes =
+      shouldUseReportbackDemo && callNotes.length === 0
+        ? reportbackRouteCallNotes
+        : callNotes;
+    const mobileReportBackSettings =
+      shouldUseReportbackDemo && !reportBackSettings.enabled
+        ? reportbackRouteSettings
+        : reportBackSettings;
 
-    return <MobileWorkspace contacts={contacts} setContacts={setContacts} templates={templates} setTemplates={setTemplates} callNotes={callNotes} setCallNotes={setCallNotes} reportBackSettings={reportBackSettings} setReportBackSettings={setReportBackSettings} selectedDialCode={selectedDialCode} setSelectedDialCode={setSelectedDialCode} extraChannelsEnabled={extraChannelsEnabled} setExtraChannelsEnabled={setExtraChannelsEnabled} initialView={shouldOpenScanner ? 'scan' : 'deck'} theme={theme} onToggleTheme={toggleTheme} fontScale={fontScale} />;
+    return <MobileWorkspace contacts={contacts} setContacts={setContacts} templates={templates} setTemplates={setTemplates} callNotes={mobileCallNotes} setCallNotes={setCallNotes} reportBackSettings={mobileReportBackSettings} setReportBackSettings={setReportBackSettings} selectedDialCode={selectedDialCode} setSelectedDialCode={setSelectedDialCode} extraChannelsEnabled={extraChannelsEnabled} setExtraChannelsEnabled={setExtraChannelsEnabled} initialView={shouldOpenScanner ? 'scan' : 'deck'} theme={theme} onToggleTheme={toggleTheme} fontScale={fontScale} />;
   }
   return (
     <div
