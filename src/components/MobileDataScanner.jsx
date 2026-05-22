@@ -15,6 +15,7 @@ export default function MobileDataScanner({
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState("Ready to scan QR codes from desktop.");
   const [importSummary, setImportSummary] = useState(null);
+  const [cameraStarting, setCameraStarting] = useState(false);
   const chunksRef = useRef([]);
   const initialUrlProcessedRef = useRef(false);
 
@@ -124,6 +125,8 @@ export default function MobileDataScanner({
       const { Html5Qrcode } = await import("html5-qrcode");
       if (!active) return;
 
+      setCameraStarting(true);
+      setProgress("Starting the back camera...");
       scanner = new Html5Qrcode("reachout-reader", false);
 
       const config = {
@@ -142,13 +145,16 @@ export default function MobileDataScanner({
 
       try {
         await scanner.start(
-          { facingMode: { ideal: "environment" } },
+          { facingMode: "environment" },
           config,
           onScanSuccess,
           onScanFailure
         );
+        setCameraStarting(false);
+        setProgress("Camera ready. Point it at the QR code.");
       } catch {
         try {
+          setProgress("Finding an available back camera...");
           const cameras = await Html5Qrcode.getCameras();
           const backCamera =
             cameras.find((camera) =>
@@ -167,7 +173,10 @@ export default function MobileDataScanner({
             onScanSuccess,
             onScanFailure
           );
+          setCameraStarting(false);
+          setProgress("Camera ready. Point it at the QR code.");
         } catch {
+          setCameraStarting(false);
           setProgress(
             "Could not start the camera. Check camera permission and try again."
           );
@@ -180,6 +189,7 @@ export default function MobileDataScanner({
 
     return () => {
       active = false;
+      setCameraStarting(false);
       if (scanner?.isScanning) {
         scanner.stop().then(() => scanner.clear()).catch(() => {});
       } else {
@@ -249,7 +259,19 @@ export default function MobileDataScanner({
         </button>
       )}
 
-      {isScanning && <div id="reachout-reader" style={styles.reader} />}
+      {isScanning && (
+        <div style={styles.readerShell}>
+          <div id="reachout-reader" style={styles.reader} />
+          {cameraStarting && (
+            <div style={styles.readerLoading}>
+              <span style={styles.readerLoadingTitle}>Starting camera</span>
+              <span style={styles.readerLoadingText}>
+                If asked, allow camera access.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
       <p style={styles.progress}>{progress}</p>
     </div>
   );
@@ -315,6 +337,38 @@ const styles = {
     borderRadius: "10px",
     border: "1px solid var(--ta-border-subtle)",
     backgroundColor: "var(--ta-dark-2)",
+    minHeight: "280px",
+  },
+  readerShell: {
+    position: "relative",
+    width: "100%",
+    minHeight: "280px",
+    borderRadius: "10px",
+    overflow: "hidden",
+  },
+  readerLoading: {
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    backgroundColor: "var(--ta-dark-2)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "10px",
+    color: "var(--ta-muted-strong)",
+    textAlign: "center",
+    pointerEvents: "none",
+  },
+  readerLoadingTitle: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-green)",
+    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+  },
+  readerLoadingText: {
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   progress: {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",

@@ -45,6 +45,10 @@ export default function MobileWorkspace({
         template.body === initialTemplates[index]?.body
     );
   const showExampleToast = isMobile && isExampleData && !exampleToastDismissed;
+  const changeView = (nextView) => {
+    setExampleToastDismissed(true);
+    setView(nextView);
+  };
 
   // Simple responsive check (optional)
   useEffect(() => {
@@ -129,7 +133,7 @@ export default function MobileWorkspace({
             onImported={() => {
               setCurrentIdx(0);
               setContactReports({});
-              setView("deck");
+              changeView("deck");
             }}
           />
         )}
@@ -149,7 +153,7 @@ export default function MobileWorkspace({
       {/* Bottom navbar */}
       <nav style={styles.navBar} className="glass-card">
         <button
-          onClick={() => setView("deck")}
+          onClick={() => changeView("deck")}
           style={{
             ...styles.navBtn,
             ...(view === "deck" ? styles.navBtnActive : {}),
@@ -158,7 +162,7 @@ export default function MobileWorkspace({
           <Smartphone size={20} /> Contacts
         </button>
         <button
-          onClick={() => setView("templates")}
+          onClick={() => changeView("templates")}
           style={{
             ...styles.navBtn,
             ...(view === "templates" ? styles.navBtnActive : {}),
@@ -167,7 +171,7 @@ export default function MobileWorkspace({
           <FileText size={20} /> Set up
         </button>
         <button
-          onClick={() => setView("scan")}
+          onClick={() => changeView("scan")}
           style={{
             ...styles.navBtn,
             ...(view === "scan" ? styles.navBtnActive : {}),
