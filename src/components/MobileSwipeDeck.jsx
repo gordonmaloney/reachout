@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import MobileContactCard from "./MobileContactCard";
 import MobileReportBackCard from "./MobileReportBackCard";
-import { ArrowLeft, ArrowRight, CheckCircle, MessageSquare, Phone } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  MessageSquare,
+  Phone,
+} from "lucide-react";
 import "./MobileSwipeDeck.css";
 
 export default function MobileSwipeDeck({
@@ -77,6 +83,10 @@ export default function MobileSwipeDeck({
 
   const handleTouchMove = (e) => {
     if (!isDragging) return;
+
+    //close example modal on swipe begin
+    initialIndex == 0 && onFirstTouch();
+
     const touch = e.touches ? e.touches[0] : e;
     const dx = touch.clientX - startXRef.current;
     const dy = touch.clientY - startYRef.current;
@@ -102,6 +112,18 @@ export default function MobileSwipeDeck({
     }
 
     if (gestureAxisRef.current === "horizontal") {
+      //only allow card swiping if there's one to swipe to
+      const THRESHOLD = 14
+
+      //right
+      if (dx < -THRESHOLD) {
+        if (index == contacts.length + 1) return;
+      }
+      //left
+      else if (dx > THRESHOLD) {
+        if (index == 0) return;
+      }
+
       setDragX(dx);
     }
   };
@@ -398,8 +420,8 @@ function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
       <span style={infoStyles.kicker}>Phonebank ready</span>
       <h2 style={infoStyles.title}>You're ready to start</h2>
       <p style={infoStyles.text}>
-        Work through the contacts one at a time. Use the buttons on each card
-        to call people or send the template messages that have been loaded.
+        Work through the contacts one at a time. Use the buttons on each card to
+        call people or send the template messages that have been loaded.
       </p>
       <div style={infoStyles.summary}>
         <span>{contactCount} contacts loaded</span>
@@ -407,8 +429,13 @@ function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
         {reportBackEnabled && <span>Reportback enabled</span>}
       </div>
       <div style={infoStyles.tips}>
-        <span><Phone size={16} /> The Call button opens your phone dialler.</span>
-        <span><MessageSquare size={16} /> Use Set up if you want to change the templates first.</span>
+        <span>
+          <Phone size={16} /> The Call button opens your phone dialler.
+        </span>
+        <span>
+          <MessageSquare size={16} /> Use Set up if you want to change the
+          templates first.
+        </span>
       </div>
     </div>
   );

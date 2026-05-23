@@ -30,7 +30,8 @@ export default function MobileWorkspace({
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const isContactCardOpen = view === "deck" && currentIdx > 0 && currentIdx <= contacts.length;
+  const isContactCardOpen =
+    view === "deck" && currentIdx > 0 && currentIdx <= contacts.length;
   const isExampleData =
     contacts.length === initialContacts.length &&
     templates.length === initialTemplates.length &&
@@ -61,7 +62,10 @@ export default function MobileWorkspace({
   useEffect(() => {
     if (!showExampleToast) return undefined;
 
-    const timeout = window.setTimeout(() => setExampleToastDismissed(true), 4200);
+    const timeout = window.setTimeout(
+      () => setExampleToastDismissed(true),
+      4200
+    );
     return () => window.clearTimeout(timeout);
   }, [showExampleToast]);
 
@@ -101,7 +105,9 @@ export default function MobileWorkspace({
       <main style={styles.main}>
         {view === "deck" ? (
           <MobileSwipeDeck
-            key={`${contacts.map((contact) => contact.id).join("|")}-${initialView}`}
+            key={`${contacts
+              .map((contact) => contact.id)
+              .join("|")}-${initialView}`}
             contacts={contacts}
             setContacts={setContacts}
             templates={templates}
@@ -110,8 +116,10 @@ export default function MobileWorkspace({
             callNotes={callNotes}
             reportBackSettings={reportBackSettings}
             contactReports={contactReports}
+            onIndexChange={(idx) => {
+              setCurrentIdx(idx);
+            }}
             setContactReports={setContactReports}
-            onIndexChange={setCurrentIdx}
             onFirstTouch={() => setExampleToastDismissed(true)}
             initialIndex={currentIdx}
           />
@@ -142,13 +150,18 @@ export default function MobileWorkspace({
       </main>
 
       {showExampleToast && (
-        <div style={styles.exampleToast} role="status" aria-live="polite">
-          <span style={styles.exampleToastTitle}>Example data</span>
-          <span style={styles.exampleToastText}>
-            These contacts and templates are here to demo the phonebank. Scan
-            data or open a transfer link to load your real setup.
-          </span>
-          <span className="example-data-toast-progress" aria-hidden="true" />
+        <div
+          style={styles.exampleOverlay}
+          onClick={() => setExampleToastDismissed(true)}
+        >
+          <div style={styles.exampleToast}>
+            <span style={styles.exampleToastTitle}>Example data</span>
+            <span style={styles.exampleToastText}>
+              These contacts and templates are here to demo the tool. Scan data
+              or open a transfer link to load your real setup.
+            </span>
+            <span className="example-data-toast-progress" aria-hidden="true" />
+          </div>
         </div>
       )}
 
@@ -286,6 +299,17 @@ const styles = {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.35,
+  },
+  exampleOverlay: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "var(--modal-overlay)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+    padding: "24px",
+    backdropFilter: "blur(1px)",
   },
   navBtn: {
     background: "transparent",

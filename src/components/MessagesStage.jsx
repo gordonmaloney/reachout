@@ -2,6 +2,7 @@
 import { Info, X, Plus, ArrowRight, Check } from "lucide-react";
 import { initialTemplates } from "../data/mockData";
 import StageShell from "./StageShell";
+import { useEffect } from "react";
 
 const FIRSTNAME_TOKEN = "{FIRSTNAME}";
 const FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS = [
@@ -38,6 +39,7 @@ export default function MessagesStage({
   stageNumLabel = "Stage 2 of 3",
   nextLabel = "Start messaging",
 }) {
+
   const handleTitleChange = (id, value) => {
     setTemplates((prev) =>
       prev.map((t) => (t.id === id ? { ...t, title: value } : t))
