@@ -247,7 +247,7 @@ const styles = {
     height: "100dvh",
     flex: 1,
     overflowY: "auto",
-    padding: "12px",
+    padding: "6px",
   },
   navBar: {
     display: "flex",

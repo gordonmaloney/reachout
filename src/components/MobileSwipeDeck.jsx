@@ -296,8 +296,8 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    padding: "24px",
-    gap: "12px",
+    padding: "10px",
+    gap: "8px",
   },
   cardArea: {
     position: "relative",
@@ -314,7 +314,7 @@ const styles = {
   },
   navRow: {
     display: "flex",
-    gap: "24px",
+    gap: "12px",
     marginTop: "auto",
   },
   blockMessage: {
@@ -333,7 +333,7 @@ const styles = {
     border: "1px solid var(--ta-green)",
     color: "var(--ta-green)",
     borderRadius: "8px",
-    padding: "8px 16px",
+    padding: "8px 14px",
     fontFamily: "var(--font-heading)",
     fontSize: "calc(14px * var(--reachout-text-scale, 1))",
     cursor: "pointer",
