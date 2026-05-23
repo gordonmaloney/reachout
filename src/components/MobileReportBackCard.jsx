@@ -1,4 +1,4 @@
-import { Check, Copy, MessageCircle, Send, CheckCircle } from "lucide-react";
+import { Check, Copy, MessageCircle, Send, CheckCircle} from "lucide-react";
 import { useMemo, useState } from "react";
 import { getWhatsAppPhoneNumber, normalizePhoneNumber } from "../utils";
 

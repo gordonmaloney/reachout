@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Links from "./Links";
-import { Check, Contact, Copy, Phone } from "lucide-react";
+import { Check, Contact, Copy, Phone, X} from "lucide-react";
 import { generateCallLink, normalizePhoneNumber } from "../utils";
 
 const callButtonStyle = {
@@ -70,6 +70,13 @@ export default function MobileContactCard({
     });
   };
 
+    const undoContacted = () => {
+      setReport({
+        contacted: false
+      });
+    };
+
+
   const updateAnswer = (questionId, answer) => {
     updateReport({
       answers: {
@@ -113,6 +120,14 @@ export default function MobileContactCard({
         <div style={styles.scrollBody} className="mobile-card-scroll">
           {isReporting ? (
             <div style={styles.reportForm}>
+              <button
+                onClick={() => undoContacted()}
+                style={styles.iconBtn}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+
               <span style={styles.reportTitle}>Contact report</span>
               {reportBackRequired && (
                 <span style={styles.requiredHint}>
@@ -246,6 +261,21 @@ const styles = {
   contactText: {
     flex: 1,
     minWidth: 0,
+  },
+  iconBtn: {
+    position: "absolute",
+    top: "14px",
+    right: "14px",
+    zIndex: 2,
+    width: "34px",
+    height: "34px",
+    background: "transparent",
+    border: "1px solid var(--ta-border-subtle)",
+    color: "var(--ta-cream)",
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   name: {
     fontSize: "calc(22px * var(--reachout-text-scale, 1))",
