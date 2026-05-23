@@ -69,7 +69,9 @@ export default function ReviewLinksStage({
               <span style={styles.recommendedLabel}>Recommended</span>
               <h3 style={styles.phoneTransferTitle}>Send this phonebank to your mobile</h3>
               <p style={styles.phoneTransferText}>
-                Transfer your contacts, message templates, dial code and channel settings. On your phone, open this app, tap Scan data, then scan the QR codes shown here.
+                Move this phonebank to your mobile so you can call and message
+                from there. Open the link on your phone or scan the QR code
+                with your camera.
               </p>
             </div>
             <button onClick={handleOpenQR} style={styles.qrBtn} className="hover-lift">
@@ -354,7 +356,7 @@ const styles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
   hostSummary: {
-    color: 'rgba(79, 159, 104, 0.9)',
+    color: 'var(--ta-link-green)',
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
   utilityRow: {
@@ -477,8 +479,11 @@ const styles = {
     color: 'var(--ta-cream)',
     borderRadius: '10px',
     padding: '10px 24px',
-    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
-    fontWeight: 'bold',
+    fontFamily: 'var(--font-body)',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: 'none',
   },
   qrBtn: {
     backgroundColor: 'var(--ta-green)',
@@ -502,8 +507,11 @@ const styles = {
     color: 'var(--ta-green)',
     borderRadius: '10px',
     padding: '10px 18px',
-    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
-    fontWeight: 'bold',
+    fontFamily: 'var(--font-body)',
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: 'none',
   },
   restartBtn: {
     backgroundColor: 'rgba(53,168,102,0.08)',

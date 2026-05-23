@@ -14,7 +14,7 @@
   --ta-red: #d36a58;
   --ta-muted: rgba(244, 239, 228, 0.66);
   --ta-muted-strong: rgba(244, 239, 228, 0.78);
-  --ta-link-green: rgba(102, 190, 128, 0.86);
+  --ta-link-green: #66be80;
   --ta-border-subtle: rgba(244, 239, 228, 0.1);
   --ta-border-medium: rgba(244, 239, 228, 0.28);
   --ta-divider: rgba(247, 244, 236, 0.25);
@@ -67,13 +67,21 @@ h6 {
 
 button,
 .btn {
-  font-family: var(--font-heading);
-  font-weight: 400;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   border: none;
+}
+
+.app-container :where(button, .btn, .message-link-action, a.hover-lift),
+.mobile-workspace :where(button, .btn, .message-link-action, a.hover-lift) {
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
 }
 
 button:focus-visible {
@@ -200,18 +208,18 @@ select:focus-visible {
 }
 
 :where(.app-container, .mobile-workspace)[data-theme="light"] {
-  --ta-dark: #eef2ef;
-  --ta-dark-2: #e3e8e4;
-  --ta-ink: #f9faf8;
+  --ta-dark: #f1f4f3;
+  --ta-dark-2: #e8edeb;
+  --ta-ink: #fbfcfc;
   --ta-cream: #151d17;
   --ta-white: #0f1712;
-  --ta-gray: #5d6960;
-  --ta-gray-dark: #d2d9d3;
-  --ta-green: #367c4d;
-  --ta-green-dark: #2b633e;
+  --ta-gray: #596760;
+  --ta-gray-dark: #d7dfdb;
+  --ta-green: #317144;
+  --ta-green-dark: #285c37;
   --ta-red: #a24b43;
-  --ta-muted: rgba(21, 29, 23, 0.62);
-  --ta-muted-strong: rgba(21, 29, 23, 0.76);
+  --ta-muted: rgba(21, 29, 23, 0.68);
+  --ta-muted-strong: rgba(21, 29, 23, 0.82);
   --ta-link-green: #245f39;
   --ta-border-subtle: rgba(21, 29, 23, 0.11);
   --ta-border-medium: rgba(21, 29, 23, 0.22);
@@ -223,8 +231,8 @@ select:focus-visible {
   --modal-overlay: rgba(21, 29, 23, 0.38);
   --modal-card-bg: rgba(249, 250, 248, 0.98);
   --modal-card-shadow: 0 22px 70px rgba(27, 38, 31, 0.22);
-  --surface-subtle: rgba(255, 255, 255, 0.52);
-  --surface-raised: rgba(255, 255, 255, 0.72);
+  --surface-subtle: rgba(255, 255, 255, 0.6);
+  --surface-raised: rgba(255, 255, 255, 0.78);
   --border-glow: 0 4px 12px rgba(27, 38, 31, 0.12);
   --green-glow: 0 0 0 1px rgba(54, 124, 77, 0.2);
 }
@@ -232,7 +240,7 @@ select:focus-visible {
 :where(.app-container, .mobile-workspace)[data-theme="light"] .glass-card,
 :where(.app-container, .mobile-workspace)[data-theme="light"]
   .glass-card-mobile {
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.68);
   border-color: rgba(21, 29, 23, 0.12);
 }
 
@@ -245,17 +253,17 @@ select:focus-visible {
   .stage-shell::before {
   background-image: linear-gradient(
       120deg,
-      rgba(249, 250, 248, 0.9) 0%,
-      rgba(232, 238, 233, 0.42) 62%,
+      rgba(251, 252, 252, 0.92) 0%,
+      rgba(235, 241, 238, 0.5) 62%,
       rgba(54, 124, 77, 0.03) 100%
     ),
-    radial-gradient(rgba(54, 124, 77, 0.14) 0.7px, transparent 0.8px);
-  opacity: 0.7;
+    radial-gradient(rgba(54, 124, 77, 0.1) 0.7px, transparent 0.8px);
+  opacity: 0.64;
 }
 
 :where(.app-container, .mobile-workspace)[data-theme="light"]
   .message-link-card {
-  background-color: rgba(255, 255, 255, 0.52);
+  background-color: rgba(255, 255, 255, 0.68);
   border-color: rgba(21, 29, 23, 0.12);
 }
 
@@ -494,6 +502,23 @@ select:focus-visible {
   animation: scan-success-progress 2.6s linear forwards;
 }
 
+.contacts-import-toast-progress {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--ta-green);
+  transform-origin: left center;
+  animation: contacts-import-toast-progress 3s linear forwards;
+}
+
+.contacts-import-toast-progress-error {
+  background: var(--ta-red);
+  animation-duration: 4s;
+}
+
 @keyframes example-toast-progress {
   from {
     transform: scaleX(0);
@@ -504,6 +529,15 @@ select:focus-visible {
 }
 
 @keyframes scan-success-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes contacts-import-toast-progress {
   from {
     transform: scaleX(0);
   }

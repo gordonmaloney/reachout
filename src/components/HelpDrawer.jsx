@@ -154,7 +154,7 @@ Jake Woods, +44 3461 234567`}
             style={styles.footerBtn}
             className="hover-lift"
           >
-            GOT IT
+            Got it
           </button>
         </div>
       </div>

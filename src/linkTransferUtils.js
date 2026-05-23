@@ -1,5 +1,6 @@
 const LINK_PREFIX = "ro";
 const LINK_VERSION = 1;
+const SHARE_LINK_PATH = "/share";
 export const MAX_TRANSFER_LINK_LENGTH = 2000;
 
 function bytesToBase64Url(bytes) {
@@ -132,6 +133,7 @@ export async function createCompactTransferLink(data) {
   };
   const token = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(transfer)));
   const url = new URL(window.location.href);
+  url.pathname = SHARE_LINK_PATH;
   url.search = "";
   url.hash = `${LINK_PREFIX}=${token}`;
 

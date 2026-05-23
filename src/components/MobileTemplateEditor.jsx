@@ -105,7 +105,9 @@ export default function MobileTemplateEditor({
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3 style={styles.modalTitle}>Add Signal and Telegram</h3>
             <p style={styles.modalText}>
-              This adds Signal and Telegram buttons to each contact card. Signal does not allow pre-filled messages, so tapping Signal will copy the message to your clipboard and open the chat with the contact's number.
+              This adds Signal and Telegram as contact options. Signal does not
+              allow pre-filled messages, so tapping Signal will copy the
+              message to your clipboard and open the chat with the contact.
             </p>
             <p style={styles.modalText}>
               Telegram will open the contact by phone number where supported by the app.

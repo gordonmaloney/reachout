@@ -23,7 +23,7 @@ export default function Header({
           className="hover-lift"
         >
           <HelpCircle size={14} color="var(--ta-green)" />
-          <span>HOW IT WORKS</span>
+          <span>How it works</span>
         </button>
 
         <a
@@ -33,7 +33,7 @@ export default function Header({
           style={styles.livingRentLink}
           className="hover-lift"
         >
-          <span>LIVING RENT</span>
+          <span>Living Rent</span>
           <ExternalLink size={14} color="var(--ta-cream)" />
         </a>
       </div>

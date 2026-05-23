@@ -16,9 +16,12 @@ import MobileWorkspace from './components/MobileWorkspace';
 const TOUR_STORAGE_KEY = 'reachout.productTourSeen';
 const THEME_STORAGE_KEY = 'reachout.theme';
 const FONT_SCALE_STORAGE_KEY = 'reachout.fontScale';
+const FONT_SCALE_DEFAULT_VERSION_KEY = 'reachout.fontScaleDefaultVersion';
+const FONT_SCALE_DEFAULT_VERSION = '2';
 const FONT_SCALE_MIN = 0.95;
 const FONT_SCALE_MAX = 1.16;
 const FONT_SCALE_STEP = 0.07;
+const DESKTOP_DEFAULT_FONT_SCALE = 1 + FONT_SCALE_STEP;
 const defaultReportBackQuestions = [
   { id: 'pickedUp', label: 'Did they pick up?', type: 'yes_no' },
   { id: 'notes', label: 'Notes', type: 'text' },
@@ -34,6 +37,54 @@ const reportbackRouteSettings = {
   mandatory: false,
   questions: defaultReportBackQuestions,
 };
+
+function getSystemTheme() {
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function getInitialTheme() {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY) || getSystemTheme();
+  } catch {
+    return getSystemTheme();
+  }
+}
+
+function getDefaultFontScale() {
+  return window.innerWidth > 480 ? DESKTOP_DEFAULT_FONT_SCALE : 1;
+}
+
+function clampFontScale(scale) {
+  return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, scale));
+}
+
+function getInitialFontScale() {
+  const defaultScale = getDefaultFontScale();
+
+  try {
+    const storedValue = window.localStorage.getItem(FONT_SCALE_STORAGE_KEY);
+    const storedDefaultVersion = window.localStorage.getItem(FONT_SCALE_DEFAULT_VERSION_KEY);
+    const storedScale = Number(storedValue);
+
+    if (!Number.isFinite(storedScale)) {
+      return defaultScale;
+    }
+
+    if (
+      window.innerWidth > 480 &&
+      storedDefaultVersion !== FONT_SCALE_DEFAULT_VERSION &&
+      storedScale <= 1
+    ) {
+      window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(defaultScale));
+      window.localStorage.setItem(FONT_SCALE_DEFAULT_VERSION_KEY, FONT_SCALE_DEFAULT_VERSION);
+      return defaultScale;
+    }
+
+    return clampFontScale(storedScale);
+  } catch {
+    return defaultScale;
+  }
+}
 
 export default function App() {
   const routePath = window.location.pathname.replace(/\/+$/, '');
@@ -65,24 +116,8 @@ export default function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [transferLoaded, setTransferLoaded] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    try {
-      return window.localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
-    } catch {
-      return 'dark';
-    }
-  });
-  const [fontScale, setFontScale] = useState(() => {
-    try {
-      const storedScale = Number(window.localStorage.getItem(FONT_SCALE_STORAGE_KEY));
-      if (Number.isFinite(storedScale)) {
-        return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, storedScale));
-      }
-    } catch {
-      // Fall back to default sizing if storage is unavailable.
-    }
-    return 1;
-  });
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [fontScale, setFontScale] = useState(getInitialFontScale);
 
   const verifyCanLeaveStage = (targetStage) => {
     const leavingReportbackStage =
@@ -139,6 +174,7 @@ export default function App() {
 
       try {
         window.localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(nextScale));
+        window.localStorage.setItem(FONT_SCALE_DEFAULT_VERSION_KEY, FONT_SCALE_DEFAULT_VERSION);
       } catch {
         // Font scale still changes for this render if storage is unavailable.
       }
@@ -222,6 +258,41 @@ export default function App() {
     const handleResize = () => setIsMobile(window.innerWidth <= 480);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    let mediaQuery;
+    try {
+      if (window.localStorage.getItem(THEME_STORAGE_KEY)) return undefined;
+      mediaQuery = window.matchMedia?.('(prefers-color-scheme: light)');
+    } catch {
+      mediaQuery = window.matchMedia?.('(prefers-color-scheme: light)');
+    }
+
+    if (!mediaQuery) return undefined;
+
+    const handleSystemThemeChange = (event) => {
+      try {
+        if (window.localStorage.getItem(THEME_STORAGE_KEY)) return;
+      } catch {
+        // Keep following the device theme if storage is unavailable.
+      }
+      setTheme(event.matches ? 'light' : 'dark');
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+    } else {
+      mediaQuery.addListener?.(handleSystemThemeChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      } else {
+        mediaQuery.removeListener?.(handleSystemThemeChange);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -353,7 +424,7 @@ export default function App() {
             templates={templates}
             setTemplates={setTemplates}
             stageNumLabel={`Stage 2 of ${totalStages}`}
-            nextLabel={isOrganiser ? "ADD NOTES & REPORTBACKS" : "START MESSAGING"}
+            nextLabel={isOrganiser ? "Add notes & reportbacks" : "Start messaging"}
             onPrev={handlePrevStage}
             onNext={handleNextStage}
           />

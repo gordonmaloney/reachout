@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { Trash2, Edit2, Check, X } from 'lucide-react';
 import { normalizePhoneNumber } from '../utils';
 
-export default function ContactsPreview({ contacts, setContacts, selectedDialCode }) {
+export default function ContactsPreview({
+  contacts,
+  setContacts,
+  selectedDialCode,
+  duplicateContactIds = new Set(),
+}) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -57,9 +62,16 @@ export default function ContactsPreview({ contacts, setContacts, selectedDialCod
         ) : (
           contacts.map((contact) => {
             const isEditing = editingId === contact.id;
+            const isDuplicate = duplicateContactIds.has(contact.id);
             
             return (
-              <div key={contact.id} style={styles.contactRow}>
+              <div
+                key={contact.id}
+                style={{
+                  ...styles.contactRow,
+                  ...(isDuplicate ? styles.duplicateContactRow : {}),
+                }}
+              >
                 <div style={styles.avatar}>
                   {getInitials(contact.name)}
                 </div>
@@ -86,6 +98,9 @@ export default function ContactsPreview({ contacts, setContacts, selectedDialCod
                     <div style={styles.staticValues}>
                       <div style={styles.nameGroup}>
                         <span style={styles.contactName}>{contact.name}</span>
+                        {isDuplicate && (
+                          <span style={styles.duplicateLabel}>Duplicate</span>
+                        )}
                       </div>
                       <span style={styles.contactPhone}>{normalizePhoneNumber(contact.phone, selectedDialCode)}</span>
                     </div>
@@ -177,6 +192,10 @@ const styles = {
     gap: '16px',
     transition: 'all 0.2s ease',
   },
+  duplicateContactRow: {
+    backgroundColor: 'color-mix(in srgb, var(--ta-red) 10%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--ta-red) 48%, transparent)',
+  },
   avatar: {
     width: '32px',
     height: '32px',
@@ -216,6 +235,17 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     fontWeight: '500',
+  },
+  duplicateLabel: {
+    flexShrink: 0,
+    border: '1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)',
+    color: 'var(--ta-red)',
+    borderRadius: '999px',
+    padding: '2px 6px',
+    fontFamily: 'var(--font-mono)',
+    fontSize: "calc(9px * var(--reachout-text-scale, 1))",
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
   contactPhone: {
     fontSize: "calc(13.5px * var(--reachout-text-scale, 1))",

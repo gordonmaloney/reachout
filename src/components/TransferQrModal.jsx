@@ -50,6 +50,7 @@ export default function TransferQrModal({
   const currentQrLink = transferLinks[currentLinkIndex];
   const currentBatchContactCount = currentBatch?.contacts.length || 0;
   const isSplitTransfer = transferLinks.length > 1 || currentTransfer.wasSplit;
+  const hasMultipleLinks = transferLinks.length > 1;
 
   const getLinkContactSummary = (link) => {
     const count = link?.contactCount ?? 0;
@@ -137,10 +138,11 @@ export default function TransferQrModal({
 
   const copyTransferLink = async (url, index) => {
     if (!url) return;
+    const copiedMessage = hasMultipleLinks ? `Link ${index + 1} copied.` : "Link copied.";
 
     try {
       await navigator.clipboard.writeText(url);
-      setLinkStatus(`Link ${index + 1} copied.`);
+      setLinkStatus(copiedMessage);
     } catch {
       setLinkStatus("Copy failed. Select and copy the link manually.");
     }
@@ -159,8 +161,8 @@ export default function TransferQrModal({
               <div>
                 <h3 style={styles.title}>Send from your phone</h3>
                 <p style={styles.desc}>
-                  This creates a private transfer for the full phonebank setup:
-                  contacts, templates, dial code and extra channel settings.
+                  This prepares the phonebank so it can be opened on a mobile:
+                  contacts, messages and any organiser options you have added.
                 </p>
                 {hostSessionEnabled && batches.length > 1 && (
                   <p style={styles.hostDesc}>
@@ -173,16 +175,17 @@ export default function TransferQrModal({
 
             <ol style={styles.steps}>
               <li style={styles.step}>
-                Choose whichever transfer method is easiest: scan the QR code or
-                share the unique link.
+                Open the link on your phone, or scan the QR code with your
+                phone's normal camera.
               </li>
               <li style={styles.step}>
-                Both methods open REACHOUT on mobile and import the same
-                phonebank data.
+                The link can be sent to yourself or a participant by WhatsApp,
+                Signal, email, notes, or any other app you use across devices.
               </li>
               <li style={styles.step}>
-                Anyone with the QR code or full link can open this phonebank, so
-                only share it with the people taking part.
+                Both methods open the same phonebank on mobile. Anyone with the
+                QR code or full link can open it, so only share it with people
+                taking part.
               </li>
             </ol>
 
@@ -229,9 +232,8 @@ export default function TransferQrModal({
               <div>
                 <span style={styles.linkTitle}>Share a unique link</span>
                 <p style={styles.linkText}>
-                  Copy this compacted link and send it by WhatsApp, Signal,
-                  email or anything else. Opening it on mobile loads the same
-                  data as the QR code.
+                  Copy this link and send it somewhere you can open on your
+                  phone. When opened, it loads this phonebank on mobile.
                 </p>
               </div>
               {linkMessage && <p style={styles.linkWarning}>{linkMessage}</p>}
@@ -249,26 +251,36 @@ export default function TransferQrModal({
                 </button>
               )}
               {transferLinks.map((link, index) => (
-                <div key={`${link.url}-${index}`} style={styles.linkRow}>
-                  <div style={styles.linkMeta}>
-                    <span style={styles.linkName}>
-                      Link {index + 1}
-                      {transferLinks.length > 1
-                        ? ` of ${transferLinks.length}`
-                        : ""}
-                    </span>
-                    {isSplitTransfer && (
-                      <span style={styles.linkContactSummary}>
-                        {getLinkContactSummary(link)}
-                      </span>
-                    )}
-                  </div>
+                <div
+                  key={`${link.url}-${index}`}
+                  style={{
+                    ...styles.linkRow,
+                    ...(!hasMultipleLinks && !isSplitTransfer ? styles.linkRowSingle : {}),
+                  }}
+                >
+                  {(hasMultipleLinks || isSplitTransfer) && (
+                    <div style={styles.linkMeta}>
+                      {hasMultipleLinks && (
+                        <span style={styles.linkName}>
+                          Link {index + 1} of {transferLinks.length}
+                        </span>
+                      )}
+                      {isSplitTransfer && (
+                        <span style={styles.linkContactSummary}>
+                          {getLinkContactSummary(link)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => copyTransferLink(link.url, index)}
-                    style={styles.linkBtn}
+                    style={{
+                      ...styles.linkBtn,
+                      ...(!hasMultipleLinks && !isSplitTransfer ? styles.linkBtnFull : {}),
+                    }}
                   >
-                    {linkStatus === `Link ${index + 1} copied.` ? (
+                    {linkStatus === (hasMultipleLinks ? `Link ${index + 1} copied.` : "Link copied.") ? (
                       <Check size={15} />
                     ) : (
                       <Link size={15} />
@@ -293,7 +305,11 @@ export default function TransferQrModal({
               {qrCodes[currentLinkIndex] ? (
                 <img
                   src={qrCodes[currentLinkIndex]}
-                  alt={`Transfer QR code ${currentLinkIndex + 1}`}
+                  alt={
+                    qrCodes.length > 1
+                      ? `Transfer QR code ${currentLinkIndex + 1}`
+                      : "Transfer QR code"
+                  }
                   style={styles.qrImage}
                 />
               ) : (
@@ -303,50 +319,48 @@ export default function TransferQrModal({
               )}
             </div>
 
-            <div
-              style={{
-                ...styles.qrStatus,
-                ...(qrCodes.length <= 1 ? styles.qrStatusSingle : {}),
-              }}
-            >
-              {qrCodes.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCurrentLinkIndex((index) => Math.max(0, index - 1))
-                  }
-                  disabled={currentLinkIndex === 0}
-                  style={{ ...styles.smallNavBtn, justifySelf: "start" }}
-                >
-                  Prev link
-                </button>
-              )}
-              <div style={styles.qrStatusSummary}>
-              <span style={styles.counter}>
-                QR {qrCodes.length ? currentLinkIndex + 1 : 0} of{" "}
-                {qrCodes.length}
-              </span>
-              {isSplitTransfer && currentQrLink && (
-                <span style={styles.qrContactSummary}>
-                  {getLinkContactSummary(currentQrLink)}
-                </span>
-              )}
+            {(qrCodes.length > 1 || (isSplitTransfer && currentQrLink)) && (
+              <div style={styles.qrStatus}>
+                {qrCodes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentLinkIndex((index) => Math.max(0, index - 1))
+                    }
+                    disabled={currentLinkIndex === 0}
+                    style={{ ...styles.smallNavBtn, justifySelf: "start" }}
+                  >
+                    Prev link
+                  </button>
+                )}
+                <div style={styles.qrStatusSummary}>
+                  {qrCodes.length > 1 && (
+                    <span style={styles.counter}>
+                      QR {currentLinkIndex + 1} of {qrCodes.length}
+                    </span>
+                  )}
+                  {isSplitTransfer && currentQrLink && (
+                    <span style={styles.qrContactSummary}>
+                      {getLinkContactSummary(currentQrLink)}
+                    </span>
+                  )}
+                </div>
+                {qrCodes.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentLinkIndex((index) =>
+                        Math.min(qrCodes.length - 1, index + 1)
+                      )
+                    }
+                    disabled={currentLinkIndex === qrCodes.length - 1}
+                    style={{ ...styles.smallNavBtn, justifySelf: "end" }}
+                  >
+                    Next link
+                  </button>
+                )}
               </div>
-              {qrCodes.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCurrentLinkIndex((index) =>
-                      Math.min(qrCodes.length - 1, index + 1)
-                    )
-                  }
-                  disabled={currentLinkIndex === qrCodes.length - 1}
-                  style={{ ...styles.smallNavBtn, justifySelf: "end" }}
-                >
-                  Next link
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -430,7 +444,7 @@ const styles = {
     lineHeight: 1.45,
   },
   hostDesc: {
-    color: "rgba(53,168,102,0.9)",
+    color: "var(--ta-link-green)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
     marginTop: "6px",
@@ -517,9 +531,6 @@ const styles = {
     justifyContent: "center",
     gap: "10px",
     marginTop: "10px",
-  },
-  qrStatusSingle: {
-    gridTemplateColumns: "1fr",
   },
   qrStatusSummary: {
     display: "flex",
@@ -613,6 +624,9 @@ const styles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     flexShrink: 0,
   },
+  linkBtnFull: {
+    width: "100%",
+  },
   linkBtnDisabled: {
     opacity: 0.45,
     cursor: "not-allowed",
@@ -636,6 +650,9 @@ const styles = {
     border: "1px solid var(--ta-border-subtle)",
     borderRadius: "8px",
     backgroundColor: "var(--surface-raised)",
+  },
+  linkRowSingle: {
+    justifyContent: "center",
   },
   linkMeta: {
     display: "flex",

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Clipboard, FileText, ArrowRight, Check } from "lucide-react";
+import { Clipboard, FileText, ArrowRight, Check, X } from "lucide-react";
 import StageShell from "./StageShell";
 import ContactsPreview from "./ContactsPreview";
-import { dialCodeOptions } from "../utils";
+import { dialCodeOptions, normalizePhoneNumber } from "../utils";
 import { initialContacts } from "../data/mockData";
 
 export default function ContactsStage({
@@ -18,9 +18,13 @@ export default function ContactsStage({
   const [errorMsg, setErrorMsg] = useState("");
   const [showFormattingHelp, setShowFormattingHelp] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);
   const hasExampleContacts = contacts.some((contact) =>
     initialContacts.some((example) => example.id === contact.id)
   );
+
+  const duplicateContactIds = getDuplicateContactIds(contacts, selectedDialCode);
+  const duplicateCount = duplicateContactIds.size;
 
   const parsePasteText = (text) => {
     const lines = text.split("\n");
@@ -62,23 +66,49 @@ export default function ContactsStage({
     return parsed;
   };
 
+  const showImportSuccess = (count, mode) => {
+    const modeLabel = mode === "replace" ? "Imported" : "Added";
+    setPasteOverlayText(`${modeLabel} ${count} contacts!`);
+    setShowClipboardSuccess(false);
+    setTimeout(() => setPasteOverlayText(""), 3000);
+  };
+
+  const applyImportedContacts = (parsedContacts, mode) => {
+    setContacts((currentContacts) =>
+      mode === "replace" ? parsedContacts : [...currentContacts, ...parsedContacts]
+    );
+    setErrorMsg("");
+    setShowFormattingHelp(false);
+    setPendingImport(null);
+    showImportSuccess(parsedContacts.length, mode);
+  };
+
+  const processParsedContacts = (parsed, source) => {
+    if (parsed.length === 0) {
+      setErrorMsg(
+        source === "clipboard"
+          ? "Could not parse any contacts from clipboard. Check formatting below."
+          : "Format unrecognized. Check formatting instructions below."
+      );
+      setShowFormattingHelp(true);
+      setTimeout(() => setErrorMsg(""), 4000);
+      return;
+    }
+
+    if (contacts.length > 0) {
+      setPendingImport({ contacts: parsed, source });
+      setErrorMsg("");
+      setShowFormattingHelp(false);
+      return;
+    }
+
+    applyImportedContacts(parsed, "replace");
+  };
+
   const handlePasteEvent = (e) => {
     const text = e.clipboardData.getData("text");
     if (text) {
-      const parsed = parsePasteText(text);
-      if (parsed.length > 0) {
-        setContacts([...contacts, ...parsed]);
-        setErrorMsg("");
-        setShowFormattingHelp(false);
-        setPasteOverlayText(`Imported ${parsed.length} contacts!`);
-        setTimeout(() => setPasteOverlayText(""), 3000);
-      } else {
-        setErrorMsg(
-          "Format unrecognized. Check formatting instructions below."
-        );
-        setShowFormattingHelp(true);
-        setTimeout(() => setErrorMsg(""), 4000);
-      }
+      processParsedContacts(parsePasteText(text), "paste");
     }
   };
 
@@ -91,20 +121,7 @@ export default function ContactsStage({
       }
       const text = await navigator.clipboard.readText();
       if (text) {
-        const parsed = parsePasteText(text);
-        if (parsed.length > 0) {
-          setContacts([...contacts, ...parsed]);
-          setErrorMsg("");
-          setShowFormattingHelp(false);
-          setShowClipboardSuccess(true);
-          setTimeout(() => setShowClipboardSuccess(false), 3000);
-        } else {
-          setErrorMsg(
-            "Could not parse any contacts from clipboard. Check formatting below."
-          );
-          setShowFormattingHelp(true);
-          setTimeout(() => setErrorMsg(""), 4000);
-        }
+        processParsedContacts(parsePasteText(text), "clipboard");
       } else {
         setErrorMsg("Clipboard is empty.");
         setTimeout(() => setErrorMsg(""), 3000);
@@ -115,6 +132,19 @@ export default function ContactsStage({
       );
       setTimeout(() => setErrorMsg(""), 4000);
     }
+  };
+
+  const cleanDuplicateContacts = () => {
+    const seen = new Set();
+    setContacts((currentContacts) =>
+      currentContacts.filter((contact) => {
+        const key = getContactDuplicateKey(contact, selectedDialCode);
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+    );
   };
 
   const clearAllContacts = () => {
@@ -188,7 +218,7 @@ export default function ContactsStage({
                 className="hover-lift"
               >
                 <FileText size={16} />
-                <span>CLICK TO PASTE</span>
+                <span>Click to paste</span>
               </button>
 
               <span style={styles.clipboardHelper}>
@@ -200,6 +230,7 @@ export default function ContactsStage({
                 <div style={styles.successFloatingAlert}>
                   <Check size={16} />
                   <span>{pasteOverlayText}</span>
+                  <span className="contacts-import-toast-progress" aria-hidden="true" />
                 </div>
               )}
 
@@ -207,12 +238,14 @@ export default function ContactsStage({
                 <div style={styles.successFloatingAlert}>
                   <Check size={16} />
                   <span>Contacts imported successfully!</span>
+                  <span className="contacts-import-toast-progress" aria-hidden="true" />
                 </div>
               )}
 
               {errorMsg && (
                 <div style={styles.errorFloatingAlert}>
                   <span>{errorMsg}</span>
+                  <span className="contacts-import-toast-progress contacts-import-toast-progress-error" aria-hidden="true" />
                 </div>
               )}
             </div>
@@ -289,14 +322,35 @@ export default function ContactsStage({
                 }}
                 disabled={contacts.length === 0}
               >
-                CLEAR ALL
+                Clear all
               </button>
             </div>
+
+            {duplicateCount > 0 && (
+              <div style={styles.duplicateNotice}>
+                <div style={styles.duplicateCopy}>
+                  <span style={styles.duplicateTitle}>
+                    {duplicateCount} duplicate {duplicateCount === 1 ? "contact" : "contacts"} found
+                  </span>
+                  <span style={styles.duplicateText}>
+                    Matching phone numbers are highlighted below.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={cleanDuplicateContacts}
+                  style={styles.cleanDuplicatesBtn}
+                >
+                  Clean up
+                </button>
+              </div>
+            )}
 
             <ContactsPreview
               contacts={contacts}
               setContacts={setContacts}
               selectedDialCode={selectedDialCode}
+              duplicateContactIds={duplicateContactIds}
             />
           </div>
         </div>
@@ -317,8 +371,81 @@ export default function ContactsStage({
           <ArrowRight size={18} />
         </button>
       </div>
+
+      {pendingImport && (
+        <div style={styles.modalOverlay} role="presentation">
+          <div
+            style={styles.importModal}
+            className="glass-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contacts-import-choice-title"
+          >
+            <button
+              type="button"
+              onClick={() => setPendingImport(null)}
+              style={styles.modalCloseBtn}
+              aria-label="Cancel import"
+            >
+              <X size={18} />
+            </button>
+            <span style={styles.modalKicker}>Contacts already loaded</span>
+            <h3 id="contacts-import-choice-title" style={styles.modalTitle}>
+              Add these contacts or replace the current list?
+            </h3>
+            <p style={styles.modalText}>
+              We found {pendingImport.contacts.length} contact
+              {pendingImport.contacts.length === 1 ? "" : "s"} in what you pasted.
+              Choose whether to add them to the existing {contacts.length}, or
+              replace the list and start fresh.
+            </p>
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                style={styles.replaceBtn}
+                onClick={() => applyImportedContacts(pendingImport.contacts, "replace")}
+              >
+                Replace list
+              </button>
+              <button
+                type="button"
+                style={styles.addBtn}
+                onClick={() => applyImportedContacts(pendingImport.contacts, "add")}
+              >
+                Add to list
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </StageShell>
   );
+}
+
+function getContactDuplicateKey(contact, selectedDialCode) {
+  const normalizedPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
+  if (normalizedPhone) return normalizedPhone;
+  return contact.name?.trim().toLowerCase() || "";
+}
+
+function getDuplicateContactIds(contacts, selectedDialCode) {
+  const firstContactByKey = new Map();
+  const duplicateIds = new Set();
+
+  contacts.forEach((contact) => {
+    const key = getContactDuplicateKey(contact, selectedDialCode);
+    if (!key) return;
+
+    if (firstContactByKey.has(key)) {
+      duplicateIds.add(firstContactByKey.get(key));
+      duplicateIds.add(contact.id);
+      return;
+    }
+
+    firstContactByKey.set(key, contact.id);
+  });
+
+  return duplicateIds;
 }
 
 const styles = {
@@ -533,6 +660,47 @@ const styles = {
     marginBottom: "14px",
     flexShrink: 0,
   },
+  duplicateNotice: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    backgroundColor: "color-mix(in srgb, var(--ta-red) 12%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)",
+    borderRadius: "12px",
+    padding: "10px 12px",
+    marginBottom: "12px",
+    flexShrink: 0,
+  },
+  duplicateCopy: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    minWidth: 0,
+  },
+  duplicateTitle: {
+    color: "var(--ta-red)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+  },
+  duplicateText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
+  cleanDuplicatesBtn: {
+    flexShrink: 0,
+    border: "1px solid color-mix(in srgb, var(--ta-red) 62%, transparent)",
+    backgroundColor: "var(--ta-dark-2)",
+    color: "var(--ta-red)",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+  },
   previewTitleGroup: {
     display: "flex",
     flexDirection: "column",
@@ -617,10 +785,8 @@ const styles = {
     backgroundColor: "var(--ta-green)",
     color: "var(--ta-dark)",
     borderRadius: "10px",
-    padding: "12px 32px",
-    fontFamily: "var(--font-heading)",
-    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
-    letterSpacing: "0.05em",
+    padding: "10px 24px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     display: "flex",
     alignItems: "center",
     gap: "8px",
@@ -635,31 +801,125 @@ const styles = {
   },
   successFloatingAlert: {
     position: "absolute",
-    bottom: "16px",
+    left: "50%",
+    bottom: "22px",
+    transform: "translateX(-50%)",
+    width: "min(calc(100% - 32px), 360px)",
     backgroundColor: "var(--ta-gray-dark)",
     border: "1px solid var(--ta-green)",
     color: "var(--ta-green)",
-    borderRadius: "8px",
-    padding: "6px 16px",
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    borderRadius: "12px",
+    padding: "14px 18px 16px",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     boxShadow: "var(--modal-card-shadow)",
     display: "flex",
     alignItems: "center",
-    gap: "6px",
+    justifyContent: "center",
+    gap: "8px",
     zIndex: 20,
+    overflow: "hidden",
     pointerEvents: "none",
   },
   errorFloatingAlert: {
     position: "absolute",
-    bottom: "16px",
+    left: "50%",
+    bottom: "22px",
+    transform: "translateX(-50%)",
+    width: "min(calc(100% - 32px), 380px)",
     backgroundColor: "var(--ta-dark-2)",
     border: "1px solid var(--ta-red)",
     color: "var(--ta-red)",
-    borderRadius: "8px",
-    padding: "6px 16px",
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    borderRadius: "12px",
+    padding: "14px 18px 16px",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     boxShadow: "var(--modal-card-shadow)",
     zIndex: 20,
+    overflow: "hidden",
     pointerEvents: "none",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1000,
+    backgroundColor: "rgba(0, 0, 0, 0.68)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+  },
+  importModal: {
+    position: "relative",
+    width: "min(100%, 460px)",
+    backgroundColor: "var(--ta-dark-2)",
+    border: "1px solid var(--ta-border-medium)",
+    borderRadius: "18px",
+    boxShadow: "var(--modal-card-shadow)",
+    padding: "24px",
+  },
+  modalCloseBtn: {
+    position: "absolute",
+    top: "14px",
+    right: "14px",
+    border: "1px solid var(--ta-border-subtle)",
+    backgroundColor: "transparent",
+    color: "var(--ta-muted)",
+    borderRadius: "8px",
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+  modalKicker: {
+    display: "block",
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    marginBottom: "8px",
+  },
+  modalTitle: {
+    color: "var(--ta-cream)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(25px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    lineHeight: 1.05,
+    paddingRight: "34px",
+    marginBottom: "10px",
+  },
+  modalText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.5,
+    marginBottom: "18px",
+  },
+  modalActions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "10px",
+  },
+  replaceBtn: {
+    border: "1px solid var(--ta-border-medium)",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
+    color: "var(--ta-cream)",
+    borderRadius: "10px",
+    padding: "11px 12px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+  },
+  addBtn: {
+    border: "1px solid var(--ta-green)",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    borderRadius: "10px",
+    padding: "11px 12px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    cursor: "pointer",
   },
 };

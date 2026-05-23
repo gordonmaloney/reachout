@@ -11,16 +11,15 @@ export default function OrganiserModeModal({ onClose }) {
           <Users size={22} />
         </div>
         <span style={styles.eyebrow}>Organiser mode</span>
-        <h3 style={styles.title}>Set up a fuller phonebank</h3>
+        <h3 style={styles.title}>Call notes and reportbacks</h3>
         <p style={styles.text}>
-          Organiser mode adds an extra setup stage for call notes and reportback
-          questions. It also unlocks hosting tools so you can split contacts
-          between participants.
+          Organiser mode adds an extra stage for you to users talking points and allow them to give you a reportback on how the call went.
+          It also unlocks hosting tools, so you can set divvy up contacts between multiple people.
         </p>
         <div style={styles.list}>
-          <span style={styles.item}><CheckCircle size={15} /> Add prompts for callers</span>
-          <span style={styles.item}><CheckCircle size={15} /> Collect reportbacks from each contact</span>
-          <span style={styles.item}><CheckCircle size={15} /> Split a session between participants</span>
+          <span style={styles.item}><CheckCircle size={15} /> Add talking points and reminders for callers</span>
+          <span style={styles.item}><CheckCircle size={15} /> Get reportbacks about how the calls went</span>
+          <span style={styles.item}><CheckCircle size={15} /> Divvy up contacts between participants</span>
         </div>
         <button type="button" onClick={onClose} style={styles.primaryBtn}>
           Got it

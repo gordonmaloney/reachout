@@ -1,8 +1,34 @@
 // src/components/MessagesStage.jsx
-import { Info, X, Plus, ArrowRight } from "lucide-react";
+import { Info, X, Plus, ArrowRight, Check } from "lucide-react";
 import { initialTemplates } from "../data/mockData";
 import StageShell from "./StageShell";
 
+const FIRSTNAME_TOKEN = "{FIRSTNAME}";
+const FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS = [
+  /[[{(]\s*first\s*[_-]?\s*name\s*[\]})]/gi,
+  /[[{(]\s*firstname\s*[\]})]/gi,
+];
+const FIRSTNAME_BARE_TOKEN_MISTAKE_PATTERN = /\bFIRST\s*[_-]?\s*NAME\b/g;
+
+function hasFirstnameTokenMistake(body = "") {
+  return fixFirstnameToken(body) !== body;
+}
+
+function fixFirstnameToken(body = "") {
+  const fixedBracketTokens = FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS.reduce(
+    (nextBody, pattern) => nextBody.replace(pattern, FIRSTNAME_TOKEN),
+    body
+  );
+
+  return fixedBracketTokens.replace(
+    FIRSTNAME_BARE_TOKEN_MISTAKE_PATTERN,
+    (match, offset, fullText) => {
+      const alreadyFixed =
+        fullText[offset - 1] === "{" && fullText[offset + match.length] === "}";
+      return alreadyFixed ? match : FIRSTNAME_TOKEN;
+    }
+  );
+}
 
 export default function MessagesStage({
   templates = initialTemplates,
@@ -10,7 +36,7 @@ export default function MessagesStage({
   onNext,
   onPrev,
   stageNumLabel = "Stage 2 of 3",
-  nextLabel = "START MESSAGING",
+  nextLabel = "Start messaging",
 }) {
   const handleTitleChange = (id, value) => {
     setTemplates((prev) =>
@@ -36,7 +62,16 @@ export default function MessagesStage({
   const deleteTemplate = (id) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   };
-  const starterTemplateIds = new Set(initialTemplates.map((template) => template.id));
+  const fixTemplateToken = (id) => {
+    setTemplates((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...t, body: fixFirstnameToken(t.body) } : t
+      )
+    );
+  };
+  const starterTemplateIds = new Set(
+    initialTemplates.map((template) => template.id)
+  );
   const hasStarterTemplates = templates.some((template) =>
     starterTemplateIds.has(template.id)
   );
@@ -67,37 +102,57 @@ export default function MessagesStage({
 
         {/* Templates List */}
         <div style={styles.templatesGrid}>
-          {templates.map((t) => (
-            <div key={t.id} style={styles.card} className="glass-card">
-              <div style={styles.cardHeader}>
-                <label style={styles.titleField}>
-                  {starterTemplateIds.has(t.id) && (
-                    <span style={styles.examplePill}>Example template</span>
-                  )}
-                  <input
-                    type="text"
-                    value={t.title}
-                    onChange={(e) => handleTitleChange(t.id, e.target.value)}
-                    placeholder="Template title"
-                    style={styles.titleInput}
-                  />
-                </label>
-                <button
-                  onClick={() => deleteTemplate(t.id)}
-                  style={styles.deleteBtn}
-                  title="Delete template"
-                >
-                  <X size={16} color="var(--ta-red)" />
-                </button>
+          {templates.map((t) => {
+            const showTokenFix = hasFirstnameTokenMistake(t.body);
+
+            return (
+              <div key={t.id} style={styles.card} className="glass-card">
+                <div style={styles.cardHeader}>
+                  <label style={styles.titleField}>
+                    {starterTemplateIds.has(t.id) && (
+                      <span style={styles.examplePill}>Example template</span>
+                    )}
+                    <input
+                      type="text"
+                      value={t.title}
+                      onChange={(e) => handleTitleChange(t.id, e.target.value)}
+                      placeholder="Template title"
+                      style={styles.titleInput}
+                    />
+                  </label>
+                  <button
+                    onClick={() => deleteTemplate(t.id)}
+                    style={styles.deleteBtn}
+                    title="Delete template"
+                  >
+                    <X size={16} color="var(--ta-red)" />
+                  </button>
+                </div>
+                <textarea
+                  value={t.body}
+                  onChange={(e) => handleBodyChange(t.id, e.target.value)}
+                  placeholder="Message body – use {FIRSTNAME} for personalization"
+                  style={styles.bodyTextarea}
+                />
+                {showTokenFix && (
+                  <div style={styles.tokenFixNotice}>
+                    <span style={styles.tokenFixText}>
+                      Did you mean to use{" "}
+                      <code style={styles.inlineCode}>{FIRSTNAME_TOKEN}</code>?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => fixTemplateToken(t.id)}
+                      style={styles.tokenFixBtn}
+                    >
+                      <Check size={14} />
+                      Fix token
+                    </button>
+                  </div>
+                )}
               </div>
-              <textarea
-                value={t.body}
-                onChange={(e) => handleBodyChange(t.id, e.target.value)}
-                placeholder="Message body – use {FIRSTNAME} for personalization"
-                style={styles.bodyTextarea}
-              />
-            </div>
-          ))}
+            );
+          })}
           {/* Add new template card */}
           <div
             style={styles.addCard}
@@ -116,10 +171,10 @@ export default function MessagesStage({
           <div style={styles.tipsTextContent}>
             <span style={styles.tipsTitle}>TOP TIP</span>
             <p style={styles.tipsText}>
-              A tip from the Connolly for President campaign in Ireland: when
-              starting a phonebanking session, consider texting contacts first
-              to say you are calling people now and ask if they would be up for
-              a chat in the next hour. That way they know to expect you!
+              The Connolly for President campaign in Ireland found it useful to
+              text people just before calling. A short message saying you are
+              phonebanking now, and asking whether they are free for a call in
+              the next hour, can make the follow-up call feel less cold.
             </p>
           </div>
         </div>
@@ -141,8 +196,6 @@ export default function MessagesStage({
           >
             <span>{nextLabel}</span> <ArrowRight size={18} />
           </button>
-
-        
         </div>
       </div>
     </StageShell>
@@ -206,15 +259,14 @@ const styles = {
   },
   examplePill: {
     alignSelf: "flex-start",
-    color: "var(--ta-muted-strong)",
-    backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
-    border: "1px solid var(--ta-border-subtle)",
+    border: "1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)",
+    color: "var(--ta-red)",
     borderRadius: "999px",
-    padding: "3px 8px",
-    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
-    fontFamily: "var(--font-body)",
-    letterSpacing: 0,
-    textTransform: "none",
+    padding: "2px 6px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(9px * var(--reachout-text-scale, 1))",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
   },
   titleInput: {
     width: "100%",
@@ -241,9 +293,46 @@ const styles = {
     padding: "8px",
     borderRadius: "6px",
     resize: "vertical",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     minHeight: "80px",
     fontFamily: "var(--font-body)",
     outline: "none",
+  },
+  tokenFixNotice: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    border: "1px solid rgba(79, 159, 104, 0.32)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    borderRadius: "8px",
+    padding: "8px 10px",
+  },
+  tokenFixText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
+  inlineCode: {
+    fontFamily: "var(--font-mono)",
+    color: "var(--ta-cream)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+  },
+  tokenFixBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    flexShrink: 0,
+    backgroundColor: "transparent",
+    border: "1px solid rgba(79, 159, 104, 0.45)",
+    color: "var(--ta-green)",
+    borderRadius: "7px",
+    padding: "6px 9px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: "none",
   },
   addCard: {
     display: "flex",
@@ -315,17 +404,18 @@ const styles = {
     color: "var(--ta-cream)",
     borderRadius: "10px",
     padding: "10px 24px",
-    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
-    fontWeight: "bold",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: "none",
   },
   continueBtn: {
     backgroundColor: "var(--ta-green)",
     color: "var(--ta-dark)",
     borderRadius: "10px",
-    padding: "12px 32px",
-    fontFamily: "var(--font-heading)",
-    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
-    letterSpacing: "0.05em",
+    padding: "10px 24px",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
     display: "flex",
     alignItems: "center",
     gap: "8px",

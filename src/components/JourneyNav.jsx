@@ -158,7 +158,7 @@ export default function JourneyNav({
         <p style={styles.helpDesc}>Learn how REACHOUT works and how to use it on your phone.</p>
         <button onClick={onToggleHelp} style={styles.guideBtn} className="hover-lift">
           <FileText size={14} />
-          <span>VIEW GUIDE</span>
+          <span>View guide</span>
         </button>
       </div>
 
@@ -329,17 +329,21 @@ const styles = {
     fontFamily: 'var(--font-heading)',
     fontWeight: 'bold',
     transition: 'all 0.3s ease',
+    position: 'relative',
+    zIndex: 2,
+    boxShadow: '0 0 0 4px var(--ta-dark-2)',
   },
   circleActive: {
     borderColor: 'var(--ta-green)',
     color: 'var(--ta-dark)',
     backgroundColor: 'var(--ta-green)',
-    boxShadow: 'none',
+    boxShadow: '0 0 0 4px var(--ta-dark-2)',
   },
   circlePast: {
     borderColor: 'var(--ta-green)',
     color: 'var(--ta-green)',
-    backgroundColor: 'rgba(79, 159, 104, 0.1)',
+    backgroundColor: 'var(--ta-dark-2)',
+    boxShadow: '0 0 0 4px var(--ta-dark-2)',
   },
   stepTextGroup: {
     display: 'flex',

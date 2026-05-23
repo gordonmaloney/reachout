@@ -119,8 +119,9 @@ export default function CallNotesStage({
               </div>
             </div>
             <p style={styles.settingText}>
-              Add short reminders that appear on every contact card while people
-              are phonebanking. Useful for campaign context, asks, or local issues.
+              Add short reminders that appear alongside each contact while
+              people are phonebanking. Useful for campaign context, asks, or
+              local issues.
             </p>
           </div>
 
@@ -162,7 +163,7 @@ export default function CallNotesStage({
                   ))}
               </ul>
             ) : (
-              <p style={styles.emptyPreview}>No call notes yet. Phonebankers will just see the contact details and message buttons.</p>
+              <p style={styles.emptyPreview}>No call notes yet. Phonebankers will just see each contact and the message options.</p>
             )}
           </div>
         </section>
@@ -537,7 +538,11 @@ const styles = {
     color: "var(--ta-cream)",
     borderRadius: "10px",
     padding: "10px 20px",
-    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: "none",
   },
   continueBtn: {
     display: "flex",

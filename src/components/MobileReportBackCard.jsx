@@ -1,4 +1,4 @@
-import { Check, Copy, MessageCircle, Send } from "lucide-react";
+import { Check, Copy, MessageCircle, Send, CheckCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { getWhatsAppPhoneNumber, normalizePhoneNumber } from "../utils";
 
@@ -34,25 +34,35 @@ function getPlainText(rows) {
       const answer = row.answers[question.id] || "not recorded";
       return `${question.label}: ${answer}`;
     });
-    return `${row.name} (${row.phone}) - ${answers.join("; ")}`;
+    const date = formatDate(row.date) || "date not recorded";
+    return `${row.name} (${row.phone}) - ${answers.join("; ")}; Date: ${date}`;
   });
 
   return `REACHOUT reportback\n\n${lines.join("\n")}`;
 }
 
 function getSpreadsheetText(rows, questions) {
-  const header = ["Name", "Phone", ...questions.map((question) => question.label), "Date"];
+  const header = [
+    "Name",
+    "Phone",
+    ...questions.map((question) => question.label),
+    "Date",
+  ];
   const body = rows.map((row) => [
     row.name,
     row.phone,
     ...questions.map((question) =>
-      String(row.answers[question.id] || "").replace(/\s+/g, " ").trim()
+      String(row.answers[question.id] || "")
+        .replace(/\s+/g, " ")
+        .trim()
     ),
     formatDate(row.date),
   ]);
 
   return [header, ...body]
-    .map((row) => row.map((cell) => String(cell || "").replace(/\t/g, " ")).join("\t"))
+    .map((row) =>
+      row.map((cell) => String(cell || "").replace(/\t/g, " ")).join("\t")
+    )
     .join("\n");
 }
 
@@ -64,7 +74,10 @@ export default function MobileReportBackCard({
 }) {
   const [copied, setCopied] = useState("");
   const questions = useMemo(
-    () => reportBackSettings.questions?.filter((question) => question.label?.trim()) || [],
+    () =>
+      reportBackSettings.questions?.filter((question) =>
+        question.label?.trim()
+      ) || [],
     [reportBackSettings.questions]
   );
   const rows = useMemo(
@@ -72,12 +85,25 @@ export default function MobileReportBackCard({
     [contacts, contactReports, questions, selectedDialCode]
   );
   const plainText = useMemo(() => getPlainText(rows), [rows]);
-  const spreadsheetText = useMemo(() => getSpreadsheetText(rows, questions), [questions, rows]);
-  const organiserPhone = normalizePhoneNumber(reportBackSettings.phone, selectedDialCode);
-  const whatsappPhone = getWhatsAppPhoneNumber(reportBackSettings.phone, selectedDialCode);
-  const whatsappLink = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(plainText)}`;
+  const spreadsheetText = useMemo(
+    () => getSpreadsheetText(rows, questions),
+    [questions, rows]
+  );
+  const organiserPhone = normalizePhoneNumber(
+    reportBackSettings.phone,
+    selectedDialCode
+  );
+  const whatsappPhone = getWhatsAppPhoneNumber(
+    reportBackSettings.phone,
+    selectedDialCode
+  );
+  const whatsappLink = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
+    plainText
+  )}`;
   const smsLink = `sms:${organiserPhone}&body=${encodeURIComponent(plainText)}`;
-  const recordedCount = contacts.filter((contact) => contactReports[contact.id]?.contacted).length;
+  const recordedCount = contacts.filter(
+    (contact) => contactReports[contact.id]?.contacted
+  ).length;
 
   const copyText = async (value, label) => {
     try {
@@ -94,25 +120,33 @@ export default function MobileReportBackCard({
   return (
     <div style={styles.card} className="glass-card">
       <div>
-        <h2 style={styles.title}>Report back</h2>
+        <CheckCircle size={42} color="var(--ta-green)" />
+        <h2 style={styles.title}>You’re finished - now report back</h2>
         <p style={styles.text}>
-          Send the organiser a summary of how the phonebank went. The spreadsheet
-          copy button uses tab-separated rows, so it can be pasted straight into
-          Google Sheets.
+          Send your organiser a summary of how your calls went using the buttons
+          below - just click and send.
         </p>
       </div>
-
+      {/*
       <div style={styles.summary}>
-        <span>{recordedCount} of {contacts.length} contacts marked contacted</span>
-        <span>Sending to {organiserPhone || "organiser"}</span>
+        <span>
+          {recordedCount} of {contacts.length} contacts recorded
+        </span>
+        {organiserPhone && <span>Send to {organiserPhone}</span>}
       </div>
-
+      */}
       <div style={styles.actions}>
-        <a href={whatsappLink} target="_blank" rel="noopener noreferrer" style={styles.primaryBtn}>
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.primaryBtn}
+          className="message-link-action hover-lift"
+        >
           <MessageCircle size={16} />
           WhatsApp report
         </a>
-        <a href={smsLink} style={styles.secondaryBtn}>
+        <a href={smsLink} className="message-link-action hover-lift">
           <Send size={16} />
           SMS report
         </a>
@@ -122,7 +156,7 @@ export default function MobileReportBackCard({
           style={styles.secondaryBtn}
         >
           {copied === "spreadsheet" ? <Check size={16} /> : <Copy size={16} />}
-          Copy spreadsheet rows
+          Copy full report
         </button>
       </div>
     </div>
