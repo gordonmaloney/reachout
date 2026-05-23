@@ -30,7 +30,7 @@ export default function MobileWorkspace({
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const deckCount = contacts.length + 2;
+  const isContactCardOpen = view === "deck" && currentIdx > 0 && currentIdx <= contacts.length;
   const isExampleData =
     contacts.length === initialContacts.length &&
     templates.length === initialTemplates.length &&
@@ -89,9 +89,9 @@ export default function MobileWorkspace({
             by Tenant<span style={styles.actGreen}>Act</span>
           </span>
         </div>
-        {view === "deck" && (
+        {isContactCardOpen && (
           <span style={styles.progress}>
-            {Math.min(currentIdx + 1, deckCount)} of {deckCount}
+            {currentIdx} of {contacts.length}
           </span>
         )}
       </header>

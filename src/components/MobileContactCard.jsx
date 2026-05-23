@@ -8,17 +8,19 @@ const callButtonStyle = {
   backgroundColor: 'var(--ta-green)',
   border: '1px solid var(--ta-green)',
   color: 'var(--ta-dark)',
-  borderRadius: '10px',
-  padding: '9px 13px',
+  borderRadius: '12px',
+  padding: '11px 15px',
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
   fontFamily: 'var(--font-heading)',
-  fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+  fontSize: "calc(17px * var(--reachout-text-scale, 1))",
   cursor: 'pointer',
   textDecoration: 'none',
   flexShrink: 0,
-  boxShadow: 'var(--border-glow)',
+  minWidth: '84px',
+  justifyContent: 'center',
+  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.24)',
 };
 
 

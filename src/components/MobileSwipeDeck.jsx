@@ -242,7 +242,7 @@ export default function MobileSwipeDeck({
               selectedDialCode={selectedDialCode}
             />
           ) : index === contacts.length + 1 ? (
-            <MobileFinishedCard contactCount={contacts.length} />
+            <MobileFinishedCard />
           ) : (
             <MobileContactCard
               contact={displayContact}
@@ -269,7 +269,8 @@ export default function MobileSwipeDeck({
       {/* Navigation buttons */}
       {(index > 0 || index < itemCount - 1) && (
         <div style={styles.navRow}>
-          {index > 0 && (
+          <div style={styles.navSlot}>
+            {index > 0 && (
             <button
               onClick={triggerPrev}
               style={styles.navBtn}
@@ -278,8 +279,10 @@ export default function MobileSwipeDeck({
             >
               <ArrowLeft size={20} /> Prev
             </button>
-          )}
-          {index < itemCount - 1 && (
+            )}
+          </div>
+          <div style={styles.navSlot}>
+            {index < itemCount - 1 && (
             <button
               onClick={triggerNext}
               style={{
@@ -293,7 +296,8 @@ export default function MobileSwipeDeck({
             >
               <ArrowRight size={20} /> Next
             </button>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -327,9 +331,17 @@ const styles = {
     marginBottom: "8px",
   },
   navRow: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
     gap: "12px",
     marginTop: "auto",
+    width: "100%",
+    maxWidth: "320px",
+  },
+  navSlot: {
+    display: "flex",
+    justifyContent: "center",
+    minWidth: 0,
   },
   blockMessage: {
     color: "var(--ta-muted-strong)",
@@ -353,7 +365,9 @@ const styles = {
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: "4px",
+    width: "100%",
   },
   navBtnBlocked: {
     opacity: 0.58,
@@ -363,11 +377,11 @@ const styles = {
 function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
   return (
     <div style={infoStyles.card} className="glass-card">
-      <span style={infoStyles.kicker}>Ready to phonebank</span>
-      <h2 style={infoStyles.title}>Start with the first contact</h2>
+      <span style={infoStyles.kicker}>Phonebank ready</span>
+      <h2 style={infoStyles.title}>You're ready to start</h2>
       <p style={infoStyles.text}>
-        Each card has the person’s number, a call button, and message templates
-        ready to send. Swipe or use Next to move through the phonebank.
+        Work through the contacts one at a time. Use the buttons on each card
+        to call people or send the template messages that have been loaded.
       </p>
       <div style={infoStyles.summary}>
         <span>{contactCount} contacts loaded</span>
@@ -375,14 +389,14 @@ function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
         {reportBackEnabled && <span>Reportback enabled</span>}
       </div>
       <div style={infoStyles.tips}>
-        <span><Phone size={16} /> Call from the top-right button.</span>
-        <span><MessageSquare size={16} /> Tap message previews to copy text.</span>
+        <span><Phone size={16} /> The Call button opens your phone dialler.</span>
+        <span><MessageSquare size={16} /> Use Set up if you want to change the templates first.</span>
       </div>
     </div>
   );
 }
 
-function MobileFinishedCard({ contactCount }) {
+function MobileFinishedCard() {
   return (
     <div style={infoStyles.card} className="glass-card">
       <CheckCircle size={42} color="var(--ta-green)" />
@@ -391,10 +405,6 @@ function MobileFinishedCard({ contactCount }) {
         You’ve reached the end of this phonebank. Nice one. You can go back
         through contacts if you need to copy a number or send another message.
       </p>
-      <div style={infoStyles.summary}>
-        <span>{contactCount} contacts in this batch</span>
-        <span>No reportback is enabled for this phonebank.</span>
-      </div>
     </div>
   );
 }
