@@ -45,6 +45,7 @@ export default function MobileWorkspace({
         template.body === initialTemplates[index]?.body
     );
   const showExampleToast = isMobile && isExampleData && !exampleToastDismissed;
+
   const changeView = (nextView) => {
     setExampleToastDismissed(true);
     setView(nextView);
@@ -111,6 +112,7 @@ export default function MobileWorkspace({
             contactReports={contactReports}
             setContactReports={setContactReports}
             onIndexChange={setCurrentIdx}
+            onFirstTouch={() => setExampleToastDismissed(true)}
             initialIndex={currentIdx}
           />
         ) : view === "templates" ? (

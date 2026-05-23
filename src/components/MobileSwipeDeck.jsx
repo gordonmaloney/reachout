@@ -15,8 +15,9 @@ export default function MobileSwipeDeck({
   reportBackSettings = { enabled: false, phone: "" },
   contactReports = {},
   setContactReports = () => {},
-  onIndexChange = () => { },
+  onIndexChange = () => {},
   initialIndex = 0,
+  onFirstTouch,
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -26,7 +27,9 @@ export default function MobileSwipeDeck({
   const [direction, setDirection] = useState(0);
   const [exitStartX, setExitStartX] = useState(0);
   // The contact data currently displayed on the card
-  const [displayContact, setDisplayContact] = useState(contacts[Math.max(0, initialIndex - 1)]);
+  const [displayContact, setDisplayContact] = useState(
+    contacts[Math.max(0, initialIndex - 1)]
+  );
   // Pending index to commit after exit animation
   const pendingIndexRef = useRef(null);
 
@@ -38,12 +41,14 @@ export default function MobileSwipeDeck({
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [blockMessage, setBlockMessage] = useState("");
-  const reportQuestions = reportBackSettings.questions?.filter((question) =>
-    question.label?.trim()
-  ) || [];
+  const reportQuestions =
+    reportBackSettings.questions?.filter((question) =>
+      question.label?.trim()
+    ) || [];
 
   const isCurrentReportComplete = () => {
-    if (!reportBackSettings.enabled || !reportBackSettings.mandatory) return true;
+    if (!reportBackSettings.enabled || !reportBackSettings.mandatory)
+      return true;
     if (index === 0 || index > contacts.length) return true;
 
     const contact = contacts[index - 1];
@@ -63,7 +68,9 @@ export default function MobileSwipeDeck({
     const touch = e.touches ? e.touches[0] : e;
     startXRef.current = touch.clientX;
     startYRef.current = touch.clientY;
-    startInScrollableCardRef.current = Boolean(e.target.closest?.(".mobile-card-scroll"));
+    startInScrollableCardRef.current = Boolean(
+      e.target.closest?.(".mobile-card-scroll")
+    );
     gestureAxisRef.current = null;
     setIsDragging(true);
   };
@@ -78,7 +85,10 @@ export default function MobileSwipeDeck({
     const AXIS_LOCK_THRESHOLD = 10;
     const HORIZONTAL_DOMINANCE = 1.35;
 
-    if (!gestureAxisRef.current && (absDx > AXIS_LOCK_THRESHOLD || absDy > AXIS_LOCK_THRESHOLD)) {
+    if (
+      !gestureAxisRef.current &&
+      (absDx > AXIS_LOCK_THRESHOLD || absDy > AXIS_LOCK_THRESHOLD)
+    ) {
       if (absDy > absDx * 1.1) {
         gestureAxisRef.current = "vertical";
       } else if (absDx > absDy * HORIZONTAL_DOMINANCE) {
@@ -140,7 +150,9 @@ export default function MobileSwipeDeck({
     const newIdx = index + dir;
     if (newIdx < 0 || newIdx >= itemCount) return false;
     if (dir > 0 && !isCurrentReportComplete()) {
-      setBlockMessage("Complete the reportback before moving to the next contact.");
+      setBlockMessage(
+        "Complete the reportback before moving to the next contact."
+      );
       window.setTimeout(() => setBlockMessage(""), 2200);
       return false;
     }
@@ -181,7 +193,9 @@ export default function MobileSwipeDeck({
       return direction > 0 ? "swipe-card exit-left" : "swipe-card exit-right";
     }
     if (phase === "enter") {
-      return direction > 0 ? "swipe-card enter-from-right" : "swipe-card enter-from-left";
+      return direction > 0
+        ? "swipe-card enter-from-right"
+        : "swipe-card enter-from-left";
     }
     return "swipe-card";
   };
@@ -219,8 +233,6 @@ export default function MobileSwipeDeck({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-
-
       {/* Single card — animated via CSS classes, data swapped between phases */}
       <div style={styles.cardArea}>
         <div
@@ -271,31 +283,37 @@ export default function MobileSwipeDeck({
         <div style={styles.navRow}>
           <div style={styles.navSlot}>
             {index > 0 && (
-            <button
-              onClick={triggerPrev}
-              style={styles.navBtn}
-              disabled={phase !== "idle"}
-              className="hover-lift"
-            >
-              <ArrowLeft size={20} /> Prev
-            </button>
+              <button
+                onClick={triggerPrev}
+                style={styles.navBtn}
+                disabled={phase !== "idle"}
+                className="hover-lift"
+              >
+                <ArrowLeft size={20} /> Prev
+              </button>
             )}
           </div>
           <div style={styles.navSlot}>
             {index < itemCount - 1 && (
-            <button
-              onClick={triggerNext}
-              style={{
-                ...styles.navBtn,
-                ...(index > 0 && index <= contacts.length && reportBackSettings.mandatory && !isCurrentReportComplete()
-                  ? styles.navBtnBlocked
-                  : {}),
-              }}
-              disabled={phase !== "idle"}
-              className="hover-lift"
-            >
-              <ArrowRight size={20} /> Next
-            </button>
+              <button
+                onClick={() => {
+                  triggerNext();
+                  onFirstTouch();
+                }}
+                style={{
+                  ...styles.navBtn,
+                  ...(index > 0 &&
+                  index <= contacts.length &&
+                  reportBackSettings.mandatory &&
+                  !isCurrentReportComplete()
+                    ? styles.navBtnBlocked
+                    : {}),
+                }}
+                disabled={phase !== "idle"}
+                className="hover-lift"
+              >
+                <ArrowRight size={20} /> Next
+              </button>
             )}
           </div>
         </div>
