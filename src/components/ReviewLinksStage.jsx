@@ -426,7 +426,7 @@ const styles = {
     border: 'none',
     padding: 0,
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
-    color: 'rgba(79, 159, 104, 0.68)',
+    color: 'var(--ta-link-green)',
     fontFamily: 'var(--font-body)',
     letterSpacing: 0,
     textTransform: 'none',
