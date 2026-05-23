@@ -35,7 +35,6 @@ export default function MobileDataScanner({
         hasReportBack: Boolean(reconstructed.reportBackSettings?.enabled),
       });
       setProgress("All data imported.");
-      setIsScanning(false);
       return true;
     },
     [
@@ -120,6 +119,26 @@ export default function MobileDataScanner({
 
     let scanner;
     let active = true;
+    let stopping = false;
+
+    const stopScanner = async () => {
+      if (!scanner || stopping) return;
+      stopping = true;
+
+      try {
+        if (scanner.isScanning) {
+          await scanner.stop();
+        }
+      } catch {
+        // The camera may already have stopped after a successful scan.
+      }
+
+      try {
+        await scanner.clear();
+      } catch {
+        // Ignore cleanup failures from scanner internals.
+      }
+    };
 
     async function startScanner() {
       const { Html5Qrcode } = await import("html5-qrcode");
@@ -137,7 +156,9 @@ export default function MobileDataScanner({
       const onScanSuccess = async (decodedText) => {
         const completed = await processDecodedText(decodedText);
         if (completed) {
-          scanner?.stop().then(() => scanner?.clear()).catch(() => {});
+          await stopScanner();
+          setCameraStarting(false);
+          setIsScanning(false);
         }
       };
 
@@ -190,11 +211,7 @@ export default function MobileDataScanner({
     return () => {
       active = false;
       setCameraStarting(false);
-      if (scanner?.isScanning) {
-        scanner.stop().then(() => scanner.clear()).catch(() => {});
-      } else {
-        scanner?.clear().catch(() => {});
-      }
+      stopScanner();
     };
   }, [isScanning, processDecodedText]);
 
