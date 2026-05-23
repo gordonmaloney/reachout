@@ -23,7 +23,10 @@ export default function ContactsStage({
     initialContacts.some((example) => example.id === contact.id)
   );
 
-  const duplicateContactIds = getDuplicateContactIds(contacts, selectedDialCode);
+  const duplicateContactIds = getDuplicateContactIds(
+    contacts,
+    selectedDialCode
+  );
   const duplicateCount = duplicateContactIds.size;
 
   const parsePasteText = (text) => {
@@ -75,7 +78,9 @@ export default function ContactsStage({
 
   const applyImportedContacts = (parsedContacts, mode) => {
     setContacts((currentContacts) =>
-      mode === "replace" ? parsedContacts : [...currentContacts, ...parsedContacts]
+      mode === "replace"
+        ? parsedContacts
+        : [...currentContacts, ...parsedContacts]
     );
     setErrorMsg("");
     setShowFormattingHelp(false);
@@ -136,13 +141,22 @@ export default function ContactsStage({
 
   const cleanDuplicateContacts = () => {
     const seen = new Set();
+
     setContacts((currentContacts) =>
       currentContacts.filter((contact) => {
         const key = getContactDuplicateKey(contact, selectedDialCode);
+
+        // If we cannot confidently identify it, don't delete it.
         if (!key) return true;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
+
+        // Keep the first contact with this key.
+        if (!seen.has(key)) {
+          seen.add(key);
+          return true;
+        }
+
+        // Remove only later contacts with the same key.
+        return false;
       })
     );
   };
@@ -230,7 +244,10 @@ export default function ContactsStage({
                 <div style={styles.successFloatingAlert}>
                   <Check size={16} />
                   <span>{pasteOverlayText}</span>
-                  <span className="contacts-import-toast-progress" aria-hidden="true" />
+                  <span
+                    className="contacts-import-toast-progress"
+                    aria-hidden="true"
+                  />
                 </div>
               )}
 
@@ -238,14 +255,20 @@ export default function ContactsStage({
                 <div style={styles.successFloatingAlert}>
                   <Check size={16} />
                   <span>Contacts imported successfully!</span>
-                  <span className="contacts-import-toast-progress" aria-hidden="true" />
+                  <span
+                    className="contacts-import-toast-progress"
+                    aria-hidden="true"
+                  />
                 </div>
               )}
 
               {errorMsg && (
                 <div style={styles.errorFloatingAlert}>
                   <span>{errorMsg}</span>
-                  <span className="contacts-import-toast-progress contacts-import-toast-progress-error" aria-hidden="true" />
+                  <span
+                    className="contacts-import-toast-progress contacts-import-toast-progress-error"
+                    aria-hidden="true"
+                  />
                 </div>
               )}
             </div>
@@ -306,7 +329,9 @@ export default function ContactsStage({
                   <span style={styles.countBadge}>({contacts.length})</span>
                 </h3>
                 {hasExampleContacts && (
-                  <span style={styles.examplePill}>Example contacts loaded</span>
+                  <span style={styles.examplePill}>
+                    Example contacts loaded
+                  </span>
                 )}
               </div>
 
@@ -330,7 +355,8 @@ export default function ContactsStage({
               <div style={styles.duplicateNotice}>
                 <div style={styles.duplicateCopy}>
                   <span style={styles.duplicateTitle}>
-                    {duplicateCount} duplicate {duplicateCount === 1 ? "contact" : "contacts"} found
+                    {duplicateCount} duplicate{" "}
+                    {duplicateCount === 1 ? "contact" : "contacts"} found
                   </span>
                   <span style={styles.duplicateText}>
                     Matching phone numbers are highlighted below.
@@ -395,22 +421,26 @@ export default function ContactsStage({
             </h3>
             <p style={styles.modalText}>
               We found {pendingImport.contacts.length} contact
-              {pendingImport.contacts.length === 1 ? "" : "s"} in what you pasted.
-              Choose whether to add them to the existing {contacts.length}, or
-              replace the list and start fresh.
+              {pendingImport.contacts.length === 1 ? "" : "s"} in what you
+              pasted. Choose whether to add them to the existing{" "}
+              {contacts.length}, or replace the list and start fresh.
             </p>
             <div style={styles.modalActions}>
               <button
                 type="button"
                 style={styles.replaceBtn}
-                onClick={() => applyImportedContacts(pendingImport.contacts, "replace")}
+                onClick={() =>
+                  applyImportedContacts(pendingImport.contacts, "replace")
+                }
               >
                 Replace list
               </button>
               <button
                 type="button"
                 style={styles.addBtn}
-                onClick={() => applyImportedContacts(pendingImport.contacts, "add")}
+                onClick={() =>
+                  applyImportedContacts(pendingImport.contacts, "add")
+                }
               >
                 Add to list
               </button>
@@ -437,7 +467,6 @@ function getDuplicateContactIds(contacts, selectedDialCode) {
     if (!key) return;
 
     if (firstContactByKey.has(key)) {
-      duplicateIds.add(firstContactByKey.get(key));
       duplicateIds.add(contact.id);
       return;
     }
@@ -719,15 +748,14 @@ const styles = {
   },
   examplePill: {
     alignSelf: "flex-start",
-    color: "var(--ta-muted-strong)",
-    backgroundColor: "color-mix(in srgb, var(--ta-cream) 5%, transparent)",
-    border: "1px solid var(--ta-border-subtle)",
+    border: "1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)",
+    color: "var(--ta-red)",
     borderRadius: "999px",
-    padding: "3px 8px",
-    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
-    fontFamily: "var(--font-body)",
-    letterSpacing: 0,
-    textTransform: "none",
+    padding: "2px 6px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(9px * var(--reachout-text-scale, 1))",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
   },
   clearBtn: {
     backgroundColor: "transparent",
