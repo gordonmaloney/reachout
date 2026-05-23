@@ -5,19 +5,20 @@ import { generateCallLink, normalizePhoneNumber } from '../utils';
 
 
 const callButtonStyle = {
-  backgroundColor: 'transparent',
+  backgroundColor: 'var(--ta-green)',
   border: '1px solid var(--ta-green)',
-  color: 'var(--ta-green)',
-  borderRadius: '8px',
-  padding: '6px 10px',
+  color: 'var(--ta-dark)',
+  borderRadius: '10px',
+  padding: '9px 13px',
   display: 'flex',
   alignItems: 'center',
-  gap: '4px',
+  gap: '6px',
   fontFamily: 'var(--font-heading)',
-  fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  fontSize: "calc(15px * var(--reachout-text-scale, 1))",
   cursor: 'pointer',
   textDecoration: 'none',
   flexShrink: 0,
+  boxShadow: 'var(--border-glow)',
 };
 
 

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import MobileContactCard from "./MobileContactCard";
 import MobileReportBackCard from "./MobileReportBackCard";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, MessageSquare, Phone } from "lucide-react";
 import "./MobileSwipeDeck.css";
 
 export default function MobileSwipeDeck({
@@ -18,7 +18,7 @@ export default function MobileSwipeDeck({
   onIndexChange = () => { },
   initialIndex = 0,
 }) {
-  const itemCount = contacts.length + (reportBackSettings.enabled ? 1 : 0);
+  const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
   // phase: "idle" | "exit" | "enter"
   const [phase, setPhase] = useState("idle");
@@ -26,7 +26,7 @@ export default function MobileSwipeDeck({
   const [direction, setDirection] = useState(0);
   const [exitStartX, setExitStartX] = useState(0);
   // The contact data currently displayed on the card
-  const [displayContact, setDisplayContact] = useState(contacts[initialIndex]);
+  const [displayContact, setDisplayContact] = useState(contacts[Math.max(0, initialIndex - 1)]);
   // Pending index to commit after exit animation
   const pendingIndexRef = useRef(null);
 
@@ -44,9 +44,9 @@ export default function MobileSwipeDeck({
 
   const isCurrentReportComplete = () => {
     if (!reportBackSettings.enabled || !reportBackSettings.mandatory) return true;
-    if (index >= contacts.length) return true;
+    if (index === 0 || index > contacts.length) return true;
 
-    const contact = contacts[index];
+    const contact = contacts[index - 1];
     const report = contactReports[contact?.id];
     if (!report?.contacted) return false;
     if (reportQuestions.length === 0) return true;
@@ -161,7 +161,7 @@ export default function MobileSwipeDeck({
       const newIdx = pendingIndexRef.current;
       setIndex(newIdx);
       onIndexChange(newIdx);
-      setDisplayContact(contacts[newIdx] || contacts[0]);
+      setDisplayContact(contacts[newIdx - 1] || contacts[0]);
       setPhase("enter"); // → starts CSS enter animation
     } else if (phase === "enter") {
       // Entry animation finished — card is centered & fully visible.
@@ -228,13 +228,21 @@ export default function MobileSwipeDeck({
           style={getDragStyle()}
           onAnimationEnd={handleAnimationEnd}
         >
-          {index === contacts.length && reportBackSettings.enabled ? (
+          {index === 0 ? (
+            <MobileIntroCard
+              contactCount={contacts.length}
+              templateCount={templates.length}
+              reportBackEnabled={Boolean(reportBackSettings.enabled)}
+            />
+          ) : index === contacts.length + 1 && reportBackSettings.enabled ? (
             <MobileReportBackCard
               contacts={contacts}
               contactReports={contactReports}
               reportBackSettings={reportBackSettings}
               selectedDialCode={selectedDialCode}
             />
+          ) : index === contacts.length + 1 ? (
+            <MobileFinishedCard contactCount={contacts.length} />
           ) : (
             <MobileContactCard
               contact={displayContact}
@@ -259,29 +267,35 @@ export default function MobileSwipeDeck({
       {blockMessage && <div style={styles.blockMessage}>{blockMessage}</div>}
 
       {/* Navigation buttons */}
-      <div style={styles.navRow}>
-        <button
-          onClick={triggerPrev}
-          style={styles.navBtn}
-          disabled={index === 0 || phase !== "idle"}
-          className="hover-lift"
-        >
-          <ArrowLeft size={20} /> Prev
-        </button>
-        <button
-          onClick={triggerNext}
-          style={{
-            ...styles.navBtn,
-            ...(index < contacts.length && reportBackSettings.mandatory && !isCurrentReportComplete()
-              ? styles.navBtnBlocked
-              : {}),
-          }}
-          disabled={index >= itemCount - 1 || phase !== "idle"}
-          className="hover-lift"
-        >
-          <ArrowRight size={20} /> Next
-        </button>
-      </div>
+      {(index > 0 || index < itemCount - 1) && (
+        <div style={styles.navRow}>
+          {index > 0 && (
+            <button
+              onClick={triggerPrev}
+              style={styles.navBtn}
+              disabled={phase !== "idle"}
+              className="hover-lift"
+            >
+              <ArrowLeft size={20} /> Prev
+            </button>
+          )}
+          {index < itemCount - 1 && (
+            <button
+              onClick={triggerNext}
+              style={{
+                ...styles.navBtn,
+                ...(index > 0 && index <= contacts.length && reportBackSettings.mandatory && !isCurrentReportComplete()
+                  ? styles.navBtnBlocked
+                  : {}),
+              }}
+              disabled={phase !== "idle"}
+              className="hover-lift"
+            >
+              <ArrowRight size={20} /> Next
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -343,5 +357,96 @@ const styles = {
   },
   navBtnBlocked: {
     opacity: 0.58,
+  },
+};
+
+function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
+  return (
+    <div style={infoStyles.card} className="glass-card">
+      <span style={infoStyles.kicker}>Ready to phonebank</span>
+      <h2 style={infoStyles.title}>Start with the first contact</h2>
+      <p style={infoStyles.text}>
+        Each card has the person’s number, a call button, and message templates
+        ready to send. Swipe or use Next to move through the phonebank.
+      </p>
+      <div style={infoStyles.summary}>
+        <span>{contactCount} contacts loaded</span>
+        <span>{templateCount} message templates</span>
+        {reportBackEnabled && <span>Reportback enabled</span>}
+      </div>
+      <div style={infoStyles.tips}>
+        <span><Phone size={16} /> Call from the top-right button.</span>
+        <span><MessageSquare size={16} /> Tap message previews to copy text.</span>
+      </div>
+    </div>
+  );
+}
+
+function MobileFinishedCard({ contactCount }) {
+  return (
+    <div style={infoStyles.card} className="glass-card">
+      <CheckCircle size={42} color="var(--ta-green)" />
+      <h2 style={infoStyles.title}>You’re finished</h2>
+      <p style={infoStyles.text}>
+        You’ve reached the end of this phonebank. Nice one. You can go back
+        through contacts if you need to copy a number or send another message.
+      </p>
+      <div style={infoStyles.summary}>
+        <span>{contactCount} contacts in this batch</span>
+        <span>No reportback is enabled for this phonebank.</span>
+      </div>
+    </div>
+  );
+}
+
+const infoStyles = {
+  card: {
+    width: "100%",
+    maxWidth: "420px",
+    height: "100%",
+    padding: "18px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    gap: "14px",
+    color: "var(--ta-cream)",
+  },
+  kicker: {
+    fontFamily: "var(--font-mono)",
+    color: "var(--ta-green)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+  },
+  title: {
+    fontFamily: "var(--font-heading)",
+    color: "var(--ta-cream)",
+    fontSize: "calc(30px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    margin: 0,
+  },
+  text: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.45,
+    margin: 0,
+  },
+  summary: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+    border: "1px solid rgba(79, 159, 104, 0.24)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    borderRadius: "10px",
+    padding: "12px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+  },
+  tips: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
   },
 };

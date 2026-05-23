@@ -30,7 +30,7 @@ export default function MobileWorkspace({
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const deckCount = contacts.length + (reportBackSettings.enabled ? 1 : 0);
+  const deckCount = contacts.length + 2;
   const isExampleData =
     contacts.length === initialContacts.length &&
     templates.length === initialTemplates.length &&
