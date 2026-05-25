@@ -47,25 +47,37 @@ export default function MobileSwipeDeck({
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [blockMessage, setBlockMessage] = useState("");
+  const [blockedQuestionIds, setBlockedQuestionIds] = useState([]);
   const reportQuestions =
     reportBackSettings.questions?.filter((question) =>
       question.label?.trim()
     ) || [];
+  const mandatoryReportQuestions = reportQuestions.filter((question) =>
+    Boolean(question.mandatory)
+  );
 
-  const isCurrentReportComplete = () => {
+  const getMissingRequiredQuestionIds = () => {
     if (!reportBackSettings.enabled || !reportBackSettings.mandatory)
-      return true;
-    if (index === 0 || index > contacts.length) return true;
+      return [];
+    if (index === 0 || index > contacts.length) return [];
+    if (mandatoryReportQuestions.length === 0) return [];
 
     const contact = contacts[index - 1];
     const report = contactReports[contact?.id];
-    if (!report?.contacted) return false;
-    if (reportQuestions.length === 0) return true;
+    if (!report?.contacted) {
+      return mandatoryReportQuestions.map((question) => question.id);
+    }
 
-    return reportQuestions.every((question) => {
+    return mandatoryReportQuestions
+      .filter((question) => {
       const answer = report.answers?.[question.id];
-      return String(answer || "").trim().length > 0;
-    });
+        return String(answer || "").trim().length === 0;
+      })
+      .map((question) => question.id);
+  };
+
+  const isCurrentReportComplete = () => {
+    return getMissingRequiredQuestionIds().length === 0;
   };
 
   // ── Gesture handlers ──────────────────────────────────────────────────
@@ -171,15 +183,21 @@ export default function MobileSwipeDeck({
     if (phase !== "idle") return false;
     const newIdx = index + dir;
     if (newIdx < 0 || newIdx >= itemCount) return false;
-    if (dir > 0 && !isCurrentReportComplete()) {
+    const missingQuestionIds = getMissingRequiredQuestionIds();
+    if (dir > 0 && missingQuestionIds.length > 0) {
       setBlockMessage(
-        "Complete the reportback before moving to the next contact."
+        "Complete the required reportback questions before moving to the next contact."
       );
-      window.setTimeout(() => setBlockMessage(""), 2200);
+      setBlockedQuestionIds(missingQuestionIds);
+      window.setTimeout(() => {
+        setBlockMessage("");
+        setBlockedQuestionIds([]);
+      }, 2200);
       return false;
     }
 
     setBlockMessage("");
+    setBlockedQuestionIds([]);
     pendingIndexRef.current = newIdx;
     setExitStartX(startX);
     setDirection(dir);
@@ -293,12 +311,13 @@ export default function MobileSwipeDeck({
                 }))
               }
               reportBackRequired={Boolean(reportBackSettings.mandatory)}
+              reportBackBlockMessage={blockMessage}
+              blockedQuestionIds={blockedQuestionIds}
+              showReportBackTooltip={index === 1}
             />
           )}
         </div>
       </div>
-
-      {blockMessage && <div style={styles.blockMessage}>{blockMessage}</div>}
 
       {/* Navigation buttons */}
       {(index > 0 || index < itemCount - 1) && (
@@ -317,25 +336,27 @@ export default function MobileSwipeDeck({
           </div>
           <div style={styles.navSlot}>
             {index < itemCount - 1 && (
-              <button
-                onClick={() => {
-                  triggerNext();
-                  onFirstTouch();
-                }}
-                style={{
-                  ...styles.navBtn,
-                  ...(index > 0 &&
-                  index <= contacts.length &&
-                  reportBackSettings.mandatory &&
-                  !isCurrentReportComplete()
-                    ? styles.navBtnBlocked
-                    : {}),
-                }}
-                disabled={phase !== "idle"}
-                className="hover-lift"
-              >
-                <ArrowRight size={20} /> Next
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    triggerNext();
+                    onFirstTouch();
+                  }}
+                  style={{
+                    ...styles.navBtn,
+                    ...(index > 0 &&
+                    index <= contacts.length &&
+                    reportBackSettings.mandatory &&
+                    !isCurrentReportComplete()
+                      ? styles.navBtnBlocked
+                      : {}),
+                  }}
+                  disabled={phase !== "idle"}
+                  className="hover-lift"
+                >
+                  <ArrowRight size={20} /> Next
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -381,18 +402,10 @@ const styles = {
   navSlot: {
     display: "flex",
     justifyContent: "center",
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "6px",
     minWidth: 0,
-  },
-  blockMessage: {
-    color: "var(--ta-muted-strong)",
-    backgroundColor: "rgba(79, 159, 104, 0.1)",
-    border: "1px solid rgba(79, 159, 104, 0.28)",
-    borderRadius: "8px",
-    padding: "8px 10px",
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
-    textAlign: "center",
-    width: "100%",
-    maxWidth: "380px",
   },
   navBtn: {
     background: "transparent",

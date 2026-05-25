@@ -1,11 +1,16 @@
 // src/components/MobileWorkspace.jsx
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import MobileSwipeDeck from "./MobileSwipeDeck";
 import MobileTemplateEditor from "./MobileTemplateEditor";
 import MobileDataScanner from "./MobileDataScanner";
-import { FileText, QrCode, Smartphone } from "lucide-react";
+import { FileText, LogOut, QrCode, Smartphone } from "lucide-react";
 import { initialContacts, initialTemplates } from "../data/mockData";
+import ProductTour from "./ProductTour";
+import { mobileProductTourSteps } from "../data/productTourSteps";
+import { CircleHelp } from "lucide-react";
+
+const MOBILE_TOUR_STORAGE_KEY = "reachout.mobileProductTourSeen";
 
 export default function MobileWorkspace({
   contacts,
@@ -30,6 +35,15 @@ export default function MobileWorkspace({
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const exitConfirmOpenRef = useRef(false);
+  const allowExitRef = useRef(false);
+  const contactSignature = contacts
+    .map((contact) => `${contact.id}:${contact.name}:${contact.phone}`)
+    .join("|");
+  const previousContactSignatureRef = useRef(contactSignature);
   const isContactCardOpen =
     view === "deck" && currentIdx > 0 && currentIdx <= contacts.length;
   const isExampleData =
@@ -60,6 +74,44 @@ export default function MobileWorkspace({
   }, []);
 
   useEffect(() => {
+    exitConfirmOpenRef.current = exitConfirmOpen;
+  }, [exitConfirmOpen]);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+
+    window.history.pushState(
+      { ...(window.history.state || {}), reachoutExitGuard: true },
+      "",
+      window.location.href
+    );
+
+    const handlePopState = () => {
+      if (allowExitRef.current || exitConfirmOpenRef.current) return;
+
+      exitConfirmOpenRef.current = true;
+      setExitConfirmOpen(true);
+      window.history.forward();
+    };
+
+    const handleBeforeUnload = (event) => {
+      if (allowExitRef.current) return undefined;
+
+      event.preventDefault();
+      event.returnValue = "";
+      return "";
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
     if (!showExampleToast) return undefined;
 
     const timeout = window.setTimeout(
@@ -68,6 +120,88 @@ export default function MobileWorkspace({
     );
     return () => window.clearTimeout(timeout);
   }, [showExampleToast]);
+
+  useEffect(() => {
+    if (previousContactSignatureRef.current === contactSignature) return;
+
+    previousContactSignatureRef.current = contactSignature;
+    setCurrentIdx(0);
+    setContactReports({});
+    setView("deck");
+    setExampleToastDismissed(true);
+  }, [contactSignature]);
+
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(MOBILE_TOUR_STORAGE_KEY) === "true") {
+        return;
+      }
+    } catch {
+      // If storage is unavailable, show once for this render.
+    }
+
+    window.setTimeout(() => {
+      setView(mobileProductTourSteps[0].view);
+      setTourStep(0);
+      setIsTourOpen(true);
+    }, 0);
+  }, []);
+
+  const markTourSeen = () => {
+    try {
+      window.localStorage.setItem(MOBILE_TOUR_STORAGE_KEY, "true");
+    } catch {
+      // Ignore storage failures; the tour still works for this session.
+    }
+  };
+
+  const closeTour = () => {
+    markTourSeen();
+    setView("deck");
+    setIsTourOpen(false);
+  };
+
+  const openTour = () => {
+    setView(mobileProductTourSteps[0].view);
+    setTourStep(0);
+    setIsTourOpen(true);
+  };
+
+  const handleTourNext = () => {
+    if (tourStep >= mobileProductTourSteps.length - 1) {
+      closeTour();
+      return;
+    }
+
+    const nextStep = tourStep + 1;
+    const nextView = mobileProductTourSteps[nextStep]?.view;
+    if (nextView) {
+      setView(nextView);
+    }
+    setTourStep(nextStep);
+  };
+
+  const handleTourPrev = () => {
+    if (tourStep === 0) return;
+    const prevStep = tourStep - 1;
+    const prevView = mobileProductTourSteps[prevStep]?.view;
+    if (prevView) {
+      setView(prevView);
+    }
+    setTourStep(prevStep);
+  };
+
+  const stayInApp = () => {
+    exitConfirmOpenRef.current = false;
+    setExitConfirmOpen(false);
+  };
+
+  const confirmExit = () => {
+    allowExitRef.current = true;
+    exitConfirmOpenRef.current = false;
+    setExitConfirmOpen(false);
+    window.history.back();
+  };
 
   if (!isMobile) {
     // Fallback – render nothing; parent App handles desktop layout.
@@ -94,11 +228,21 @@ export default function MobileWorkspace({
             by Tenant<span style={styles.actGreen}>Act</span>
           </span>
         </div>
-        {isContactCardOpen && (
-          <span style={styles.progress}>
-            {currentIdx} of {contacts.length}
-          </span>
-        )}
+        <div style={styles.headerActions}>
+          {isContactCardOpen && (
+            <span style={styles.progress}>
+              {currentIdx} of {contacts.length}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={openTour}
+            aria-label="Open product tour"
+            style={styles.tourButton}
+          >
+            <CircleHelp size={14} />
+          </button>
+        </div>
       </header>
 
       {/* Main view */}
@@ -169,6 +313,7 @@ export default function MobileWorkspace({
       <nav style={styles.navBar} className="glass-card">
         <button
           onClick={() => changeView("deck")}
+          data-tour-target="mobile-contacts-tab"
           style={{
             ...styles.navBtn,
             ...(view === "deck" ? styles.navBtnActive : {}),
@@ -178,6 +323,7 @@ export default function MobileWorkspace({
         </button>
         <button
           onClick={() => changeView("templates")}
+          data-tour-target="mobile-setup-tab"
           style={{
             ...styles.navBtn,
             ...(view === "templates" ? styles.navBtnActive : {}),
@@ -187,6 +333,7 @@ export default function MobileWorkspace({
         </button>
         <button
           onClick={() => changeView("scan")}
+          data-tour-target="mobile-scan-tab"
           style={{
             ...styles.navBtn,
             ...(view === "scan" ? styles.navBtnActive : {}),
@@ -195,6 +342,49 @@ export default function MobileWorkspace({
           <QrCode size={20} /> Scan data
         </button>
       </nav>
+      {isTourOpen && (
+        <ProductTour
+          currentStep={tourStep}
+          steps={mobileProductTourSteps}
+          spotlightSelector={`[data-tour-target="${mobileProductTourSteps[tourStep]?.highlightTarget}"]`}
+          onNext={handleTourNext}
+          onPrev={handleTourPrev}
+          onClose={closeTour}
+          layout="mobile"
+        />
+      )}
+      {exitConfirmOpen && (
+        <div style={styles.exitOverlay} role="presentation">
+          <div
+            style={styles.exitModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-exit-title"
+          >
+            <span style={styles.exitKicker}>Leaving REACHOUT?</span>
+            <h3 id="mobile-exit-title" style={styles.exitTitle}>
+              Are you sure you're finished?
+            </h3>
+            <p style={styles.exitText}>
+              If you close this tab, you may lose where you were in this
+              phonebank.
+            </p>
+            <div style={styles.exitActions}>
+              <button type="button" onClick={stayInApp} style={styles.exitStay}>
+                Stay here
+              </button>
+              <button
+                type="button"
+                onClick={confirmExit}
+                style={styles.exitLeave}
+              >
+                <LogOut size={15} />
+                I'm finished
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -258,6 +448,24 @@ const styles = {
     color: "var(--ta-green)",
     flexShrink: 0,
   },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    flexShrink: 0,
+  },
+  tourButton: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "999px",
+    border: "1px solid var(--ta-border-medium)",
+    backgroundColor: "transparent",
+    color: "var(--ta-muted-strong)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+  },
   main: {
     height: "100dvh",
     flex: 1,
@@ -310,6 +518,74 @@ const styles = {
     zIndex: 1000,
     padding: "24px",
     backdropFilter: "blur(1px)",
+  },
+  exitOverlay: {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "var(--modal-overlay)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2200,
+    padding: "18px",
+    backdropFilter: "blur(1px)",
+  },
+  exitModal: {
+    width: "min(340px, 100%)",
+    backgroundColor: "var(--modal-card-bg)",
+    border: "1px solid rgba(79, 159, 104, 0.42)",
+    borderRadius: "12px",
+    boxShadow: "var(--modal-card-shadow)",
+    color: "var(--ta-cream)",
+    padding: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  exitKicker: {
+    fontFamily: "var(--font-mono)",
+    color: "var(--ta-green)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+  },
+  exitTitle: {
+    color: "var(--ta-cream)",
+    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    margin: 0,
+  },
+  exitText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
+    margin: 0,
+  },
+  exitActions: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "9px",
+    marginTop: "8px",
+  },
+  exitStay: {
+    border: "1px solid var(--ta-border-medium)",
+    backgroundColor: "transparent",
+    color: "var(--ta-cream)",
+    borderRadius: "8px",
+    padding: "10px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+  },
+  exitLeave: {
+    border: "1px solid var(--ta-green)",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    borderRadius: "8px",
+    padding: "10px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
   },
   navBtn: {
     background: "transparent",

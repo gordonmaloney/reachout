@@ -328,7 +328,7 @@ const styles = {
     fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     fontFamily: 'var(--font-heading)',
     fontWeight: 'bold',
-    transition: 'all 0.3s ease',
+    transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease',
     position: 'relative',
     zIndex: 2,
     boxShadow: '0 0 0 4px var(--ta-dark-2)',

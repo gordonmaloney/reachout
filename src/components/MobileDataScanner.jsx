@@ -18,6 +18,7 @@ export default function MobileDataScanner({
   const [cameraStarting, setCameraStarting] = useState(false);
   const chunksRef = useRef([]);
   const initialUrlProcessedRef = useRef(false);
+  const readerShellRef = useRef(null);
 
   const importTransfer = useCallback(
     (reconstructed) => {
@@ -225,6 +226,20 @@ export default function MobileDataScanner({
     return () => window.clearTimeout(timeout);
   }, [importSummary, onImported]);
 
+  useEffect(() => {
+    if (!isScanning) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      readerShellRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isScanning]);
+
   return (
     <div style={styles.container} className="glass-card">
       <div style={styles.header}>
@@ -277,7 +292,7 @@ export default function MobileDataScanner({
       )}
 
       {isScanning && (
-        <div style={styles.readerShell}>
+        <div ref={readerShellRef} style={styles.readerShell}>
           <div id="reachout-reader" style={styles.reader} />
           {cameraStarting && (
             <div style={styles.readerLoading}>
@@ -362,6 +377,7 @@ const styles = {
     minHeight: "280px",
     borderRadius: "10px",
     overflow: "hidden",
+    scrollMarginTop: "8px",
   },
   readerLoading: {
     position: "absolute",

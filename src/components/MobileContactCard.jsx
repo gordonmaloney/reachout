@@ -32,7 +32,14 @@ export default function MobileContactCard({
   report = null,
   setReport = () => {},
   reportBackRequired = false,
+  reportBackBlockMessage = "",
+  blockedQuestionIds = [],
+  showReportBackTooltip = false,
 }) {
+  const templateList =
+    templates.length > 0
+      ? templates
+      : [{ id: "__blank__", title: "Message contact", body: "" }];
   const callLink = generateCallLink(contact, selectedDialCode);
   const previewPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
   const [copiedPhone, setCopiedPhone] = useState(false);
@@ -134,10 +141,30 @@ export default function MobileContactCard({
                   Required before moving on
                 </span>
               )}
-              {reportQuestions.map((question) =>
-                question.type === "yes_no" ? (
-                  <div key={question.id} style={styles.questionBlock}>
-                    <span style={styles.question}>{question.label}</span>
+              {reportBackBlockMessage && isReporting && (
+                <div style={styles.reportBlockMessage}>
+                  {reportBackBlockMessage}
+                </div>
+              )}
+              {reportQuestions.map((question) => {
+                const isBlockedQuestion = blockedQuestionIds.includes(
+                  question.id
+                );
+
+                return question.type === "yes_no" ? (
+                  <div
+                    key={question.id}
+                    style={{
+                      ...styles.questionBlock,
+                      ...(isBlockedQuestion ? styles.questionBlockError : {}),
+                    }}
+                  >
+                    <span style={styles.question}>
+                      {question.label}
+                      {reportBackRequired && question.mandatory ? (
+                        <span style={styles.requiredMark}> *</span>
+                      ) : null}
+                    </span>
                     <div style={styles.answerRow}>
                       <button
                         type="button"
@@ -147,6 +174,7 @@ export default function MobileContactCard({
                           ...(report?.answers?.[question.id] === "yes"
                             ? styles.answerBtnActive
                             : {}),
+                          ...(isBlockedQuestion ? styles.answerBtnError : {}),
                         }}
                       >
                         Yes
@@ -159,6 +187,7 @@ export default function MobileContactCard({
                           ...(report?.answers?.[question.id] === "no"
                             ? styles.answerBtnActive
                             : {}),
+                          ...(isBlockedQuestion ? styles.answerBtnError : {}),
                         }}
                       >
                         No
@@ -166,19 +195,33 @@ export default function MobileContactCard({
                     </div>
                   </div>
                 ) : (
-                  <label key={question.id} style={styles.notesLabel}>
-                    {question.label}
+                  <label
+                    key={question.id}
+                    style={{
+                      ...styles.notesLabel,
+                      ...(isBlockedQuestion ? styles.questionBlockError : {}),
+                    }}
+                  >
+                    <span>
+                      {question.label}
+                      {reportBackRequired && question.mandatory ? (
+                        <span style={styles.requiredMark}> *</span>
+                      ) : null}
+                    </span>
                     <textarea
                       value={report?.answers?.[question.id] || ""}
                       onChange={(event) =>
                         updateAnswer(question.id, event.target.value)
                       }
                       placeholder="Note anything worth following up here"
-                      style={styles.notesInput}
+                      style={{
+                        ...styles.notesInput,
+                        ...(isBlockedQuestion ? styles.notesInputError : {}),
+                      }}
                     />
                   </label>
-                )
-              )}
+                );
+              })}
               {reportQuestions.length === 0 && (
                 <span style={styles.question}>
                   No reportback questions set.
@@ -203,7 +246,7 @@ export default function MobileContactCard({
           )}
           {!isReporting && (
             <div style={styles.templates}>
-              {templates.map((t) => (
+              {templateList.map((t) => (
                 <div key={t.id} style={styles.templateBlock}>
                   <Links
                     contact={contact}
@@ -219,9 +262,29 @@ export default function MobileContactCard({
       </div>
 
       {reportEnabled && !isReporting && (
-        <button type="button" onClick={startReport} style={styles.contactedBtn}>
-          {reportBackRequired ? "Contacted - report required" : "Contacted"}
-        </button>
+        <div style={styles.reportAction}>
+          {showReportBackTooltip && (
+            <div style={styles.reportTooltip}>
+              Use this to record what happened after this contact. Your answers
+              will be included in the report at the end.
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={startReport}
+            style={{
+              ...styles.contactedBtn,
+              ...(reportBackBlockMessage ? styles.contactedBtnError : {}),
+            }}
+          >
+            {reportBackRequired ? "Report back -  required" : "Report back"}
+          </button>
+          {reportBackBlockMessage && (
+            <div style={styles.reportBlockMessage}>
+              {reportBackBlockMessage}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -337,15 +400,45 @@ const styles = {
   templates: { display: "flex", flexDirection: "column", gap: "10px" },
   templateBlock: { display: "flex", flexDirection: "column", gap: "4px" },
   contactedBtn: {
-    marginTop: "2px",
     flexShrink: 0,
     backgroundColor: "var(--ta-green)",
     color: "var(--ta-dark)",
-    border: "none",
+    border: "1px solid var(--ta-green)",
     borderRadius: "8px",
     padding: "11px 12px",
     fontFamily: "var(--font-heading)",
     fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+    width: "100%",
+  },
+  contactedBtnError: {
+    borderColor: "rgba(244, 239, 228, 0.9)",
+    boxShadow: "0 0 0 2px rgba(79, 159, 104, 0.3)",
+  },
+  reportAction: {
+    marginTop: "2px",
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  reportTooltip: {
+    position: "relative",
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    border: "1px solid rgba(79, 159, 104, 0.32)",
+    borderRadius: "8px",
+    padding: "8px 10px",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
+  reportBlockMessage: {
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    border: "1px solid rgba(79, 159, 104, 0.38)",
+    borderRadius: "8px",
+    padding: "7px 9px",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
   },
   reportForm: {
     display: "flex",
@@ -367,10 +460,20 @@ const styles = {
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     marginTop: "-6px",
   },
+  requiredMark: {
+    color: "var(--ta-green)",
+    fontWeight: 700,
+  },
   questionBlock: {
     display: "flex",
     flexDirection: "column",
     gap: "8px",
+  },
+  questionBlockError: {
+    border: "1px solid rgba(79, 159, 104, 0.46)",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    borderRadius: "8px",
+    padding: "8px",
   },
   question: {
     color: "var(--ta-muted-strong)",
@@ -395,6 +498,10 @@ const styles = {
     backgroundColor: "rgba(79, 159, 104, 0.18)",
     color: "var(--ta-green)",
   },
+  answerBtnError: {
+    borderColor: "rgba(244, 239, 228, 0.72)",
+    boxShadow: "0 0 0 2px rgba(79, 159, 104, 0.22)",
+  },
   notesLabel: {
     display: "flex",
     flexDirection: "column",
@@ -412,5 +519,9 @@ const styles = {
     fontFamily: "var(--font-body)",
     fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     padding: "9px",
+  },
+  notesInputError: {
+    borderColor: "rgba(244, 239, 228, 0.72)",
+    boxShadow: "0 0 0 2px rgba(79, 159, 104, 0.22)",
   },
 };

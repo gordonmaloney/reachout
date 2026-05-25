@@ -33,6 +33,8 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
   const signalLink = generateSignalLink(contact, dialCode);
   const telegramLink = generateTelegramLink(contact, dialCode);
   const preview = generatePreview(contact, template);
+  const previewText = preview.trim();
+  const hasMessageText = previewText.length > 0;
   const [copied, setCopied] = useState('');
 
   const markCopied = (type) => {
@@ -62,15 +64,17 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
     <div className="message-link-card">
       <div className="message-link-copy">
         <span className="message-link-title">{template.title}</span>
-        <button
-          type="button"
-          onClick={() => copyToClipboard(getOutboundMessage(contact, template, { plainText: true }), 'message')}
-          className="message-link-preview"
-          title="Copy message text"
-        >
-          {copied === 'message' ? <Check size={13} /> : <Clipboard size={13} />}
-          <span>{preview}</span>
-        </button>
+        {hasMessageText && (
+          <button
+            type="button"
+            onClick={() => copyToClipboard(getOutboundMessage(contact, template, { plainText: true }), 'message')}
+            className="message-link-preview"
+            title="Copy message text"
+          >
+            {copied === 'message' ? <Check size={13} /> : <Clipboard size={13} />}
+            <span>{previewText}</span>
+          </button>
+        )}
       </div>
       <div className="message-link-actions">
         <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">

@@ -3,8 +3,8 @@ import { ArrowLeft, ArrowRight, ClipboardList, Lightbulb, Plus, X } from "lucide
 import StageShell from "./StageShell";
 
 const defaultReportQuestions = [
-  { id: "pickedUp", label: "Did they pick up?", type: "yes_no" },
-  { id: "notes", label: "Notes", type: "text" },
+  { id: "pickedUp", label: "Did they pick up?", type: "yes_no", mandatory: true },
+  { id: "notes", label: "Notes", type: "text", mandatory: false },
 ];
 
 export default function CallNotesStage({
@@ -79,7 +79,7 @@ export default function CallNotesStage({
     updateReportBack({
       questions: [
         ...reportQuestions,
-        { id: `question_${Date.now()}`, label: "", type: "text" },
+        { id: `question_${Date.now()}`, label: "", type: "text", mandatory: false },
       ],
     });
   };
@@ -234,15 +234,23 @@ export default function CallNotesStage({
                 <span>
                   <strong style={styles.mandatoryTitle}>Make reportback mandatory</strong>
                   <span style={styles.mandatoryText}>
-                    Phonebankers cannot move to the next contact until these
-                    questions are answered.
+                    Phonebankers cannot move to the next contact until the
+                    questions marked mandatory are answered.
                   </span>
                 </span>
               </label>
 
               <div style={styles.questionsList}>
                 {reportQuestions.map((question, index) => (
-                  <div key={question.id} style={styles.questionRow}>
+                  <div
+                    key={question.id}
+                    style={{
+                      ...styles.questionRow,
+                      ...(reportBackSettings.mandatory
+                        ? styles.questionRowWithMandatory
+                        : {}),
+                    }}
+                  >
                     <span style={styles.noteNumber}>{index + 1}</span>
                     <input
                       value={question.label}
@@ -262,6 +270,21 @@ export default function CallNotesStage({
                       <option value="yes_no">Yes / no</option>
                       <option value="text">Free text</option>
                     </select>
+                    {reportBackSettings.mandatory && (
+                      <label style={styles.questionMandatory}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(question.mandatory)}
+                          onChange={(event) =>
+                            updateReportQuestion(question.id, {
+                              mandatory: event.target.checked,
+                            })
+                          }
+                          style={styles.checkbox}
+                        />
+                        Required
+                      </label>
+                    )}
                     <button
                       type="button"
                       onClick={() => deleteReportQuestion(question.id)}
@@ -479,6 +502,17 @@ const styles = {
     gridTemplateColumns: "32px 1fr 112px 36px",
     gap: "10px",
     alignItems: "center",
+  },
+  questionRowWithMandatory: {
+    gridTemplateColumns: "32px 1fr 112px minmax(92px, auto) 36px",
+  },
+  questionMandatory: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    whiteSpace: "nowrap",
   },
   questionType: {
     backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",

@@ -1,6 +1,6 @@
 const LINK_PREFIX = "ro";
 const LINK_VERSION = 1;
-const SHARE_LINK_PATH = "/share";
+const SHARE_LINK_PATH = "/s";
 export const MAX_TRANSFER_LINK_LENGTH = 2000;
 
 function bytesToBase64Url(bytes) {
@@ -64,6 +64,7 @@ function compactTransferData(data) {
         question.id || "",
         question.label || "",
         question.type || "text",
+        question.mandatory ? 1 : 0,
       ]),
       data.reportBackSettings?.mandatory ? 1 : 0,
     ],
@@ -99,6 +100,7 @@ function expandTransferData(data) {
         id: question[0] || `question_link_${index}`,
         label: question[1] || "",
         type: question[2] || "text",
+        mandatory: Boolean(question[3]),
       })),
       mandatory: Boolean(data.r?.[3]),
     },

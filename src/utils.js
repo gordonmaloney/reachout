@@ -11,11 +11,12 @@ export const dialCodeOptions = [
 ];
 
 function getFirstName(contact) {
-  return contact.name.split(' ')[0];
+  return (contact?.name || '').split(' ')[0];
 }
 
 function personalizeMessage(contact, template) {
-  return template.body.replace(/\{FIRSTNAME\}/g, getFirstName(contact));
+  const body = template?.body || '';
+  return body.replace(/\{FIRSTNAME\}/g, getFirstName(contact));
 }
 
 function stripWhatsAppFormatting(message) {

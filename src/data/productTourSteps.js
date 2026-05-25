@@ -52,3 +52,27 @@ export const organiserTourSteps = [
     body: "Send the data to your phone and start calling and texting! You can also send messages from your browser if you'd prefer.",
   },
 ];
+
+export const mobileProductTourSteps = [
+  {
+    eyebrow: "Step 1 of 3",
+    title: "Start contacting",
+    body: "Your contacts are already loaded, so you can start calling and texting from the contacts deck right away.",
+    highlightTarget: "mobile-contacts-tab",
+    view: "deck",
+  },
+  {
+    eyebrow: "Step 2 of 3",
+    title: "Write your messages",
+    body: "Create template messages to send to contacts, over WhatsApp, SMS, Signal or Telegram. You can create multiple templates - for example, one for people you get through to, and one for people who don't pick up.",
+    highlightTarget: "mobile-setup-tab",
+    view: "templates",
+  },
+  {
+    eyebrow: "Step 3 of 3",
+    title: "Import or refresh data",
+    body: "If you need to load a new list, use Scan data to pull contacts and templates from desktop.",
+    highlightTarget: "mobile-scan-tab",
+    view: "scan",
+  },
+];

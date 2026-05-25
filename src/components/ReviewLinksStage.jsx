@@ -22,6 +22,10 @@ export default function ReviewLinksStage({
   backLabel = "Back to messages",
   onPrev,
 }) {
+  const templateList =
+    templates.length > 0
+      ? templates
+      : [{ id: "__blank__", title: "Message contact", body: "" }];
   const [showQR, setShowQR] = useState(false);
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [copiedPhoneId, setCopiedPhoneId] = useState('');
@@ -182,7 +186,7 @@ export default function ReviewLinksStage({
                 </div>
               </div>
               <div style={styles.linksWrapper}>
-                {templates.map((t) => (
+                {templateList.map((t) => (
                   <Links
                     key={t.id}
                     contact={c}

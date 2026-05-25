@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Header from "./components/Header";
 import JourneyNav from "./components/JourneyNav";
 import ContactsStage from "./components/ContactsStage";
@@ -16,6 +16,7 @@ import {
   readEncryptedTransferLink,
 } from "./linkTransferUtils";
 import MobileWorkspace from "./components/MobileWorkspace";
+import { applyMetadata, getMetadataForPath } from "./metadata";
 const TOUR_STORAGE_KEY = "reachout.productTourSeen";
 const THEME_STORAGE_KEY = "reachout.theme";
 const FONT_SCALE_STORAGE_KEY = "reachout.fontScale";
@@ -26,8 +27,8 @@ const FONT_SCALE_MAX = 1.16;
 const FONT_SCALE_STEP = 0.07;
 const DESKTOP_DEFAULT_FONT_SCALE = 1 + FONT_SCALE_STEP;
 const defaultReportBackQuestions = [
-  { id: "pickedUp", label: "Did they pick up?", type: "yes_no" },
-  { id: "notes", label: "Notes", type: "text" },
+  { id: "pickedUp", label: "Did they pick up?", type: "yes_no", mandatory: true },
+  { id: "notes", label: "Notes", type: "text", mandatory: false },
 ];
 const reportbackRouteCallNotes = [
   {
@@ -136,9 +137,13 @@ export default function App() {
   const [reportbackPhoneFocusToken, setReportbackPhoneFocusToken] = useState(0);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
-  const [transferLoaded, setTransferLoaded] = useState(false);
+  const [transferLinkHash, setTransferLinkHash] = useState(
+    () => window.location.hash
+  );
+  const [importedTransferHash, setImportedTransferHash] = useState("");
   const [theme, setTheme] = useState(getInitialTheme);
   const [fontScale, setFontScale] = useState(getInitialFontScale);
+  const workspacePanelRef = useRef(null);
 
   const verifyCanLeaveStage = (targetStage) => {
     const leavingReportbackStage =
@@ -323,13 +328,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (transferLoaded || !hasTransferLink()) return;
+    const updateTransferHash = () => {
+      setTransferLinkHash(window.location.hash);
+    };
+
+    window.addEventListener("hashchange", updateTransferHash);
+    window.addEventListener("popstate", updateTransferHash);
+
+    return () => {
+      window.removeEventListener("hashchange", updateTransferHash);
+      window.removeEventListener("popstate", updateTransferHash);
+    };
+  }, []);
+
+  useEffect(() => {
+    applyMetadata(getMetadataForPath(routePath));
+  }, [routePath]);
+
+  useEffect(() => {
+    if (!hasTransferLink(transferLinkHash)) return;
+    if (importedTransferHash === transferLinkHash) return;
 
     let cancelled = false;
 
     async function importTransferLink() {
       try {
-        const imported = await readEncryptedTransferLink();
+        const imported = await readEncryptedTransferLink(transferLinkHash);
         if (cancelled || !imported) return;
 
         setContacts(imported.contacts || []);
@@ -345,9 +369,9 @@ export default function App() {
         setSelectedDialCode(imported.selectedDialCode || "+44");
         setExtraChannelsEnabled(Boolean(imported.extraChannelsEnabled));
         setActiveStage(finalStage);
-        setTransferLoaded(true);
+        setImportedTransferHash(transferLinkHash);
       } catch {
-        setTransferLoaded(true);
+        setImportedTransferHash(transferLinkHash);
       }
     }
 
@@ -356,7 +380,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [finalStage, transferLoaded]);
+  }, [finalStage, importedTransferHash, transferLinkHash]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -373,6 +397,11 @@ export default function App() {
       setActiveStage(getTourStage(0));
     }, 0);
   }, [getTourStage, isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
+    workspacePanelRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [activeStage, isMobile]);
 
   if (isMobile) {
     const shouldOpenScanner =
@@ -452,7 +481,7 @@ export default function App() {
         </aside>
 
         {/* Center/Right Workspace Area */}
-        <section className="workspace-panel">
+        <section ref={workspacePanelRef} className="workspace-panel">
           {activeStage === 1 && (
             <ContactsStage
               contacts={contacts}

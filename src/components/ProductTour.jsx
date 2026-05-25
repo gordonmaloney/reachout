@@ -9,6 +9,7 @@ export default function ProductTour({
   onNext,
   onPrev,
   onClose,
+  layout = "desktop",
 }) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -96,7 +97,12 @@ export default function ProductTour({
           }}
         />
       )}
-      <div style={styles.card}>
+      <div
+        style={{
+          ...styles.card,
+          ...(layout === "mobile" ? styles.cardMobile : {}),
+        }}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -106,9 +112,30 @@ export default function ProductTour({
           <X size={16} />
         </button>
 
-        <span style={styles.eyebrow}>{step.eyebrow}</span>
-        <h3 style={styles.title}>{step.title}</h3>
-        <p style={styles.body}>{step.body}</p>
+        <span
+          style={{
+            ...styles.eyebrow,
+            ...(layout === "mobile" ? styles.eyebrowMobile : {}),
+          }}
+        >
+          {step.eyebrow}
+        </span>
+        <h3
+          style={{
+            ...styles.title,
+            ...(layout === "mobile" ? styles.titleMobile : {}),
+          }}
+        >
+          {step.title}
+        </h3>
+        <p
+          style={{
+            ...styles.body,
+            ...(layout === "mobile" ? styles.bodyMobile : {}),
+          }}
+        >
+          {step.body}
+        </p>
         {step.highlights?.length > 0 && (
           <div style={styles.highlights}>
             {step.highlights.map((highlight) => (
@@ -139,11 +166,19 @@ export default function ProductTour({
             style={{
               ...styles.secondaryBtn,
               ...(currentStep === 0 ? styles.secondaryBtnDisabled : {}),
+              ...(layout === "mobile" ? styles.secondaryBtnMobile : {}),
             }}
           >
             Back
           </button>
-          <button type="button" onClick={onNext} style={styles.primaryBtn}>
+          <button
+            type="button"
+            onClick={onNext}
+            style={{
+              ...styles.primaryBtn,
+              ...(layout === "mobile" ? styles.primaryBtnMobile : {}),
+            }}
+          >
             {isLast ? (
               <>
                 Done <Check size={16} />
@@ -189,6 +224,16 @@ const styles = {
     color: "var(--ta-cream)",
     boxShadow: "var(--tour-card-shadow)",
   },
+  cardMobile: {
+    left: "12px",
+    right: "12px",
+    bottom: "72px",
+    width: "auto",
+    padding: "12px",
+    borderRadius: "12px",
+    maxWidth: "360px",
+    marginInline: "auto",
+  },
   closeBtn: {
     position: "absolute",
     top: "12px",
@@ -218,11 +263,24 @@ const styles = {
     marginTop: "6px",
     marginBottom: "8px",
   },
+  eyebrowMobile: {
+    fontSize: "calc(10px * var(--reachout-text-scale, 1))",
+  },
+  titleMobile: {
+    fontSize: "calc(22px * var(--reachout-text-scale, 1))",
+    marginTop: "4px",
+    marginBottom: "6px",
+  },
   body: {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
     paddingRight: "18px",
+  },
+  bodyMobile: {
+    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+    paddingRight: "12px",
   },
   highlights: {
     display: "flex",
@@ -268,6 +326,10 @@ const styles = {
     padding: "8px 14px",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
+  secondaryBtnMobile: {
+    padding: "7px 12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
   secondaryBtnDisabled: {
     opacity: 0.35,
     cursor: "not-allowed",
@@ -281,5 +343,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "6px",
+  },
+  primaryBtnMobile: {
+    padding: "7px 13px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
   },
 };
