@@ -5,7 +5,15 @@ import MobileSwipeDeck from "./MobileSwipeDeck";
 import MobileTemplateEditor from "./MobileTemplateEditor";
 import MobileDataScanner from "./MobileDataScanner";
 import MobileContactsManager from "./MobileContactsManager";
-import { FileText, LogOut, PhoneCall, QrCode, Users } from "lucide-react";
+import {
+  FileText,
+  LogOut,
+  Moon,
+  PhoneCall,
+  QrCode,
+  Sun,
+  Users,
+} from "lucide-react";
 import { initialContacts, initialTemplates } from "../data/mockData";
 import ProductTour from "./ProductTour";
 import { mobileProductTourSteps } from "../data/productTourSteps";
@@ -79,6 +87,7 @@ export default function MobileWorkspace({
     setView("deck");
     onCloseFaq();
   };
+  const nextTheme = theme === "dark" ? "light" : "dark";
 
   // Simple responsive check (optional)
   useEffect(() => {
@@ -260,6 +269,15 @@ export default function MobileWorkspace({
           >
             <CircleHelp size={14} />
           </button>
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            aria-label={`Switch to ${nextTheme} mode`}
+            title={`Switch to ${nextTheme} mode`}
+            style={styles.tourButton}
+          >
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
         </div>
       </header>
 
@@ -292,7 +310,9 @@ export default function MobileWorkspace({
           <MobileContactsManager
             contacts={contacts}
             setContacts={setContacts}
+            templates={templates}
             selectedDialCode={selectedDialCode}
+            extraChannelsEnabled={extraChannelsEnabled}
           />
         ) : view === "templates" ? (
           <MobileTemplateEditor
@@ -300,8 +320,6 @@ export default function MobileWorkspace({
             setTemplates={setTemplates}
             extraChannelsEnabled={extraChannelsEnabled}
             setExtraChannelsEnabled={setExtraChannelsEnabled}
-            theme={theme}
-            onToggleTheme={onToggleTheme}
           />
         ) : (
           <MobileDataScanner
@@ -346,7 +364,7 @@ export default function MobileWorkspace({
             ...(view === "deck" ? styles.navBtnActive : {}),
           }}
         >
-          <PhoneCall size={19} /> Phonebank
+          <PhoneCall size={17} /> Phonebank
         </button>
         <button
           onClick={() => changeView("contacts")}
@@ -356,7 +374,7 @@ export default function MobileWorkspace({
             ...(view === "contacts" ? styles.navBtnActive : {}),
           }}
         >
-          <Users size={19} /> Contacts
+          <Users size={17} /> Contacts
         </button>
         <button
           onClick={() => changeView("templates")}
@@ -366,7 +384,7 @@ export default function MobileWorkspace({
             ...(view === "templates" ? styles.navBtnActive : {}),
           }}
         >
-          <FileText size={20} /> Set up
+          <FileText size={17} /> Templates
         </button>
         <button
           onClick={() => changeView("scan")}
@@ -376,7 +394,7 @@ export default function MobileWorkspace({
             ...(view === "scan" ? styles.navBtnActive : {}),
           }}
         >
-          <QrCode size={20} /> Scan data
+          <QrCode size={17} /> Scan data
         </button>
       </nav>
       {isTourOpen && (
@@ -513,8 +531,9 @@ const styles = {
     display: "flex",
     justifyContent: "space-around",
     gap: "2px",
-    padding: "4px",
-    borderTop: "1px solid var(--ta-border-subtle)",
+    padding: "3px 4px",
+    marginTop: "3px",
+    borderTop: "1px solid color-mix(in srgb, var(--ta-cream) 7%, transparent)",
   },
   exampleToast: {
     position: "fixed",
@@ -630,16 +649,16 @@ const styles = {
     border: "none",
     color: "var(--ta-cream)",
     fontFamily: "var(--font-heading)",
-    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(10.8px * var(--reachout-text-scale, 1))",
     display: "flex",
     flex: 1,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: "2px",
+    gap: "1px",
     cursor: "pointer",
     minWidth: 0,
-    padding: "4px 2px",
+    padding: "3px 2px",
     lineHeight: 1.1,
   },
   navBtnActive: {

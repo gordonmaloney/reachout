@@ -1,4 +1,4 @@
-import { Moon, Plus, Sun, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
 export default function MobileTemplateEditor({
@@ -6,11 +6,8 @@ export default function MobileTemplateEditor({
   setTemplates,
   extraChannelsEnabled,
   setExtraChannelsEnabled,
-  theme = "dark",
-  onToggleTheme = () => {},
 }) {
   const [showChannelModal, setShowChannelModal] = useState(false);
-  const nextTheme = theme === "dark" ? "light" : "dark";
 
   const handleChange = (id, field, value) => {
     setTemplates((prev) =>
@@ -51,22 +48,6 @@ export default function MobileTemplateEditor({
         <h2 style={styles.title}>Edit Templates</h2>
         <button onClick={handleAddTemplate} style={styles.addBtn} className="hover-lift">
           <Plus size={16} /> Add
-        </button>
-      </div>
-      <div style={styles.displayRow}>
-        <div>
-          <span style={styles.displayTitle}>Display</span>
-          <p style={styles.displayText}>Switch colour mode for this phone.</p>
-        </div>
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          style={styles.themeBtn}
-          aria-label={`Switch to ${nextTheme} mode`}
-          title={`Switch to ${nextTheme} mode`}
-        >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-          {theme === "dark" ? "Light" : "Dark"}
         </button>
       </div>
       <button onClick={handleChannelToggle} style={styles.channelBtn} className="hover-lift">
@@ -150,43 +131,6 @@ const styles = {
     gap: "8px",
     overflowY: "auto",
     flex: 1,
-  },
-  displayRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "10px",
-    border: "1px solid var(--ta-border-subtle)",
-    borderRadius: "10px",
-    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
-    padding: "10px 12px",
-  },
-  displayTitle: {
-    display: "block",
-    fontFamily: "var(--font-heading)",
-    color: "var(--ta-cream)",
-    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
-    letterSpacing: "0.05em",
-    marginBottom: "1px",
-  },
-  displayText: {
-    color: "var(--ta-muted)",
-    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
-    lineHeight: 1.3,
-    margin: 0,
-  },
-  themeBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    backgroundColor: "transparent",
-    color: "var(--ta-green)",
-    border: "1px solid rgba(79, 159, 104, 0.45)",
-    borderRadius: "999px",
-    padding: "7px 10px",
-    fontFamily: "var(--font-heading)",
-    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
-    flexShrink: 0,
   },
   item: {
     display: "flex",

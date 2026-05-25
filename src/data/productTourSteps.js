@@ -71,7 +71,7 @@ export const mobileProductTourSteps = [
   {
     eyebrow: "Step 3 of 4",
     title: "Write your messages",
-    body: "Create template messages to send to contacts, over WhatsApp, SMS, Signal or Telegram. You can create multiple templates - for example, one for people you get through to, and one for people who don't pick up.",
+    body: "Use Templates to create messages to send to contacts, over WhatsApp, SMS, Signal or Telegram. You can create multiple templates - for example, one for people you get through to, and one for people who don't pick up.",
     highlightTarget: "mobile-setup-tab",
     view: "templates",
   },
