@@ -89,13 +89,14 @@ export default function MobileReportBackCard({
     () => getSpreadsheetText(rows, questions),
     [questions, rows]
   );
+  const reportDialCode = reportBackSettings.dialCode || selectedDialCode;
   const organiserPhone = normalizePhoneNumber(
     reportBackSettings.phone,
-    selectedDialCode
+    reportDialCode
   );
   const whatsappPhone = getWhatsAppPhoneNumber(
     reportBackSettings.phone,
-    selectedDialCode
+    reportDialCode
   );
   const whatsappLink = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
     plainText

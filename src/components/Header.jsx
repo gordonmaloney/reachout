@@ -1,8 +1,6 @@
-import { ExternalLink, HelpCircle } from "lucide-react";
+import { ExternalLink, ListChecks, MessageCircleQuestion } from "lucide-react";
 
-export default function Header({
-  onStartTour,
-}) {
+export default function Header({ onStartTour, onOpenFaq }) {
   return (
     <header style={styles.header}>
       <div style={styles.logoGroup}>
@@ -22,8 +20,18 @@ export default function Header({
           style={styles.howItWorksBtn}
           className="hover-lift"
         >
-          <HelpCircle size={14} color="var(--ta-green)" />
-          <span>How it works</span>
+          <ListChecks size={14} color="var(--ta-green)" />
+          <span>Get started</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenFaq}
+          style={styles.faqLink}
+          className="hover-lift"
+        >
+          <MessageCircleQuestion size={14} color="var(--ta-green)" />
+          <span>FAQ</span>
         </button>
 
         <a
@@ -117,5 +125,21 @@ const styles = {
     textDecoration: "none",
     textTransform: "uppercase",
     transition: "all 0.2s ease",
+  },
+  faqLink: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    backgroundColor: "transparent",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    color: "var(--ta-green)",
+    padding: "8px 14px",
+    borderRadius: "6px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontWeight: 600,
+    letterSpacing: "0.055em",
+    textDecoration: "none",
+    textTransform: "uppercase",
   },
 };

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, ClipboardList, Lightbulb, Plus, X } from "lucide-react";
 import StageShell from "./StageShell";
+import { dialCodeOptions } from "../utils";
 
 const defaultReportQuestions = [
   { id: "pickedUp", label: "Did they pick up?", type: "yes_no", mandatory: true },
@@ -10,7 +11,7 @@ const defaultReportQuestions = [
 export default function CallNotesStage({
   callNotes,
   setCallNotes,
-  reportBackSettings = { enabled: false, phone: "", mandatory: false, questions: defaultReportQuestions },
+  reportBackSettings = { enabled: false, dialCode: "+44", phone: "", mandatory: false, questions: defaultReportQuestions },
   setReportBackSettings = () => {},
   reportbackPhoneFocusToken = 0,
   stageNumLabel = "Stage 3 of 4",
@@ -22,6 +23,29 @@ export default function CallNotesStage({
   const reportQuestions = reportBackSettings.questions?.length
     ? reportBackSettings.questions
     : defaultReportQuestions;
+  const selectedReportDialCode = reportBackSettings.dialCode || "+44";
+  const reportPhoneValue = reportBackSettings.phone || "";
+  const reportPhoneDigits = reportPhoneValue.replace(/\D/g, "");
+  const selectedDialDigits = selectedReportDialCode.replace(/\D/g, "");
+  const enteredInternationalDialCode = reportPhoneValue.trim().startsWith("+")
+    ? reportPhoneDigits
+    : "";
+  const selectedKnownDialDigits = dialCodeOptions
+    .map((option) => option.value.replace(/\D/g, ""))
+    .filter((code) => reportPhoneDigits.startsWith(code))
+    .sort((a, b) => b.length - a.length)[0];
+  const hasMismatchedDialCode =
+    Boolean(enteredInternationalDialCode) &&
+    Boolean(selectedKnownDialDigits) &&
+    selectedKnownDialDigits !== selectedDialDigits;
+  const hasTooFewDigits =
+    reportPhoneValue.trim().length > 0 &&
+    reportPhoneDigits.replace(new RegExp(`^${selectedDialDigits}`), "").length < 7;
+  const reportPhoneValidationMessage = hasMismatchedDialCode
+    ? `This number starts with +${selectedKnownDialDigits}, but the dropdown is set to ${selectedReportDialCode}. Choose the matching dial code so WhatsApp links work.`
+    : hasTooFewDigits
+      ? "This number looks a bit short. Include the full mobile number so phonebankers can send WhatsApp reportbacks."
+      : "";
 
   useEffect(() => {
     const isNewFocusRequest = reportbackPhoneFocusToken !== lastFocusTokenRef.current;
@@ -212,14 +236,40 @@ export default function CallNotesStage({
 
               <label style={styles.reportLabel}>
                 Your phone number
-                <input
-                  ref={phoneInputRef}
-                  className="reportback-number-input"
-                  value={reportBackSettings.phone}
-                  onChange={(event) => updateReportBack({ phone: event.target.value })}
-                  placeholder="e.g. +44 7712 345678"
-                  style={styles.noteInput}
-                />
+                <div style={styles.phoneRow}>
+                  <select
+                    value={selectedReportDialCode}
+                    onChange={(event) =>
+                      updateReportBack({ dialCode: event.target.value })
+                    }
+                    style={styles.dialCodeSelect}
+                    aria-label="Reportback phone dial code"
+                  >
+                    {dialCodeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    ref={phoneInputRef}
+                    className="reportback-number-input"
+                    value={reportPhoneValue}
+                    onChange={(event) => updateReportBack({ phone: event.target.value })}
+                    placeholder="e.g. 7712 345678"
+                    style={{
+                      ...styles.noteInput,
+                      ...(reportPhoneValidationMessage
+                        ? styles.phoneInputWarning
+                        : {}),
+                    }}
+                  />
+                </div>
+                {reportPhoneValidationMessage && (
+                  <span style={styles.phoneValidation}>
+                    {reportPhoneValidationMessage}
+                  </span>
+                )}
               </label>
 
               <label style={styles.mandatoryRow}>
@@ -461,6 +511,35 @@ const styles = {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     marginTop: "12px",
+  },
+  phoneRow: {
+    display: "grid",
+    gridTemplateColumns: "180px 1fr",
+    gap: "10px",
+    alignItems: "center",
+  },
+  dialCodeSelect: {
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "8px",
+    color: "var(--ta-cream)",
+    padding: "10px 8px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    minWidth: 0,
+  },
+  phoneInputWarning: {
+    borderColor: "rgba(79, 159, 104, 0.58)",
+    boxShadow: "0 0 0 3px rgba(79, 159, 104, 0.14)",
+  },
+  phoneValidation: {
+    color: "var(--ta-muted-strong)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    border: "1px solid rgba(79, 159, 104, 0.26)",
+    borderRadius: "8px",
+    padding: "8px 10px",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
   },
   mandatoryRow: {
     display: "flex",

@@ -27,9 +27,12 @@ export default function MobileDataScanner({
       setSelectedDialCode(reconstructed.selectedDialCode);
       setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
       setCallNotes(reconstructed.callNotes || []);
-      setReportBackSettings(
-        reconstructed.reportBackSettings || { enabled: false, phone: "" }
-      );
+      setReportBackSettings({
+        enabled: false,
+        dialCode: "+44",
+        phone: "",
+        ...(reconstructed.reportBackSettings || {}),
+      });
       setImportSummary({
         contactCount: reconstructed.contacts?.length || 0,
         templateCount: reconstructed.templates?.length || 0,

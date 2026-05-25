@@ -24,6 +24,7 @@ export default function MobileSwipeDeck({
   onIndexChange = () => {},
   initialIndex = 0,
   onFirstTouch,
+  onOpenFaq = () => {},
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -285,6 +286,7 @@ export default function MobileSwipeDeck({
               contactCount={contacts.length}
               templateCount={templates.length}
               reportBackEnabled={Boolean(reportBackSettings.enabled)}
+              onOpenFaq={onOpenFaq}
             />
           ) : index === contacts.length + 1 && reportBackSettings.enabled ? (
             <MobileReportBackCard
@@ -427,7 +429,12 @@ const styles = {
   },
 };
 
-function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
+function MobileIntroCard({
+  contactCount,
+  templateCount,
+  reportBackEnabled,
+  onOpenFaq,
+}) {
   return (
     <div style={infoStyles.card} className="glass-card">
       <span style={infoStyles.kicker}>Phonebank ready</span>
@@ -450,6 +457,9 @@ function MobileIntroCard({ contactCount, templateCount, reportBackEnabled }) {
           templates first.
         </span>
       </div>
+      <button type="button" onClick={onOpenFaq} style={infoStyles.faqLink}>
+        Read the FAQ
+      </button>
     </div>
   );
 }
@@ -516,5 +526,15 @@ const infoStyles = {
     gap: "8px",
     color: "var(--ta-muted-strong)",
     fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+  },
+  faqLink: {
+    alignSelf: "flex-start",
+    backgroundColor: "transparent",
+    border: "none",
+    color: "var(--ta-green)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    textDecoration: "none",
+    borderTop: "1px solid var(--ta-border-subtle)",
+    paddingTop: "12px",
   },
 };

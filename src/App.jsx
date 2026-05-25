@@ -9,6 +9,7 @@ import HelpDrawer from "./components/HelpDrawer";
 import OrganiserModeModal from "./components/OrganiserModeModal";
 import ReportbackNumberModal from "./components/ReportbackNumberModal";
 import ProductTour from "./components/ProductTour";
+import FaqPage from "./components/FaqPage";
 import { initialContacts, initialTemplates } from "./data/mockData";
 import { organiserTourSteps, productTourSteps } from "./data/productTourSteps";
 import {
@@ -46,6 +47,7 @@ const reportbackRouteCallNotes = [
 ];
 const reportbackRouteSettings = {
   enabled: true,
+  dialCode: "+44",
   phone: "+44 7700 900123",
   mandatory: false,
   questions: defaultReportBackQuestions,
@@ -108,6 +110,7 @@ function getInitialFontScale() {
 
 export default function App() {
   const routePath = window.location.pathname.replace(/\/+$/, "");
+  const isFaqRoute = routePath === "/faq";
   const isOrganiserRoute = routePath === "/organiser";
   const isReportbackRoute = routePath === "/reportback";
   const [organiserModeEnabled, setOrganiserModeEnabled] =
@@ -122,6 +125,7 @@ export default function App() {
   const [callNotes, setCallNotes] = useState([]);
   const [reportBackSettings, setReportBackSettings] = useState({
     enabled: false,
+    dialCode: "+44",
     phone: "",
     mandatory: false,
     questions: defaultReportBackQuestions,
@@ -131,6 +135,7 @@ export default function App() {
   const [hostSessionEnabled, setHostSessionEnabled] = useState(false);
   const [hostSessionCallers, setHostSessionCallers] = useState(2);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isFaqOpen, setIsFaqOpen] = useState(isFaqRoute);
   const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
   const [isReportbackNumberModalOpen, setIsReportbackNumberModalOpen] =
     useState(false);
@@ -160,8 +165,10 @@ export default function App() {
   };
 
   const goToStage = (targetStage) => {
-    if (targetStage === activeStage) return;
+    if (targetStage === activeStage && !isFaqOpen) return;
     if (!verifyCanLeaveStage(targetStage)) return;
+    if (isFaqOpen) clearFaqPath();
+    setIsFaqOpen(false);
     setActiveStage(targetStage);
   };
 
@@ -175,6 +182,23 @@ export default function App() {
 
   const toggleHelp = () => {
     setIsHelpOpen((prev) => !prev);
+  };
+
+  const openFaq = () => {
+    setIsFaqOpen(true);
+    setIsTourOpen(false);
+  };
+
+  const clearFaqPath = () => {
+    if (window.location.pathname === "/faq") {
+      window.history.replaceState({}, "", "/");
+    }
+  };
+
+  const closeFaqToContacts = () => {
+    clearFaqPath();
+    setIsFaqOpen(false);
+    setActiveStage(1);
   };
 
   const toggleTheme = () => {
@@ -361,6 +385,7 @@ export default function App() {
         setCallNotes(imported.callNotes || []);
         setReportBackSettings({
           enabled: false,
+          dialCode: "+44",
           phone: "",
           mandatory: false,
           questions: defaultReportBackQuestions,
@@ -383,6 +408,7 @@ export default function App() {
   }, [finalStage, importedTransferHash, transferLinkHash]);
 
   useEffect(() => {
+    if (isFaqOpen) return;
     if (isMobile) return;
     if (hasTransferLink()) return;
 
@@ -396,7 +422,7 @@ export default function App() {
       setIsTourOpen(true);
       setActiveStage(getTourStage(0));
     }, 0);
-  }, [getTourStage, isMobile]);
+  }, [getTourStage, isFaqOpen, isMobile]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -431,7 +457,8 @@ export default function App() {
         setSelectedDialCode={setSelectedDialCode}
         extraChannelsEnabled={extraChannelsEnabled}
         setExtraChannelsEnabled={setExtraChannelsEnabled}
-        initialView={shouldOpenScanner ? "scan" : "deck"}
+        initialView={isFaqOpen ? "faq" : shouldOpenScanner ? "scan" : "deck"}
+        onCloseFaq={closeFaqToContacts}
         theme={theme}
         onToggleTheme={toggleTheme}
         fontScale={fontScale}
@@ -447,14 +474,14 @@ export default function App() {
       style={{ "--reachout-text-scale": fontScale }}
     >
       {/* Top Brand Header */}
-      <Header onStartTour={openProductTour} />
+      <Header onStartTour={openProductTour} onOpenFaq={openFaq} />
 
       {/* Main Layout Grid */}
       <main className="main-content">
         {/* Left Sidebar: Journey Nav */}
         <aside className="sidebar-panel">
           <JourneyNav
-            activeStage={activeStage}
+            activeStage={isFaqOpen ? null : activeStage}
             setActiveStage={goToStage}
             onToggleHelp={toggleHelp}
             isOrganiser={isOrganiser}
@@ -482,7 +509,9 @@ export default function App() {
 
         {/* Center/Right Workspace Area */}
         <section ref={workspacePanelRef} className="workspace-panel">
-          {activeStage === 1 && (
+          {isFaqOpen ? (
+            <FaqPage onBack={closeFaqToContacts} />
+          ) : activeStage === 1 ? (
             <ContactsStage
               contacts={contacts}
               setContacts={setContacts}
@@ -491,9 +520,9 @@ export default function App() {
               stageNumLabel={`Stage 1 of ${totalStages}`}
               onNext={handleNextStage}
             />
-          )}
+          ) : null}
 
-          {activeStage === 2 && (
+          {!isFaqOpen && activeStage === 2 && (
             <MessagesStage
               templates={templates}
               setTemplates={setTemplates}
@@ -506,7 +535,7 @@ export default function App() {
             />
           )}
 
-          {isOrganiser && activeStage === 3 && (
+          {!isFaqOpen && isOrganiser && activeStage === 3 && (
             <CallNotesStage
               callNotes={callNotes}
               setCallNotes={setCallNotes}
@@ -519,7 +548,7 @@ export default function App() {
             />
           )}
 
-          {activeStage === finalStage && (
+          {!isFaqOpen && activeStage === finalStage && (
             <ReviewLinksStage
               contacts={contacts}
               templates={templates}

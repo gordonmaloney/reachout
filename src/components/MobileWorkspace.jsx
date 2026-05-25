@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import MobileSwipeDeck from "./MobileSwipeDeck";
 import MobileTemplateEditor from "./MobileTemplateEditor";
 import MobileDataScanner from "./MobileDataScanner";
-import { FileText, LogOut, QrCode, Smartphone } from "lucide-react";
+import MobileContactsManager from "./MobileContactsManager";
+import { FileText, LogOut, PhoneCall, QrCode, Users } from "lucide-react";
 import { initialContacts, initialTemplates } from "../data/mockData";
 import ProductTour from "./ProductTour";
 import { mobileProductTourSteps } from "../data/productTourSteps";
 import { CircleHelp } from "lucide-react";
+import FaqPage from "./FaqPage";
 
 const MOBILE_TOUR_STORAGE_KEY = "reachout.mobileProductTourSeen";
 
@@ -26,11 +28,12 @@ export default function MobileWorkspace({
   reportBackSettings = { enabled: false, phone: "" },
   setReportBackSettings = () => {},
   initialView = "deck",
+  onCloseFaq = () => {},
   theme = "dark",
   onToggleTheme = () => {},
   fontScale = 1,
 }) {
-  const [view, setView] = useState(initialView); // 'deck', 'templates', or 'scan'
+  const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', or 'faq'
   const [currentIdx, setCurrentIdx] = useState(0);
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
@@ -59,11 +62,22 @@ export default function MobileWorkspace({
         template.title === initialTemplates[index]?.title &&
         template.body === initialTemplates[index]?.body
     );
-  const showExampleToast = isMobile && isExampleData && !exampleToastDismissed;
+  const showExampleToast =
+    isMobile && view === "deck" && isExampleData && !exampleToastDismissed;
 
   const changeView = (nextView) => {
     setExampleToastDismissed(true);
     setView(nextView);
+  };
+
+  const openFaq = () => {
+    setExampleToastDismissed(true);
+    setView("faq");
+  };
+
+  const closeFaq = () => {
+    setView("deck");
+    onCloseFaq();
   };
 
   // Simple responsive check (optional)
@@ -125,11 +139,15 @@ export default function MobileWorkspace({
     if (previousContactSignatureRef.current === contactSignature) return;
 
     previousContactSignatureRef.current = contactSignature;
+    if (view === "contacts") return;
+
     setCurrentIdx(0);
     setContactReports({});
-    setView("deck");
+    if (view !== "faq") {
+      setView("deck");
+    }
     setExampleToastDismissed(true);
-  }, [contactSignature]);
+  }, [contactSignature, view]);
 
   useEffect(() => {
     try {
@@ -247,7 +265,9 @@ export default function MobileWorkspace({
 
       {/* Main view */}
       <main style={styles.main}>
-        {view === "deck" ? (
+        {view === "faq" ? (
+          <FaqPage onBack={closeFaq} />
+        ) : view === "deck" ? (
           <MobileSwipeDeck
             key={`${contacts
               .map((contact) => contact.id)
@@ -266,6 +286,13 @@ export default function MobileWorkspace({
             setContactReports={setContactReports}
             onFirstTouch={() => setExampleToastDismissed(true)}
             initialIndex={currentIdx}
+            onOpenFaq={openFaq}
+          />
+        ) : view === "contacts" ? (
+          <MobileContactsManager
+            contacts={contacts}
+            setContacts={setContacts}
+            selectedDialCode={selectedDialCode}
           />
         ) : view === "templates" ? (
           <MobileTemplateEditor
@@ -313,13 +340,23 @@ export default function MobileWorkspace({
       <nav style={styles.navBar} className="glass-card">
         <button
           onClick={() => changeView("deck")}
-          data-tour-target="mobile-contacts-tab"
+          data-tour-target="mobile-phonebank-tab"
           style={{
             ...styles.navBtn,
             ...(view === "deck" ? styles.navBtnActive : {}),
           }}
         >
-          <Smartphone size={20} /> Contacts
+          <PhoneCall size={19} /> Phonebank
+        </button>
+        <button
+          onClick={() => changeView("contacts")}
+          data-tour-target="mobile-contacts-tab"
+          style={{
+            ...styles.navBtn,
+            ...(view === "contacts" ? styles.navBtnActive : {}),
+          }}
+        >
+          <Users size={19} /> Contacts
         </button>
         <button
           onClick={() => changeView("templates")}
@@ -475,6 +512,7 @@ const styles = {
   navBar: {
     display: "flex",
     justifyContent: "space-around",
+    gap: "2px",
     padding: "4px",
     borderTop: "1px solid var(--ta-border-subtle)",
   },
@@ -592,11 +630,17 @@ const styles = {
     border: "none",
     color: "var(--ta-cream)",
     fontFamily: "var(--font-heading)",
-    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
     display: "flex",
+    flex: 1,
+    flexDirection: "column",
     alignItems: "center",
-    gap: "4px",
+    justifyContent: "center",
+    gap: "2px",
     cursor: "pointer",
+    minWidth: 0,
+    padding: "4px 2px",
+    lineHeight: 1.1,
   },
   navBtnActive: {
     color: "var(--ta-green)",
