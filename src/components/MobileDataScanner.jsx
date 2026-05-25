@@ -20,6 +20,14 @@ export default function MobileDataScanner({
   const initialUrlProcessedRef = useRef(false);
   const readerShellRef = useRef(null);
 
+  const scrollReaderIntoView = useCallback((behavior = "smooth") => {
+    readerShellRef.current?.scrollIntoView({
+      behavior,
+      block: "start",
+      inline: "nearest",
+    });
+  }, []);
+
   const importTransfer = useCallback(
     (reconstructed) => {
       setContacts(reconstructed.contacts);
@@ -177,6 +185,9 @@ export default function MobileDataScanner({
         );
         setCameraStarting(false);
         setProgress("Camera ready. Point it at the QR code.");
+        scrollReaderIntoView();
+        window.setTimeout(scrollReaderIntoView, 180);
+        window.setTimeout(scrollReaderIntoView, 420);
       } catch {
         try {
           setProgress("Finding an available back camera...");
@@ -200,6 +211,9 @@ export default function MobileDataScanner({
           );
           setCameraStarting(false);
           setProgress("Camera ready. Point it at the QR code.");
+          scrollReaderIntoView();
+          window.setTimeout(scrollReaderIntoView, 180);
+          window.setTimeout(scrollReaderIntoView, 420);
         } catch {
           setCameraStarting(false);
           setProgress(
@@ -217,7 +231,7 @@ export default function MobileDataScanner({
       setCameraStarting(false);
       stopScanner();
     };
-  }, [isScanning, processDecodedText]);
+  }, [isScanning, processDecodedText, scrollReaderIntoView]);
 
   useEffect(() => {
     if (!importSummary) return undefined;
@@ -233,15 +247,11 @@ export default function MobileDataScanner({
     if (!isScanning) return undefined;
 
     const frame = window.requestAnimationFrame(() => {
-      readerShellRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-        inline: "nearest",
-      });
+      scrollReaderIntoView();
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [isScanning]);
+  }, [isScanning, scrollReaderIntoView]);
 
   return (
     <div style={styles.container} className="glass-card">
