@@ -4,12 +4,12 @@ export const siteMetadata = {
   main: {
     title: "REACHOUT | Phone- and text-banking",
     description:
-      "Build a phonebank, send it to your phone, and work through calls and messages contact by contact.",
+      "Easily phone and message contacts to build for meetings, mobilisations, actions and more.",
     image: metaImage,
     urlPath: "/",
   },
   share: {
-    title: "REACHOUT | Phonebank share link",
+    title: "REACHOUT | Phone- and text-banking",
     description:
       "Open this REACHOUT phonebank on your phone to start calling and messaging contacts.",
     image: metaImage,
