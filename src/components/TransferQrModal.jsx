@@ -47,6 +47,7 @@ export default function TransferQrModal({
   }, [contacts, hostSessionCallers, hostSessionEnabled]);
   const [batchTransfers, setBatchTransfers] = useState([]);
   const [batchQrCodes, setBatchQrCodes] = useState([]);
+  const [isPreparingTransfer, setIsPreparingTransfer] = useState(true);
   const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
   const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [linkStatus, setLinkStatus] = useState("");
@@ -75,6 +76,12 @@ export default function TransferQrModal({
     batches.length > 1
       ? `${currentBatchIndex + 1} of ${batches.length}`
       : "1 of 1";
+  const isTransferReady =
+    !isPreparingTransfer &&
+    !qrError &&
+    batchTransfers.length === batches.length &&
+    batchQrCodes.length === batches.length &&
+    batchQrCodes.every((codes) => codes.length > 0);
 
   const getLinkContactSummary = (link) => {
     const count = link?.contactCount ?? 0;
@@ -90,10 +97,16 @@ export default function TransferQrModal({
 
     async function generateTransfers() {
       try {
+        setIsPreparingTransfer(true);
+        setQrError("");
+        setBatchTransfers([]);
+        setBatchQrCodes([]);
+
         if (linkPasswordProtected && !activePassword) {
           setBatchTransfers([]);
           setBatchQrCodes([]);
           setQrError("Add a password to generate encrypted links.");
+          setIsPreparingTransfer(false);
           return;
         }
 
@@ -135,6 +148,7 @@ export default function TransferQrModal({
           setCurrentLinkIndex(0);
           setLinkStatus("");
           setQrError("");
+          setIsPreparingTransfer(false);
         }
       } catch {
         if (!cancelled) {
@@ -143,6 +157,7 @@ export default function TransferQrModal({
           setQrError(
             "This transfer is too large to fit cleanly in a QR code. Try copying the link below, or shorten the message templates."
           );
+          setIsPreparingTransfer(false);
         }
       }
     }
@@ -242,6 +257,20 @@ export default function TransferQrModal({
           <X size={18} />
         </button>
 
+        {!isTransferReady ? (
+          <div style={styles.loadingLayout}>
+            <div style={styles.loadingCard}>
+              {!qrError && <span style={styles.loadingSpinner} />}
+              <span style={styles.loadingTitle}>
+                {qrError ? "Could not prepare transfer" : "Preparing QR code and link"}
+              </span>
+              <p style={styles.loadingText}>
+                {qrError ||
+                  "Encrypting and packaging the phonebank so it is ready to open on mobile."}
+              </p>
+            </div>
+          </div>
+        ) : (
         <div style={styles.layout}>
           <div style={styles.infoPane}>
             <div style={styles.header}>
@@ -505,6 +534,7 @@ export default function TransferQrModal({
             )}
           </div>
         </div>
+        )}
       </div>
       {fullscreenQrOpen && qrCodes[currentLinkIndex] && (
         <div
@@ -784,6 +814,47 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingLayout: {
+    minHeight: "min(420px, calc(100dvh - 120px))",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "30px",
+  },
+  loadingCard: {
+    width: "min(420px, 100%)",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "14px",
+    backgroundColor: "var(--surface-subtle)",
+    color: "var(--ta-cream)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
+    padding: "24px",
+    textAlign: "center",
+  },
+  loadingSpinner: {
+    width: "34px",
+    height: "34px",
+    borderRadius: "999px",
+    border: "3px solid rgba(79, 159, 104, 0.2)",
+    borderTopColor: "var(--ta-green)",
+    animation: "qr-loading-spin 0.8s linear infinite",
+  },
+  loadingTitle: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(22px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+    lineHeight: 1,
+  },
+  loadingText: {
+    margin: 0,
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
   },
   qrFrame: {
     backgroundColor: "#ffffff",

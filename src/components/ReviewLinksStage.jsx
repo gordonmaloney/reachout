@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy, QrCode, Smartphone, Users } from 'lucide-react';
 import Links from './Links';
 import StageShell from './StageShell';
 import { normalizePhoneNumber } from '../utils';
 import TransferQrModal from './TransferQrModal';
+import { createCompactTransferLinks } from '../linkTransferUtils';
 
 export default function ReviewLinksStage({
   contacts,
@@ -31,7 +32,11 @@ export default function ReviewLinksStage({
   const [showQR, setShowQR] = useState(false);
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [copiedPhoneId, setCopiedPhoneId] = useState('');
+  const [quickTransferLink, setQuickTransferLink] = useState('');
+  const [quickTransferStatus, setQuickTransferStatus] = useState('');
   const sharedCallNotes = callNotes.filter((note) => note.text?.trim());
+  const activeLinkPassword =
+    isOrganiser && linkPasswordProtected ? linkPassword.trim() : "";
 
   const handleOpenQR = () => setShowQR(true);
   const handleCloseQR = () => setShowQR(false);
@@ -58,6 +63,76 @@ export default function ReviewLinksStage({
       // Clipboard can be unavailable in some browsers.
     }
   };
+  const copyQuickTransferLink = async () => {
+    if (!quickTransferLink) return;
+
+    try {
+      await navigator.clipboard.writeText(quickTransferLink);
+      setQuickTransferStatus('Send link copied.');
+    } catch {
+      setQuickTransferStatus('Copy failed. Open the send modal instead.');
+    }
+
+    window.setTimeout(() => setQuickTransferStatus(''), 1800);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function prepareQuickTransferLink() {
+      setQuickTransferLink('');
+      setQuickTransferStatus('');
+
+      if (isOrganiser && hostSessionEnabled) return;
+      if (isOrganiser && linkPasswordProtected && !activeLinkPassword) return;
+
+      try {
+        const transfer = await createCompactTransferLinks(
+          {
+            contacts,
+            templates,
+            callNotes,
+            reportBackSettings,
+            selectedDialCode,
+            extraChannelsEnabled,
+          },
+          undefined,
+          activeLinkPassword ? { password: activeLinkPassword } : {}
+        );
+        const singleLink =
+          !transfer.wasSplit &&
+          !transfer.overLimit &&
+          transfer.links?.length === 1
+            ? transfer.links[0]?.url
+            : '';
+
+        if (!cancelled) {
+          setQuickTransferLink(singleLink || '');
+        }
+      } catch {
+        if (!cancelled) {
+          setQuickTransferLink('');
+        }
+      }
+    }
+
+    prepareQuickTransferLink();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeLinkPassword,
+    callNotes,
+    contacts,
+    extraChannelsEnabled,
+    hostSessionEnabled,
+    isOrganiser,
+    linkPasswordProtected,
+    reportBackSettings,
+    selectedDialCode,
+    templates,
+  ]);
 
   return (
     <StageShell
@@ -80,11 +155,27 @@ export default function ReviewLinksStage({
                 with your camera.
               </p>
             </div>
-            <button onClick={handleOpenQR} style={styles.qrBtn} className="hover-lift">
-              <Smartphone size={20} />
-              Send to phone
-              <QrCode size={20} />
-            </button>
+            <div style={styles.phoneTransferActions}>
+              <button onClick={handleOpenQR} style={styles.qrBtn} className="hover-lift">
+                <Smartphone size={20} />
+                Send to phone
+                <QrCode size={20} />
+              </button>
+              {quickTransferLink && (
+                <button
+                  type="button"
+                  onClick={copyQuickTransferLink}
+                  style={styles.quickCopyBtn}
+                  className="hover-lift"
+                >
+                  <Copy size={14} />
+                  Copy send link
+                </button>
+              )}
+              {quickTransferStatus && (
+                <span style={styles.quickCopyStatus}>{quickTransferStatus}</span>
+              )}
+            </div>
           </div>
 
           {isOrganiser && (
@@ -509,6 +600,36 @@ const styles = {
     minWidth: '190px',
     flex: '0 0 auto',
     whiteSpace: 'nowrap',
+  },
+  phoneTransferActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: '7px',
+    flex: '0 0 auto',
+  },
+  quickCopyBtn: {
+    backgroundColor: 'transparent',
+    border: '1px solid rgba(79, 159, 104, 0.32)',
+    color: 'var(--ta-green)',
+    borderRadius: '9px',
+    padding: '8px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '7px',
+    fontFamily: 'var(--font-body)',
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 500,
+    letterSpacing: 0,
+    textTransform: 'none',
+    whiteSpace: 'nowrap',
+  },
+  quickCopyStatus: {
+    color: 'var(--ta-muted)',
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.2,
+    textAlign: 'center',
   },
   secondaryBtn: {
     backgroundColor: 'transparent',
