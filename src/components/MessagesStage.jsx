@@ -89,10 +89,21 @@ export default function MessagesStage({
     >
       <div className="glass-card" style={styles.container}>
         <div style={styles.tokenHelper}>
-          Use <code style={styles.code}>{"{FIRSTNAME}"}</code> to add each
-          contact's first name. You can also use{" "}
-          <code style={styles.code}>*bold*</code> and{" "}
-          <code style={styles.code}>_italics_</code> for WhatsApp messages.
+          <span style={styles.helperTitle}>Writing template messages</span>
+          <span>
+            Type <code style={styles.code}>{"{FIRSTNAME}"}</code> wherever you
+            want REACHOUT to insert the contact's first name. For example,{" "}
+            <code style={styles.code}>Hi {"{FIRSTNAME}"}</code> becomes{" "}
+            <code style={styles.code}>Hi Sandy</code>.
+          </span>
+          <span>
+            WhatsApp formatting can go straight into the template: surround
+            words with asterisks to make them bold, like{" "}
+            <code style={styles.code}>*this*</code>, or with
+            underscores to make them italic, like{" "}
+            <code style={styles.code}>_this_</code>. SMS and Signal will
+            receive the same words without relying on the formatting.
+          </span>
         </div>
 
         {hasStarterTemplates && (
@@ -225,9 +236,17 @@ const styles = {
     border: "1px solid var(--ta-border-subtle)",
     borderRadius: "10px",
     color: "var(--ta-muted-strong)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: "1.5",
-    padding: "10px 12px",
+    padding: "12px",
+  },
+  helperTitle: {
+    color: "var(--ta-green)",
+    fontWeight: 800,
+    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
   },
   exampleNotice: {
     marginTop: "-10px",

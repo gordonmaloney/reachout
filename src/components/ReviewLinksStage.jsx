@@ -15,6 +15,8 @@ export default function ReviewLinksStage({
   setHostSessionEnabled,
   hostSessionCallers,
   setHostSessionCallers,
+  linkPasswordProtected = false,
+  linkPassword = "",
   isOrganiser = false,
   callNotes = [],
   reportBackSettings = { enabled: false, phone: "" },
@@ -216,6 +218,9 @@ export default function ReviewLinksStage({
             extraChannelsEnabled={extraChannelsEnabled}
             callNotes={callNotes}
             reportBackSettings={reportBackSettings}
+            isOrganiser={isOrganiser}
+            linkPasswordProtected={isOrganiser && linkPasswordProtected}
+            linkPassword={linkPassword}
             hostSessionEnabled={isOrganiser && hostSessionEnabled}
             hostSessionCallers={hostSessionCallers}
             onClose={handleCloseQR}

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle } from "lucide-react";
-import { readEncryptedTransferLink } from "../linkTransferUtils";
+import {
+  isPasswordProtectedTransferLink,
+  readEncryptedTransferLink,
+} from "../linkTransferUtils";
 import { parseTransferChunk, reconstructTransfer } from "../transferUtils";
 
 export default function MobileDataScanner({
@@ -94,10 +97,28 @@ export default function MobileDataScanner({
       try {
         const url = new URL(decodedText);
         if (url.hash) {
-          const imported = await readEncryptedTransferLink(url.hash);
+          let password = "";
+          if (isPasswordProtectedTransferLink(url.hash)) {
+            password =
+              window.prompt(
+                "This REACHOUT link is password protected. Enter the password shared by the organiser."
+              ) || "";
+            if (!password.trim()) {
+              setProgress("Password needed to import this encrypted link.");
+              return false;
+            }
+          }
+
+          const imported = await readEncryptedTransferLink(url.hash, {
+            password,
+          });
           if (imported) return importTransfer(imported);
         }
-      } catch {
+      } catch (error) {
+        if (error?.code === "PASSWORD_INCORRECT") {
+          setProgress("That password did not unlock this QR link.");
+          return false;
+        }
         // Fall through to the invalid QR message below.
       }
 

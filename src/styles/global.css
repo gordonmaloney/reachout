@@ -111,6 +111,7 @@ select:focus-visible {
 .stage-shell {
   isolation: isolate;
   overflow: hidden;
+  background-clip: padding-box;
 }
 
 .stage-shell.bg-texture {
@@ -122,6 +123,8 @@ select:focus-visible {
   position: absolute;
   inset: 0;
   z-index: 0;
+  border-radius: inherit;
+  clip-path: inset(0 round 18px);
   pointer-events: none;
   background-image: linear-gradient(
       120deg,
@@ -139,6 +142,7 @@ select:focus-visible {
   background: rgba(244, 239, 228, 0.045);
   border: 1px solid rgba(244, 239, 228, 0.12);
   border-radius: 12px;
+  background-clip: padding-box;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   padding: 24px;
@@ -340,6 +344,8 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  background-color: color-mix(in srgb, var(--ta-dark) 72%, transparent);
+  border-radius: 18px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;

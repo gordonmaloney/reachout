@@ -18,8 +18,10 @@ import {
   generateSmsLink,
   generateTelegramLink,
   generateWhatsAppLink,
+  getDuplicateContactIds,
   getOutboundMessage,
   normalizePhoneNumber,
+  removeDuplicateContacts,
 } from "../utils";
 
 function WhatsAppMark({ size = 13 }) {
@@ -167,18 +169,8 @@ export default function MobileContactsManager({
   };
 
   const cleanDuplicateContacts = () => {
-    const seen = new Set();
-
     setContacts((currentContacts) =>
-      currentContacts.filter((contact) => {
-        const key = getContactDuplicateKey(contact, selectedDialCode);
-        if (!key) return true;
-        if (!seen.has(key)) {
-          seen.add(key);
-          return true;
-        }
-        return false;
-      })
+      removeDuplicateContacts(currentContacts, selectedDialCode)
     );
   };
 
@@ -579,31 +571,6 @@ function parsePasteText(text) {
   });
 
   return parsed;
-}
-
-function getContactDuplicateKey(contact, selectedDialCode) {
-  const normalizedPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
-  if (normalizedPhone) return normalizedPhone;
-  return contact.name?.trim().toLowerCase() || "";
-}
-
-function getDuplicateContactIds(contacts, selectedDialCode) {
-  const firstContactByKey = new Map();
-  const duplicateIds = new Set();
-
-  contacts.forEach((contact) => {
-    const key = getContactDuplicateKey(contact, selectedDialCode);
-    if (!key) return;
-
-    if (firstContactByKey.has(key)) {
-      duplicateIds.add(contact.id);
-      return;
-    }
-
-    firstContactByKey.set(key, contact.id);
-  });
-
-  return duplicateIds;
 }
 
 const styles = {

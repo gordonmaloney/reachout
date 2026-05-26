@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Link, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Link,
+  Maximize2,
+  X,
+} from "lucide-react";
 import {
   createCompactTransferLinks,
 } from "../linkTransferUtils";
@@ -11,6 +18,8 @@ export default function TransferQrModal({
   extraChannelsEnabled,
   callNotes = [],
   reportBackSettings = { enabled: false, phone: "" },
+  linkPasswordProtected = false,
+  linkPassword = "",
   hostSessionEnabled = false,
   hostSessionCallers = 1,
   onClose,
@@ -42,6 +51,9 @@ export default function TransferQrModal({
   const [currentLinkIndex, setCurrentLinkIndex] = useState(0);
   const [linkStatus, setLinkStatus] = useState("");
   const [qrError, setQrError] = useState("");
+  const [fullscreenQrOpen, setFullscreenQrOpen] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState("");
+  const activePassword = linkPasswordProtected ? linkPassword.trim() : "";
   const currentBatch = batches[currentBatchIndex] || batches[0];
   const currentTransfer = batchTransfers[currentBatchIndex] || {};
   const transferLinks = currentTransfer.links || [];
@@ -51,6 +63,18 @@ export default function TransferQrModal({
   const currentBatchContactCount = currentBatch?.contacts.length || 0;
   const isSplitTransfer = transferLinks.length > 1 || currentTransfer.wasSplit;
   const hasMultipleLinks = transferLinks.length > 1;
+  const currentBatchStart =
+    batches
+      .slice(0, currentBatchIndex)
+      .reduce((total, batch) => total + (batch.contacts?.length || 0), 0) + 1;
+  const currentBatchEnd = Math.min(
+    contacts.length,
+    currentBatchStart + currentBatchContactCount - 1
+  );
+  const participantProgress =
+    batches.length > 1
+      ? `${currentBatchIndex + 1} of ${batches.length}`
+      : "1 of 1";
 
   const getLinkContactSummary = (link) => {
     const count = link?.contactCount ?? 0;
@@ -66,17 +90,28 @@ export default function TransferQrModal({
 
     async function generateTransfers() {
       try {
+        if (linkPasswordProtected && !activePassword) {
+          setBatchTransfers([]);
+          setBatchQrCodes([]);
+          setQrError("Add a password to generate encrypted links.");
+          return;
+        }
+
         const QRCode = await import("qrcode");
         const nextTransfers = await Promise.all(
           batches.map((batch) =>
-            createCompactTransferLinks({
-              contacts: batch.contacts || [],
-              templates,
-              callNotes,
-              reportBackSettings,
-              selectedDialCode,
-              extraChannelsEnabled,
-            })
+            createCompactTransferLinks(
+              {
+                contacts: batch.contacts || [],
+                templates,
+                callNotes,
+                reportBackSettings,
+                selectedDialCode,
+                extraChannelsEnabled,
+              },
+              undefined,
+              activePassword ? { password: activePassword } : {}
+            )
           )
         );
         const nextCodes = await Promise.all(
@@ -120,6 +155,8 @@ export default function TransferQrModal({
   }, [
     batches,
     callNotes,
+    activePassword,
+    linkPasswordProtected,
     extraChannelsEnabled,
     reportBackSettings,
     selectedDialCode,
@@ -148,9 +185,59 @@ export default function TransferQrModal({
     }
   };
 
+  const copyPassword = async () => {
+    if (!activePassword) return;
+
+    try {
+      await navigator.clipboard.writeText(activePassword);
+      setPasswordStatus("Password copied.");
+    } catch {
+      setPasswordStatus("Copy failed. Select and copy the password manually.");
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && fullscreenQrOpen) {
+        event.preventDefault();
+        setFullscreenQrOpen(false);
+        return;
+      }
+
+      if (!hostSessionEnabled || batches.length <= 1) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setCurrentBatchIndex((index) => Math.max(0, index - 1));
+        setCurrentLinkIndex(0);
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setCurrentBatchIndex((index) => Math.min(batches.length - 1, index + 1));
+        setCurrentLinkIndex(0);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [batches.length, fullscreenQrOpen, hostSessionEnabled]);
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={(event) => event.stopPropagation()}>
+    <div
+      style={{
+        ...styles.overlay,
+        ...(fullscreenQrOpen ? styles.overlayFullscreenActive : {}),
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          ...styles.modal,
+          ...(fullscreenQrOpen ? styles.modalBehindFullscreen : {}),
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button onClick={onClose} style={styles.iconBtn} title="Close">
           <X size={18} />
         </button>
@@ -179,54 +266,81 @@ export default function TransferQrModal({
                 phone's normal camera.
               </li>
               <li style={styles.step}>
-                The link can be sent to yourself or a participant by WhatsApp,
-                Signal, email, notes, or any other app you use across devices.
-              </li>
-              <li style={styles.step}>
                 Both methods open the same phonebank on mobile. Anyone with the
-                QR code or full link can open it, so only share it with people
-                taking part.
+                QR code or full link can open it
+                {activePassword ? " if they also have the password" : ""}, so
+                only share it with people taking part.
               </li>
             </ol>
 
             {hostSessionEnabled && batches.length > 1 && (
-              <div style={styles.batchControls}>
-                <button
-                  onClick={showPreviousBatch}
-                  style={styles.navBtn}
-                  disabled={currentBatchIndex === 0}
-                >
-                  <ChevronLeft size={16} />
-                  <span style={styles.navBtnText}>
-                    <span>Previous</span>
-                    <span>participant</span>
+              <div style={styles.participantPanel}>
+                <div style={styles.participantHeader}>
+                  <span style={styles.participantKicker}>
+                    Participant {participantProgress}
                   </span>
-                </button>
-                <div style={styles.batchLabel}>
-                  <span style={styles.batchTitle}>{currentBatch?.label}</span>
-                  <span style={styles.batchMeta}>
-                    {currentBatch?.contacts.length || 0} contacts
+                  <span style={styles.participantCount}>
+                    {currentBatchContactCount} contact
+                    {currentBatchContactCount === 1 ? "" : "s"}
                   </span>
                 </div>
-                <button
-                  onClick={showNextBatch}
-                  style={styles.navBtn}
-                  disabled={currentBatchIndex === batches.length - 1}
-                >
-                  <span style={styles.navBtnText}>
-                    <span>Next</span>
-                    <span>participant</span>
-                  </span>
-                  <ChevronRight size={16} />
-                </button>
+                <div style={styles.participantBody}>
+                  <div style={styles.participantCopy}>
+                    <span style={styles.participantTitle}>
+                      {currentBatch?.label}
+                    </span>
+                    <span style={styles.participantText}>
+                      The QR code and link below are only for this participant.
+                    </span>
+                    <span style={styles.participantRange}>
+                      Contacts {currentBatchStart}-{currentBatchEnd} of{" "}
+                      {contacts.length}
+                    </span>
+                  </div>
+                  <div style={styles.participantNav}>
+                    <button
+                      type="button"
+                      onClick={showPreviousBatch}
+                      style={{
+                        ...styles.navBtn,
+                        ...(currentBatchIndex === 0 ? styles.navBtnDisabled : {}),
+                      }}
+                      disabled={currentBatchIndex === 0}
+                    >
+                      <ChevronLeft size={15} />
+                      Previous
+                    </button>
+                    <div style={styles.participantDots} aria-hidden="true">
+                      {batches.map((batch, index) => (
+                        <span
+                          key={batch.label}
+                          style={{
+                            ...styles.participantDot,
+                            ...(index === currentBatchIndex
+                              ? styles.participantDotActive
+                              : {}),
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={showNextBatch}
+                      style={{
+                        ...styles.navBtn,
+                        ...(currentBatchIndex === batches.length - 1
+                          ? styles.navBtnDisabled
+                          : {}),
+                      }}
+                      disabled={currentBatchIndex === batches.length - 1}
+                    >
+                      Next
+                      <ChevronRight size={15} />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
-
-            <p style={styles.helperText}>
-              {hostSessionEnabled && batches.length > 1
-                ? " Once one participant has imported their data, move to the next participant."
-                : ""}
-            </p>
 
             <div style={styles.linkPanel}>
               <div>
@@ -236,6 +350,24 @@ export default function TransferQrModal({
                   phone. When opened, it loads this phonebank on mobile.
                 </p>
               </div>
+              {activePassword && (
+                <div style={styles.passwordLinkWarning}>
+                  <p style={styles.passwordLinkWarningText}>
+                    This link is encrypted. Send the password separately as
+                    well, or the recipient will not be able to open it.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={copyPassword}
+                    style={styles.passwordCopyBtn}
+                  >
+                    Copy password
+                  </button>
+                  {passwordStatus && (
+                    <span style={styles.passwordStatus}>{passwordStatus}</span>
+                  )}
+                </div>
+              )}
               {linkMessage && <p style={styles.linkWarning}>{linkMessage}</p>}
               {transferLinks.length === 0 && (
                 <button
@@ -318,6 +450,16 @@ export default function TransferQrModal({
                 </span>
               )}
             </div>
+            {qrCodes[currentLinkIndex] && (
+              <button
+                type="button"
+                onClick={() => setFullscreenQrOpen(true)}
+                style={styles.fullscreenQrBtn}
+              >
+                <Maximize2 size={14} />
+                Make QR full screen
+              </button>
+            )}
 
             {(qrCodes.length > 1 || (isSplitTransfer && currentQrLink)) && (
               <div style={styles.qrStatus}>
@@ -364,6 +506,57 @@ export default function TransferQrModal({
           </div>
         </div>
       </div>
+      {fullscreenQrOpen && qrCodes[currentLinkIndex] && (
+        <div
+          style={styles.fullscreenOverlay}
+          role="presentation"
+          onClick={(event) => {
+            event.stopPropagation();
+            setFullscreenQrOpen(false);
+          }}
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setFullscreenQrOpen(false);
+            }}
+            style={styles.fullscreenCloseBtn}
+            aria-label="Close full-screen QR code"
+          >
+            <X size={22} />
+          </button>
+          <div
+            style={styles.fullscreenQrShell}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              src={qrCodes[currentLinkIndex]}
+              alt={
+                qrCodes.length > 1
+                  ? `Full-screen transfer QR code ${currentLinkIndex + 1}`
+                  : "Full-screen transfer QR code"
+              }
+              style={styles.fullscreenQrImage}
+            />
+            <span style={styles.fullscreenQrCaption}>
+              {hostSessionEnabled && batches.length > 1
+                ? `${currentBatch?.label} · `
+                : ""}
+              {qrCodes.length > 1
+                ? `QR ${currentLinkIndex + 1} of ${qrCodes.length}`
+                : "Scan with the phone camera"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setFullscreenQrOpen(false)}
+              style={styles.fullscreenCloseTextBtn}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -372,30 +565,42 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    backgroundColor: "var(--modal-overlay)",
+    backgroundColor:
+      "color-mix(in srgb, var(--ta-cream) 10%, var(--modal-overlay))",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
     padding: "24px",
   },
+  overlayFullscreenActive: {
+    zIndex: 10000,
+  },
   modal: {
-    width: "min(1040px, 100%)",
-    maxHeight: "min(720px, calc(100dvh - 48px))",
+    width: "min(1020px, 100%)",
+    maxHeight: "calc(100dvh - 40px)",
     backgroundColor: "var(--modal-card-bg)",
-    border: "1px solid rgba(79, 159, 104, 0.28)",
+    border: "1px solid rgba(244, 239, 228, 0.24)",
     borderRadius: "16px",
     padding: "22px",
     color: "var(--ta-cream)",
-    boxShadow: "var(--modal-card-shadow)",
+    boxShadow:
+      "0 28px 90px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(79, 159, 104, 0.22), 0 0 42px rgba(79, 159, 104, 0.16)",
     position: "relative",
     overflow: "hidden",
   },
+  modalBehindFullscreen: {
+    filter: "blur(8px)",
+    transform: "scale(0.995)",
+    pointerEvents: "none",
+  },
   layout: {
     display: "grid",
-    gridTemplateColumns: "minmax(280px, 0.86fr) minmax(420px, 1.14fr)",
-    gap: "22px",
+    gridTemplateColumns: "minmax(300px, 0.95fr) minmax(340px, 1.05fr)",
+    gap: "18px",
     alignItems: "stretch",
+    minHeight: 0,
+    maxHeight: "calc(100dvh - 84px)",
   },
   infoPane: {
     display: "flex",
@@ -403,6 +608,7 @@ const styles = {
     minHeight: 0,
     paddingRight: "4px",
     overflowY: "auto",
+    overscrollBehavior: "contain",
   },
   qrPane: {
     display: "flex",
@@ -430,7 +636,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     gap: "16px",
-    marginBottom: "14px",
+    marginBottom: "10px",
   },
   title: {
     fontFamily: "var(--font-heading)",
@@ -451,8 +657,8 @@ const styles = {
   },
   steps: {
     display: "grid",
-    gap: "8px",
-    margin: "0 0 16px 18px",
+    gap: "5px",
+    margin: "0 0 10px 18px",
     color: "var(--ta-muted-strong)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
@@ -460,33 +666,109 @@ const styles = {
   step: {
     paddingLeft: "4px",
   },
-  batchControls: {
-    display: "grid",
-    gridTemplateColumns: "1fr auto 1fr",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "12px",
-    padding: "10px",
-    border: "1px solid var(--ta-border-subtle)",
-    borderRadius: "10px",
-    backgroundColor: "var(--surface-subtle)",
+  passwordCopyBtn: {
+    border: "1px solid rgba(79, 159, 104, 0.45)",
+    borderRadius: "999px",
+    backgroundColor: "transparent",
+    color: "var(--ta-green)",
+    padding: "7px 10px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
   },
-  batchLabel: {
+  passwordStatus: {
+    margin: 0,
+    color: "var(--ta-green)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+  },
+  participantPanel: {
+    marginBottom: "8px",
+    border: "1px solid rgba(79, 159, 104, 0.32)",
+    borderRadius: "12px",
+    backgroundColor: "rgba(79, 159, 104, 0.07)",
+    overflow: "hidden",
+  },
+  participantHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    padding: "7px 10px",
+    borderBottom: "1px solid rgba(79, 159, 104, 0.18)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+  },
+  participantKicker: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+  participantCount: {
+    color: "var(--ta-cream)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  participantBody: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
-    gap: "2px",
-    minWidth: "120px",
+    gap: "8px",
+    padding: "9px 10px 10px",
   },
-  batchTitle: {
+  participantCopy: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  participantTitle: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-cream)",
     fontSize: "calc(19px * var(--reachout-text-scale, 1))",
     letterSpacing: "0.05em",
+    lineHeight: 1,
   },
-  batchMeta: {
+  participantText: {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.25,
+  },
+  participantRange: {
+    alignSelf: "flex-start",
+    marginTop: "2px",
+    border: "1px solid rgba(79, 159, 104, 0.24)",
+    borderRadius: "999px",
+    color: "var(--ta-green)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    padding: "3px 7px",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+  },
+  participantNav: {
+    display: "grid",
+    gridTemplateColumns: "minmax(82px, 1fr) auto minmax(82px, 1fr)",
+    alignItems: "center",
+    gap: "8px",
+  },
+  participantDots: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    maxWidth: "96px",
+    overflow: "hidden",
+  },
+  participantDot: {
+    width: "5px",
+    height: "5px",
+    borderRadius: "999px",
+    backgroundColor: "rgba(244, 239, 228, 0.28)",
+    flexShrink: 0,
+  },
+  participantDotActive: {
+    width: "16px",
+    backgroundColor: "var(--ta-green)",
   },
   iconBtn: {
     position: "absolute",
@@ -506,18 +788,98 @@ const styles = {
   qrFrame: {
     backgroundColor: "#ffffff",
     borderRadius: "12px",
-    minHeight: "min(560px, calc(100dvh - 164px))",
+    minHeight: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "12px",
-    flex: 1,
+    padding: "10px",
+    flex: "0 1 auto",
   },
   qrImage: {
-    width: "min(100%, 560px)",
-    maxHeight: "min(560px, calc(100dvh - 188px))",
+    width: "min(100%, 430px, calc(100dvh - 210px))",
+    maxHeight: "min(430px, calc(100dvh - 210px))",
     aspectRatio: "1",
     objectFit: "contain",
+  },
+  fullscreenQrBtn: {
+    alignSelf: "center",
+    marginTop: "10px",
+    border: "1px solid rgba(79, 159, 104, 0.45)",
+    borderRadius: "999px",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    color: "var(--ta-green)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "7px",
+    padding: "8px 12px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+  },
+  fullscreenOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 10001,
+    backgroundColor: "rgba(0, 0, 0, 0.74)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px",
+    overflowY: "auto",
+  },
+  fullscreenCloseBtn: {
+    position: "fixed",
+    top: "18px",
+    right: "18px",
+    zIndex: 10002,
+    width: "42px",
+    height: "42px",
+    borderRadius: "999px",
+    border: "1px solid rgba(17, 24, 18, 0.18)",
+    backgroundColor: "#ffffff",
+    color: "#111812",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 12px 30px rgba(0, 0, 0, 0.34)",
+  },
+  fullscreenQrShell: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "12px",
+    maxWidth: "min(92vw, 86dvh)",
+    maxHeight: "calc(100dvh - 48px)",
+  },
+  fullscreenQrImage: {
+    width: "min(86vw, 70dvh)",
+    height: "min(86vw, 70dvh)",
+    backgroundColor: "#ffffff",
+    borderRadius: "18px",
+    padding: "18px",
+    objectFit: "contain",
+    boxShadow: "0 24px 90px rgba(0, 0, 0, 0.55)",
+  },
+  fullscreenQrCaption: {
+    color: "#111812",
+    backgroundColor: "#ffffff",
+    border: "1px solid rgba(17, 24, 18, 0.16)",
+    borderRadius: "999px",
+    padding: "8px 13px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+    textAlign: "center",
+    boxShadow: "0 10px 26px rgba(0, 0, 0, 0.28)",
+  },
+  fullscreenCloseTextBtn: {
+    border: "1px solid rgba(17, 24, 18, 0.16)",
+    borderRadius: "999px",
+    backgroundColor: "#ffffff",
+    color: "#111812",
+    padding: "10px 22px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+    boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)",
   },
   loading: {
     color: "#151d17",
@@ -562,16 +924,15 @@ const styles = {
     border: "1px solid rgba(79, 159, 104, 0.45)",
     color: "var(--ta-green)",
     borderRadius: "8px",
-    padding: "8px 12px",
-    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
-    minWidth: "92px",
-    lineHeight: 1.05,
+    padding: "8px 10px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+    lineHeight: 1,
+    minWidth: 0,
   },
-  navBtnText: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "1px",
+  navBtnDisabled: {
+    opacity: 0.38,
+    cursor: "not-allowed",
   },
   counter: {
     fontFamily: "var(--font-mono)",
@@ -583,16 +944,9 @@ const styles = {
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     fontWeight: 700,
   },
-  helperText: {
-    marginTop: "4px",
-    paddingTop: "14px",
-    color: "var(--ta-muted-strong)",
-    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
-    lineHeight: 1.4,
-  },
   linkPanel: {
-    marginTop: "8px",
-    padding: "14px",
+    marginTop: "0",
+    padding: "12px",
     border: "1px solid var(--ta-border-subtle)",
     borderRadius: "12px",
     backgroundColor: "var(--surface-subtle)",
@@ -610,6 +964,22 @@ const styles = {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.4,
+  },
+  passwordLinkWarning: {
+    margin: 0,
+    border: "1px solid rgba(211, 106, 88, 0.34)",
+    borderRadius: "8px",
+    backgroundColor: "rgba(211, 106, 88, 0.1)",
+    color: "var(--ta-red)",
+    padding: "8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  passwordLinkWarningText: {
+    margin: 0,
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
   },
   linkBtn: {
     display: "flex",

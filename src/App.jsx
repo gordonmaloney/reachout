@@ -14,6 +14,7 @@ import { initialContacts, initialTemplates } from "./data/mockData";
 import { organiserTourSteps, productTourSteps } from "./data/productTourSteps";
 import {
   hasTransferLink,
+  isPasswordProtectedTransferLink,
   readEncryptedTransferLink,
 } from "./linkTransferUtils";
 import MobileWorkspace from "./components/MobileWorkspace";
@@ -134,6 +135,8 @@ export default function App() {
   const [extraChannelsEnabled, setExtraChannelsEnabled] = useState(false);
   const [hostSessionEnabled, setHostSessionEnabled] = useState(false);
   const [hostSessionCallers, setHostSessionCallers] = useState(2);
+  const [linkPasswordProtected, setLinkPasswordProtected] = useState(false);
+  const [linkPassword, setLinkPassword] = useState("");
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(isFaqRoute);
   const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
@@ -146,6 +149,8 @@ export default function App() {
     () => window.location.hash
   );
   const [importedTransferHash, setImportedTransferHash] = useState("");
+  const [transferPassword, setTransferPassword] = useState("");
+  const [transferPasswordPrompt, setTransferPasswordPrompt] = useState(null);
   const [theme, setTheme] = useState(getInitialTheme);
   const [fontScale, setFontScale] = useState(getInitialFontScale);
   const workspacePanelRef = useRef(null);
@@ -372,12 +377,27 @@ export default function App() {
   useEffect(() => {
     if (!hasTransferLink(transferLinkHash)) return;
     if (importedTransferHash === transferLinkHash) return;
+    if (
+      isPasswordProtectedTransferLink(transferLinkHash) &&
+      !transferPassword
+    ) {
+      if (transferPasswordPrompt?.hash !== transferLinkHash) {
+        setTransferPasswordPrompt({
+          hash: transferLinkHash,
+          value: "",
+          error: "",
+        });
+      }
+      return;
+    }
 
     let cancelled = false;
 
     async function importTransferLink() {
       try {
-        const imported = await readEncryptedTransferLink(transferLinkHash);
+        const imported = await readEncryptedTransferLink(transferLinkHash, {
+          password: transferPassword,
+        });
         if (cancelled || !imported) return;
 
         setContacts(imported.contacts || []);
@@ -395,7 +415,21 @@ export default function App() {
         setExtraChannelsEnabled(Boolean(imported.extraChannelsEnabled));
         setActiveStage(finalStage);
         setImportedTransferHash(transferLinkHash);
-      } catch {
+        setTransferPasswordPrompt(null);
+        setTransferPassword("");
+      } catch (error) {
+        if (error?.code === "PASSWORD_REQUIRED" || error?.code === "PASSWORD_INCORRECT") {
+          setTransferPassword("");
+          setTransferPasswordPrompt({
+            hash: transferLinkHash,
+            value: "",
+            error:
+              error.code === "PASSWORD_INCORRECT"
+                ? "That password did not unlock this link."
+                : "",
+          });
+          return;
+        }
         setImportedTransferHash(transferLinkHash);
       }
     }
@@ -405,7 +439,13 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [finalStage, importedTransferHash, transferLinkHash]);
+  }, [
+    finalStage,
+    importedTransferHash,
+    transferLinkHash,
+    transferPassword,
+    transferPasswordPrompt?.hash,
+  ]);
 
   useEffect(() => {
     if (isFaqOpen) return;
@@ -429,6 +469,36 @@ export default function App() {
     workspacePanelRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [activeStage, isMobile]);
 
+  const submitTransferPassword = (event) => {
+    event.preventDefault();
+    const password = transferPasswordPrompt?.value?.trim() || "";
+    if (!password) {
+      setTransferPasswordPrompt((current) => ({
+        ...current,
+        error: "Enter the password for this link.",
+      }));
+      return;
+    }
+    setTransferPassword(password);
+  };
+
+  const passwordPrompt = transferPasswordPrompt && (
+    <TransferPasswordModal
+      value={transferPasswordPrompt.value}
+      error={transferPasswordPrompt.error}
+      theme={theme}
+      fontScale={fontScale}
+      onChange={(value) =>
+        setTransferPasswordPrompt((current) => ({
+          ...current,
+          value,
+          error: "",
+        }))
+      }
+      onSubmit={submitTransferPassword}
+    />
+  );
+
   if (isMobile) {
     const shouldOpenScanner =
       new URLSearchParams(window.location.search).get("scan") === "1" ||
@@ -444,25 +514,28 @@ export default function App() {
         : reportBackSettings;
 
     return (
-      <MobileWorkspace
-        contacts={contacts}
-        setContacts={setContacts}
-        templates={templates}
-        setTemplates={setTemplates}
-        callNotes={mobileCallNotes}
-        setCallNotes={setCallNotes}
-        reportBackSettings={mobileReportBackSettings}
-        setReportBackSettings={setReportBackSettings}
-        selectedDialCode={selectedDialCode}
-        setSelectedDialCode={setSelectedDialCode}
-        extraChannelsEnabled={extraChannelsEnabled}
-        setExtraChannelsEnabled={setExtraChannelsEnabled}
-        initialView={isFaqOpen ? "faq" : shouldOpenScanner ? "scan" : "deck"}
-        onCloseFaq={closeFaqToContacts}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        fontScale={fontScale}
-      />
+      <>
+        <MobileWorkspace
+          contacts={contacts}
+          setContacts={setContacts}
+          templates={templates}
+          setTemplates={setTemplates}
+          callNotes={mobileCallNotes}
+          setCallNotes={setCallNotes}
+          reportBackSettings={mobileReportBackSettings}
+          setReportBackSettings={setReportBackSettings}
+          selectedDialCode={selectedDialCode}
+          setSelectedDialCode={setSelectedDialCode}
+          extraChannelsEnabled={extraChannelsEnabled}
+          setExtraChannelsEnabled={setExtraChannelsEnabled}
+          initialView={isFaqOpen ? "faq" : shouldOpenScanner ? "scan" : "deck"}
+          onCloseFaq={closeFaqToContacts}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          fontScale={fontScale}
+        />
+        {passwordPrompt}
+      </>
     );
   }
 
@@ -541,6 +614,10 @@ export default function App() {
               setCallNotes={setCallNotes}
               reportBackSettings={reportBackSettings}
               setReportBackSettings={setReportBackSettings}
+              linkPasswordProtected={linkPasswordProtected}
+              setLinkPasswordProtected={setLinkPasswordProtected}
+              linkPassword={linkPassword}
+              setLinkPassword={setLinkPassword}
               reportbackPhoneFocusToken={reportbackPhoneFocusToken}
               stageNumLabel="Stage 3 of 4"
               onPrev={handlePrevStage}
@@ -561,6 +638,8 @@ export default function App() {
               setHostSessionEnabled={setHostSessionEnabled}
               hostSessionCallers={hostSessionCallers}
               setHostSessionCallers={setHostSessionCallers}
+              linkPasswordProtected={linkPasswordProtected}
+              linkPassword={linkPassword}
               isOrganiser={isOrganiser}
               stageNumLabel={`Stage ${finalStage} of ${totalStages}`}
               backLabel={
@@ -595,6 +674,124 @@ export default function App() {
           onClose={closeProductTour}
         />
       )}
+      {passwordPrompt}
+    </div>
+  );
+}
+
+function TransferPasswordModal({
+  value,
+  error,
+  theme,
+  fontScale,
+  onChange,
+  onSubmit,
+}) {
+  const styles = {
+    overlay: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 2000,
+      backgroundColor: "var(--modal-overlay)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "18px",
+    },
+    modal: {
+      width: "min(360px, 100%)",
+      border: "1px solid rgba(79, 159, 104, 0.3)",
+      borderRadius: "14px",
+      backgroundColor: "var(--modal-card-bg)",
+      color: "var(--ta-cream)",
+      boxShadow: "var(--modal-card-shadow)",
+      padding: "18px",
+    },
+    kicker: {
+      color: "var(--ta-green)",
+      fontFamily: "var(--font-mono)",
+      fontSize: "calc(10px * var(--reachout-text-scale, 1))",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+    },
+    title: {
+      margin: "6px 0 8px",
+      color: "var(--ta-cream)",
+      fontSize: "calc(22px * var(--reachout-text-scale, 1))",
+      lineHeight: 1.05,
+    },
+    text: {
+      margin: 0,
+      color: "var(--ta-muted-strong)",
+      fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+      lineHeight: 1.4,
+    },
+    input: {
+      width: "100%",
+      border: "1px solid var(--ta-border-subtle)",
+      borderRadius: "8px",
+      backgroundColor: "var(--surface-subtle)",
+      color: "var(--ta-cream)",
+      padding: "10px",
+      marginTop: "14px",
+      fontFamily: "var(--font-body)",
+      fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    },
+    error: {
+      margin: "8px 0 0",
+      color: "var(--ta-red)",
+      fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+      fontWeight: 700,
+    },
+    button: {
+      width: "100%",
+      marginTop: "14px",
+      border: "1px solid var(--ta-green)",
+      borderRadius: "999px",
+      backgroundColor: "var(--ta-green)",
+      color: "var(--ta-dark)",
+      padding: "10px 14px",
+      fontFamily: "var(--font-body)",
+      fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+      fontWeight: 800,
+    },
+  };
+
+  return (
+    <div
+      className="mobile-workspace"
+      data-theme={theme}
+      style={{ ...styles.overlay, "--reachout-text-scale": fontScale }}
+      role="presentation"
+    >
+      <form
+        style={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transfer-password-title"
+        onSubmit={onSubmit}
+      >
+        <span style={styles.kicker}>Encrypted link</span>
+        <h3 id="transfer-password-title" style={styles.title}>
+          Enter the password
+        </h3>
+        <p style={styles.text}>
+          This REACHOUT phonebank was password protected by the organiser. Enter
+          the password they shared with you to unlock it.
+        </p>
+        <input
+          type="password"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Password"
+          style={styles.input}
+          autoFocus
+        />
+        {error && <p style={styles.error}>{error}</p>}
+        <button type="submit" style={styles.button}>
+          Unlock phonebank
+        </button>
+      </form>
     </div>
   );
 }

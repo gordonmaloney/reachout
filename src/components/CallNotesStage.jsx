@@ -1,7 +1,18 @@
-import { useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, ClipboardList, Lightbulb, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ClipboardList,
+  KeyRound,
+  Lightbulb,
+  Plus,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import StageShell from "./StageShell";
 import { dialCodeOptions } from "../utils";
+import { generateSecureTransferPassword } from "../linkTransferUtils";
 
 const defaultReportQuestions = [
   { id: "pickedUp", label: "Did they pick up?", type: "yes_no", mandatory: true },
@@ -13,6 +24,10 @@ export default function CallNotesStage({
   setCallNotes,
   reportBackSettings = { enabled: false, dialCode: "+44", phone: "", mandatory: false, questions: defaultReportQuestions },
   setReportBackSettings = () => {},
+  linkPasswordProtected = false,
+  setLinkPasswordProtected = () => {},
+  linkPassword = "",
+  setLinkPassword = () => {},
   reportbackPhoneFocusToken = 0,
   stageNumLabel = "Stage 3 of 4",
   onPrev,
@@ -20,6 +35,7 @@ export default function CallNotesStage({
 }) {
   const phoneInputRef = useRef(null);
   const lastFocusTokenRef = useRef(reportbackPhoneFocusToken);
+  const [passwordStatus, setPasswordStatus] = useState("");
   const reportQuestions = reportBackSettings.questions?.length
     ? reportBackSettings.questions
     : defaultReportQuestions;
@@ -120,6 +136,32 @@ export default function CallNotesStage({
     updateReportBack({
       questions: reportQuestions.filter((question) => question.id !== id),
     });
+  };
+
+  const togglePasswordProtection = () => {
+    const nextEnabled = !linkPasswordProtected;
+    setLinkPasswordProtected(nextEnabled);
+    setPasswordStatus("");
+    if (nextEnabled && !linkPassword.trim()) {
+      setLinkPassword(generateSecureTransferPassword());
+    }
+  };
+
+  const generatePassword = () => {
+    setLinkPassword(generateSecureTransferPassword());
+    setPasswordStatus("");
+  };
+
+  const copyPassword = async () => {
+    const password = linkPassword.trim();
+    if (!password) return;
+
+    try {
+      await navigator.clipboard.writeText(password);
+      setPasswordStatus("Password copied.");
+    } catch {
+      setPasswordStatus("Copy failed. Select and copy it manually.");
+    }
   };
 
   return (
@@ -351,6 +393,94 @@ export default function CallNotesStage({
                 <Plus size={16} />
                 Add reportback question
               </button>
+            </>
+          )}
+        </section>
+
+        <section
+          style={{
+            ...styles.settingPanel,
+            ...(linkPasswordProtected ? styles.settingPanelActive : {}),
+          }}
+        >
+          <div style={styles.reportHeader}>
+            <div>
+              <div style={styles.settingTitleRow}>
+                <span style={styles.settingIcon}>
+                  <KeyRound size={17} />
+                </span>
+                <div>
+                  <h3 style={styles.settingTitle}>Protected share links</h3>
+                </div>
+              </div>
+              <p style={styles.settingText}>
+                Encrypt mobile share links so phonebankers need a password
+                before the phonebank opens. Stronger passwords are better.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={togglePasswordProtection}
+              style={{
+                ...styles.toggleBtn,
+                ...(linkPasswordProtected ? styles.toggleBtnActive : {}),
+              }}
+              aria-pressed={linkPasswordProtected}
+            >
+              {linkPasswordProtected ? "Enabled" : "Enable"}
+            </button>
+          </div>
+
+          {linkPasswordProtected && (
+            <>
+              <p style={styles.reportText}>
+                The password is the decryption key. Share it separately from the
+                link or QR code; anyone opening the protected link will need it.
+              </p>
+              <div style={styles.passwordRow}>
+                <input
+                  type="text"
+                  value={linkPassword}
+                  onChange={(event) => {
+                    setLinkPassword(event.target.value);
+                    setPasswordStatus("");
+                  }}
+                  placeholder="Enter a strong password"
+                  style={styles.passwordInput}
+                />
+                <button
+                  type="button"
+                  onClick={generatePassword}
+                  style={styles.passwordIconBtn}
+                  title="Generate secure password"
+                >
+                  <RefreshCw size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={copyPassword}
+                  disabled={!linkPassword.trim()}
+                  style={{
+                    ...styles.passwordCopyBtn,
+                    ...(!linkPassword.trim()
+                      ? styles.passwordCopyBtnDisabled
+                      : {}),
+                  }}
+                >
+                  {passwordStatus ? <Check size={14} /> : null}
+                  Copy password
+                </button>
+              </div>
+              <span style={styles.passwordHint}>
+                {linkPassword.trim().length >= 16
+                  ? "Strong password length"
+                  : "Use at least 16 characters if choosing your own, or generate one automatically."}
+              </span>
+              {passwordStatus && (
+                <span style={styles.passwordStatus}>
+                  {passwordStatus}
+                </span>
+              )}
             </>
           )}
         </section>
@@ -601,6 +731,62 @@ const styles = {
     padding: "10px 8px",
     fontFamily: "var(--font-body)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+  },
+  passwordRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) 38px auto",
+    gap: "10px",
+    alignItems: "center",
+  },
+  passwordInput: {
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "8px",
+    color: "var(--ta-cream)",
+    padding: "10px 12px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    minWidth: 0,
+  },
+  passwordIconBtn: {
+    width: "38px",
+    height: "38px",
+    borderRadius: "8px",
+    border: "1px solid rgba(79, 159, 104, 0.42)",
+    backgroundColor: "transparent",
+    color: "var(--ta-green)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  passwordCopyBtn: {
+    minHeight: "38px",
+    border: "1px solid rgba(79, 159, 104, 0.42)",
+    borderRadius: "8px",
+    backgroundColor: "rgba(79, 159, 104, 0.1)",
+    color: "var(--ta-green)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    padding: "9px 12px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+  },
+  passwordCopyBtnDisabled: {
+    opacity: 0.45,
+    cursor: "not-allowed",
+  },
+  passwordHint: {
+    color: "var(--ta-muted)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
+  passwordStatus: {
+    color: "var(--ta-green)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
   },
   toggleBtn: {
     border: "1px solid var(--ta-border-medium)",

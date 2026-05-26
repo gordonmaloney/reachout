@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Clipboard, FileText, ArrowRight, Check, X } from "lucide-react";
 import StageShell from "./StageShell";
 import ContactsPreview from "./ContactsPreview";
-import { dialCodeOptions, normalizePhoneNumber } from "../utils";
+import {
+  dialCodeOptions,
+  getDuplicateContactIds,
+  removeDuplicateContacts,
+} from "../utils";
 import { initialContacts } from "../data/mockData";
 
 export default function ContactsStage({
@@ -140,24 +144,8 @@ export default function ContactsStage({
   };
 
   const cleanDuplicateContacts = () => {
-    const seen = new Set();
-
     setContacts((currentContacts) =>
-      currentContacts.filter((contact) => {
-        const key = getContactDuplicateKey(contact, selectedDialCode);
-
-        // If we cannot confidently identify it, don't delete it.
-        if (!key) return true;
-
-        // Keep the first contact with this key.
-        if (!seen.has(key)) {
-          seen.add(key);
-          return true;
-        }
-
-        // Remove only later contacts with the same key.
-        return false;
-      })
+      removeDuplicateContacts(currentContacts, selectedDialCode)
     );
   };
 
@@ -450,31 +438,6 @@ export default function ContactsStage({
       )}
     </StageShell>
   );
-}
-
-function getContactDuplicateKey(contact, selectedDialCode) {
-  const normalizedPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
-  if (normalizedPhone) return normalizedPhone;
-  return contact.name?.trim().toLowerCase() || "";
-}
-
-function getDuplicateContactIds(contacts, selectedDialCode) {
-  const firstContactByKey = new Map();
-  const duplicateIds = new Set();
-
-  contacts.forEach((contact) => {
-    const key = getContactDuplicateKey(contact, selectedDialCode);
-    if (!key) return;
-
-    if (firstContactByKey.has(key)) {
-      duplicateIds.add(contact.id);
-      return;
-    }
-
-    firstContactByKey.set(key, contact.id);
-  });
-
-  return duplicateIds;
 }
 
 const styles = {

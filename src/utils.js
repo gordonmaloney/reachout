@@ -211,6 +211,55 @@ export function normalizePhoneNumber(phone, dialCode = "+44") {
   return `+${selectedCodeDigits}${localDigits}`;
 }
 
+export function getContactDuplicateKey(contact, selectedDialCode = "+44") {
+  const rawPhone = String(contact?.phone || "");
+  const rawDigits = digitsOnly(rawPhone);
+  if (!rawDigits) return "";
+
+  const normalizedPhone = normalizePhoneNumber(rawPhone, selectedDialCode);
+  const normalizedDigits = digitsOnly(normalizedPhone);
+  const selectedDialDigits = digitsOnly(selectedDialCode);
+  const nationalDigits = normalizedDigits.startsWith(selectedDialDigits)
+    ? normalizedDigits.slice(selectedDialDigits.length)
+    : normalizedDigits;
+
+  // Avoid treating placeholders like "n/a" or "0" as duplicate phone numbers.
+  if (nationalDigits.length < 7) return "";
+
+  return normalizedPhone;
+}
+
+export function getDuplicateContactIds(contacts, selectedDialCode = "+44") {
+  const firstContactByKey = new Map();
+  const duplicateIds = new Set();
+
+  contacts.forEach((contact) => {
+    const key = getContactDuplicateKey(contact, selectedDialCode);
+    if (!key || contact?.id == null) return;
+
+    if (firstContactByKey.has(key)) {
+      duplicateIds.add(contact.id);
+      return;
+    }
+
+    firstContactByKey.set(key, contact.id);
+  });
+
+  return duplicateIds;
+}
+
+export function removeDuplicateContacts(contacts, selectedDialCode = "+44") {
+  const seen = new Set();
+
+  return contacts.filter((contact) => {
+    const key = getContactDuplicateKey(contact, selectedDialCode);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function getWhatsAppPhoneNumber(phone, dialCode = "+44") {
   return digitsOnly(normalizePhoneNumber(phone, dialCode));
 }

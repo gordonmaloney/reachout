@@ -1,6 +1,7 @@
 const LINK_PREFIX = "ro";
 const LINK_VERSION = 1;
 const SHARE_LINK_PATH = "/s";
+const PASSWORD_KDF_ITERATIONS = 150000;
 export const MAX_TRANSFER_LINK_LENGTH = 2000;
 
 function bytesToBase64Url(bytes) {
@@ -15,6 +16,41 @@ function base64UrlToBytes(value) {
   );
   const binary = atob(padded);
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function makeTransferError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function getRandomBytes(length) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return bytes;
+}
+
+async function derivePasswordKey(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: PASSWORD_KDF_ITERATIONS,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
 }
 
 async function compressBytes(bytes) {
@@ -121,7 +157,23 @@ export function hasTransferLink(hashValue = window.location.hash) {
   return Boolean(getLinkDataFromHash(hashValue));
 }
 
-export async function createCompactTransferLink(data) {
+export function generateSecureTransferPassword() {
+  return bytesToBase64Url(getRandomBytes(18));
+}
+
+export function isPasswordProtectedTransferLink(hashValue = window.location.hash) {
+  const token = getLinkDataFromHash(hashValue);
+  if (!token) return false;
+
+  try {
+    const transfer = JSON.parse(new TextDecoder().decode(base64UrlToBytes(token)));
+    return Boolean(transfer.p);
+  } catch {
+    return false;
+  }
+}
+
+export async function createCompactTransferLink(data, options = {}) {
   const encoded = new TextEncoder().encode(
     JSON.stringify({
       v: LINK_VERSION,
@@ -129,12 +181,40 @@ export async function createCompactTransferLink(data) {
     })
   );
   const compressed = await compressBytes(encoded);
+  const password = options.password?.trim();
 
-  const transfer = {
-    v: LINK_VERSION,
-    c: compressed.compression,
-    d: bytesToBase64Url(compressed.bytes),
-  };
+  let transfer;
+  if (password) {
+    const salt = getRandomBytes(8);
+    const iv = getRandomBytes(12);
+    const key = await derivePasswordKey(password, salt);
+    const encrypted = new Uint8Array(
+      await crypto.subtle.encrypt(
+        {
+          name: "AES-GCM",
+          iv,
+        },
+        key,
+        compressed.bytes
+      )
+    );
+
+    transfer = {
+      v: LINK_VERSION,
+      c: compressed.compression,
+      p: 1,
+      s: bytesToBase64Url(salt),
+      i: bytesToBase64Url(iv),
+      d: bytesToBase64Url(encrypted),
+    };
+  } else {
+    transfer = {
+      v: LINK_VERSION,
+      c: compressed.compression,
+      d: bytesToBase64Url(compressed.bytes),
+    };
+  }
+
   const token = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(transfer)));
   const url = new URL(window.location.href);
   url.pathname = SHARE_LINK_PATH;
@@ -151,12 +231,20 @@ async function createLinkForContacts(data, contacts) {
   return createCompactTransferLink({
     ...data,
     contacts,
-  });
+  }, data.__linkOptions || {});
 }
 
-export async function createCompactTransferLinks(data, maxLength = MAX_TRANSFER_LINK_LENGTH) {
+export async function createCompactTransferLinks(
+  data,
+  maxLength = MAX_TRANSFER_LINK_LENGTH,
+  options = {}
+) {
   const contacts = data.contacts || [];
-  const templateOnlyLink = await createLinkForContacts(data, []);
+  const dataWithOptions = {
+    ...data,
+    __linkOptions: options,
+  };
+  const templateOnlyLink = await createLinkForContacts(dataWithOptions, []);
 
   if (templateOnlyLink.url.length > maxLength) {
     return {
@@ -173,7 +261,7 @@ export async function createCompactTransferLinks(data, maxLength = MAX_TRANSFER_
     };
   }
 
-  const fullLink = await createLinkForContacts(data, contacts);
+  const fullLink = await createLinkForContacts(dataWithOptions, contacts);
   if (fullLink.url.length <= maxLength) {
     return {
       links: [
@@ -194,12 +282,12 @@ export async function createCompactTransferLinks(data, maxLength = MAX_TRANSFER_
     let low = 1;
     let high = contacts.length - startIndex;
     let bestCount = 1;
-    let bestLink = await createLinkForContacts(data, contacts.slice(startIndex, startIndex + 1));
+    let bestLink = await createLinkForContacts(dataWithOptions, contacts.slice(startIndex, startIndex + 1));
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const candidateContacts = contacts.slice(startIndex, startIndex + mid);
-      const candidate = await createLinkForContacts(data, candidateContacts);
+      const candidate = await createLinkForContacts(dataWithOptions, candidateContacts);
 
       if (candidate.url.length <= maxLength) {
         bestCount = mid;
@@ -228,22 +316,57 @@ export async function createCompactTransferLinks(data, maxLength = MAX_TRANSFER_
 
 export const createEncryptedTransferLink = createCompactTransferLink;
 
-export async function readEncryptedTransferLink(hashValue = window.location.hash) {
+export async function readEncryptedTransferLink(
+  hashValue = window.location.hash,
+  options = {}
+) {
   const token = getLinkDataFromHash(hashValue);
   if (!token) return null;
 
   const transfer = JSON.parse(new TextDecoder().decode(base64UrlToBytes(token)));
   const iv = transfer.i || transfer.iv;
   const keyBytes = transfer.k || transfer.key;
+  const salt = transfer.s || transfer.salt;
+  const passwordProtected = Boolean(transfer.p);
   const encodedData = transfer.d || transfer.data;
   const compression = transfer.c || transfer.cmp || "none";
 
   if (transfer?.v !== LINK_VERSION || !encodedData) {
-    throw new Error("This is not a valid REACHOUT transfer link.");
+    throw makeTransferError("This is not a valid REACHOUT transfer link.", "INVALID_TRANSFER_LINK");
   }
 
   let compressedBytes;
-  if (iv && keyBytes) {
+  if (passwordProtected) {
+    const password = options.password?.trim();
+    if (!password) {
+      throw makeTransferError(
+        "This REACHOUT link is password protected.",
+        "PASSWORD_REQUIRED"
+      );
+    }
+    if (!iv || !salt) {
+      throw makeTransferError("This protected link is missing security data.", "INVALID_TRANSFER_LINK");
+    }
+
+    try {
+      const key = await derivePasswordKey(password, base64UrlToBytes(salt));
+      compressedBytes = new Uint8Array(
+        await crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv: base64UrlToBytes(iv),
+          },
+          key,
+          base64UrlToBytes(encodedData)
+        )
+      );
+    } catch {
+      throw makeTransferError(
+        "That password did not unlock this REACHOUT link.",
+        "PASSWORD_INCORRECT"
+      );
+    }
+  } else if (iv && keyBytes) {
     const key = await crypto.subtle.importKey(
       "raw",
       base64UrlToBytes(keyBytes),
@@ -269,7 +392,7 @@ export async function readEncryptedTransferLink(hashValue = window.location.hash
   const payload = JSON.parse(new TextDecoder().decode(decompressed));
 
   if (payload?.v !== LINK_VERSION || (!payload.d && !payload.data)) {
-    throw new Error("This transfer link has the wrong format.");
+    throw makeTransferError("This transfer link has the wrong format.", "INVALID_TRANSFER_LINK");
   }
 
   return expandTransferData(payload.d || payload.data);
