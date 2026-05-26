@@ -1,6 +1,9 @@
 import { useState } from "react";
 import {
+  AlertTriangle,
+  ChevronDown,
   Check,
+  Clipboard,
   Edit2,
   MessageCircle,
   MessageSquare,
@@ -54,10 +57,19 @@ export default function MobileContactsManager({
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [copiedSignalId, setCopiedSignalId] = useState("");
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState(null);
+  const [importMessage, setImportMessage] = useState("");
+  const [importError, setImportError] = useState("");
   const templateList =
     templates.length > 0
       ? templates
       : [{ id: "__blank__", title: "Message contact", body: "" }];
+  const duplicateContactIds = getDuplicateContactIds(
+    contacts,
+    selectedDialCode
+  );
+  const duplicateCount = duplicateContactIds.size;
 
   const startEdit = (contact) => {
     setEditingId(contact.id);
@@ -93,6 +105,83 @@ export default function MobileContactsManager({
     }
   };
 
+  const showImportMessage = (message) => {
+    setImportMessage(message);
+    window.setTimeout(() => setImportMessage(""), 3000);
+  };
+
+  const showImportError = (message) => {
+    setImportError(message);
+    window.setTimeout(() => setImportError(""), 4000);
+  };
+
+  const applyImportedContacts = (parsedContacts, mode) => {
+    setContacts((currentContacts) =>
+      mode === "replace"
+        ? parsedContacts
+        : [...currentContacts, ...parsedContacts]
+    );
+    setPendingImport(null);
+    setImportError("");
+    showImportMessage(
+      `${mode === "replace" ? "Imported" : "Added"} ${
+        parsedContacts.length
+      } contacts`
+    );
+  };
+
+  const processParsedContacts = (parsedContacts) => {
+    if (parsedContacts.length === 0) {
+      showImportError(
+        "Could not parse any contacts. Use one name and phone number per row."
+      );
+      return;
+    }
+
+    if (contacts.length > 0) {
+      setPendingImport({ contacts: parsedContacts });
+      setImportError("");
+      return;
+    }
+
+    applyImportedContacts(parsedContacts, "replace");
+  };
+
+  const handleClipboardPaste = async () => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        showImportError("Clipboard paste is not available in this browser.");
+        return;
+      }
+
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        showImportError("Clipboard is empty.");
+        return;
+      }
+
+      processParsedContacts(parsePasteText(text));
+    } catch {
+      showImportError("Clipboard access was blocked. Try copying again first.");
+    }
+  };
+
+  const cleanDuplicateContacts = () => {
+    const seen = new Set();
+
+    setContacts((currentContacts) =>
+      currentContacts.filter((contact) => {
+        const key = getContactDuplicateKey(contact, selectedDialCode);
+        if (!key) return true;
+        if (!seen.has(key)) {
+          seen.add(key);
+          return true;
+        }
+        return false;
+      })
+    );
+  };
+
   const copySignalMessage = async (contact, template) => {
     try {
       await navigator.clipboard.writeText(
@@ -120,18 +209,99 @@ export default function MobileContactsManager({
         <span style={styles.count}>{contacts.length}</span>
       </div>
 
+      <div style={styles.importPanel}>
+        <button
+          type="button"
+          onClick={() => setIsImportOpen((current) => !current)}
+          style={styles.importToggle}
+          aria-expanded={isImportOpen}
+        >
+          <span style={styles.importToggleCopy}>
+            <Clipboard size={14} />
+            Paste contacts
+          </span>
+          <ChevronDown
+            size={15}
+            style={{
+              transform: isImportOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 160ms ease",
+            }}
+          />
+        </button>
+        {isImportOpen && (
+          <div style={styles.importBody}>
+            <p style={styles.importText}>
+              Copy contacts from a spreadsheet, then tap paste. Use one contact
+              per row with name and phone number.
+            </p>
+            <button
+              type="button"
+              onClick={handleClipboardPaste}
+              style={styles.pasteBtn}
+            >
+              <Clipboard size={14} /> Paste from clipboard
+            </button>
+            <span style={styles.importHint}>
+              Commas, tabs, semicolons and spreadsheet columns all work.
+            </span>
+            {importMessage && (
+              <div style={styles.importSuccess}>
+                <Check size={14} />
+                <span>{importMessage}</span>
+              </div>
+            )}
+            {importError && (
+              <div style={styles.importError}>
+                <AlertTriangle size={14} />
+                <span>{importError}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {duplicateCount > 0 && (
+        <div style={styles.duplicateNotice}>
+          <div style={styles.duplicateCopy}>
+            <span style={styles.duplicateTitle}>
+              {duplicateCount} duplicate{" "}
+              {duplicateCount === 1 ? "contact" : "contacts"} found
+            </span>
+            <span style={styles.duplicateText}>
+              Matching phone numbers are highlighted below.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={cleanDuplicateContacts}
+            style={styles.cleanDuplicatesBtn}
+          >
+            Clean up
+          </button>
+        </div>
+      )}
+
       <div style={styles.list}>
         {contacts.length === 0 ? (
           <div style={styles.empty}>
             <span style={styles.emptyTitle}>No contacts loaded</span>
-            <span style={styles.emptyText}>Use Scan data to import a list.</span>
+            <span style={styles.emptyText}>
+              Paste contacts here or use Scan data to import a list.
+            </span>
           </div>
         ) : (
           contacts.map((contact) => {
             const isEditing = editingId === contact.id;
+            const isDuplicate = duplicateContactIds.has(contact.id);
 
             return (
-              <div key={contact.id} style={styles.row}>
+              <div
+                key={contact.id}
+                style={{
+                  ...styles.row,
+                  ...(isDuplicate ? styles.duplicateRow : {}),
+                }}
+              >
                 <div style={styles.rowTop}>
                   {!isEditing && (
                     <a
@@ -164,7 +334,14 @@ export default function MobileContactsManager({
                       </div>
                     ) : (
                       <>
-                        <span style={styles.name}>{contact.name}</span>
+                        <span style={styles.name}>
+                          {contact.name}
+                          {isDuplicate && (
+                            <span style={styles.duplicateLabel}>
+                              Duplicate
+                            </span>
+                          )}
+                        </span>
                         <span style={styles.phone}>
                           {normalizePhoneNumber(contact.phone, selectedDialCode)}
                         </span>
@@ -300,8 +477,122 @@ export default function MobileContactsManager({
           })
         )}
       </div>
+
+      {pendingImport && (
+        <div style={styles.modalOverlay} role="presentation">
+          <div
+            style={styles.importModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-contacts-import-title"
+          >
+            <button
+              type="button"
+              onClick={() => setPendingImport(null)}
+              style={styles.modalCloseBtn}
+              aria-label="Cancel import"
+            >
+              <X size={17} />
+            </button>
+            <span style={styles.modalKicker}>Contacts already loaded</span>
+            <h3 id="mobile-contacts-import-title" style={styles.modalTitle}>
+              Add these contacts or replace the current list?
+            </h3>
+            <p style={styles.modalText}>
+              We found {pendingImport.contacts.length} contact
+              {pendingImport.contacts.length === 1 ? "" : "s"} in your
+              clipboard. Add them to the existing {contacts.length}, or replace
+              the list and start fresh.
+            </p>
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                onClick={() =>
+                  applyImportedContacts(pendingImport.contacts, "replace")
+                }
+                style={styles.replaceBtn}
+              >
+                Replace list
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  applyImportedContacts(pendingImport.contacts, "add")
+                }
+                style={styles.addBtn}
+              >
+                Add to list
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function parsePasteText(text) {
+  const lines = text.split("\n");
+  const parsed = [];
+
+  lines.forEach((line) => {
+    const cleanLine = line.trim();
+    if (!cleanLine) return;
+
+    const parts = cleanLine.split(/[,\t;|]+/);
+    if (parts.length >= 2) {
+      const name = parts[0].trim();
+      const phone = parts[1].trim();
+      if (name && phone) {
+        parsed.push({
+          id: `c_${Math.random().toString(36).substr(2, 9)}`,
+          name,
+          phone,
+        });
+      }
+      return;
+    }
+
+    const phoneMatch = cleanLine.match(/(\+?[\d\s-]{8,20})$/);
+    if (!phoneMatch) return;
+
+    const phone = phoneMatch[1].trim();
+    const name = cleanLine.substring(0, cleanLine.length - phone.length).trim();
+    if (name && phone) {
+      parsed.push({
+        id: `c_${Math.random().toString(36).substr(2, 9)}`,
+        name,
+        phone,
+      });
+    }
+  });
+
+  return parsed;
+}
+
+function getContactDuplicateKey(contact, selectedDialCode) {
+  const normalizedPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
+  if (normalizedPhone) return normalizedPhone;
+  return contact.name?.trim().toLowerCase() || "";
+}
+
+function getDuplicateContactIds(contacts, selectedDialCode) {
+  const firstContactByKey = new Map();
+  const duplicateIds = new Set();
+
+  contacts.forEach((contact) => {
+    const key = getContactDuplicateKey(contact, selectedDialCode);
+    if (!key) return;
+
+    if (firstContactByKey.has(key)) {
+      duplicateIds.add(contact.id);
+      return;
+    }
+
+    firstContactByKey.set(key, contact.id);
+  });
+
+  return duplicateIds;
 }
 
 const styles = {
@@ -346,6 +637,128 @@ const styles = {
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     flexShrink: 0,
   },
+  importPanel: {
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "10px",
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  importToggle: {
+    width: "100%",
+    border: "none",
+    backgroundColor: "transparent",
+    color: "var(--ta-cream)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    padding: "10px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+  },
+  importToggleCopy: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "7px",
+    color: "var(--ta-green)",
+  },
+  importBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    padding: "0 10px 10px",
+  },
+  importText: {
+    margin: 0,
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
+  pasteBtn: {
+    minHeight: "34px",
+    border: "1px solid rgba(79, 159, 104, 0.48)",
+    borderRadius: "999px",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "7px",
+    padding: "8px 12px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+  },
+  importHint: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.3,
+  },
+  importSuccess: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    border: "1px solid rgba(79, 159, 104, 0.4)",
+    borderRadius: "8px",
+    backgroundColor: "rgba(79, 159, 104, 0.13)",
+    color: "var(--ta-green)",
+    padding: "8px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 700,
+  },
+  importError: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "7px",
+    border: "1px solid rgba(211, 106, 88, 0.38)",
+    borderRadius: "8px",
+    backgroundColor: "rgba(211, 106, 88, 0.12)",
+    color: "var(--ta-red)",
+    padding: "8px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.3,
+  },
+  duplicateNotice: {
+    border: "1px solid rgba(211, 106, 88, 0.36)",
+    borderRadius: "10px",
+    backgroundColor: "rgba(211, 106, 88, 0.1)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    padding: "10px",
+    flexShrink: 0,
+  },
+  duplicateCopy: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    minWidth: 0,
+  },
+  duplicateTitle: {
+    color: "var(--ta-red)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+  },
+  duplicateText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.25,
+  },
+  cleanDuplicatesBtn: {
+    border: "1px solid rgba(211, 106, 88, 0.42)",
+    borderRadius: "999px",
+    backgroundColor: "rgba(211, 106, 88, 0.13)",
+    color: "var(--ta-red)",
+    padding: "7px 9px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  },
   list: {
     display: "flex",
     flexDirection: "column",
@@ -364,6 +777,10 @@ const styles = {
     backgroundColor: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
     padding: "10px",
   },
+  duplicateRow: {
+    borderColor: "rgba(211, 106, 88, 0.48)",
+    backgroundColor: "rgba(211, 106, 88, 0.1)",
+  },
   rowTop: {
     display: "flex",
     alignItems: "center",
@@ -380,9 +797,22 @@ const styles = {
     color: "var(--ta-cream)",
     fontSize: "calc(15px * var(--reachout-text-scale, 1))",
     fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+  },
+  duplicateLabel: {
+    border: "1px solid rgba(211, 106, 88, 0.4)",
+    borderRadius: "999px",
+    color: "var(--ta-red)",
+    padding: "2px 5px",
+    fontSize: "calc(9px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+    lineHeight: 1,
+    flexShrink: 0,
   },
   phone: {
     color: "var(--ta-muted-strong)",
@@ -516,5 +946,86 @@ const styles = {
   emptyText: {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1200,
+    backgroundColor: "var(--modal-overlay)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "18px",
+  },
+  importModal: {
+    position: "relative",
+    width: "100%",
+    maxWidth: "360px",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "14px",
+    backgroundColor: "var(--modal-card-bg)",
+    color: "var(--ta-cream)",
+    boxShadow: "var(--modal-card-shadow)",
+    padding: "18px",
+  },
+  modalCloseBtn: {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    width: "30px",
+    height: "30px",
+    borderRadius: "999px",
+    border: "1px solid var(--ta-border-subtle)",
+    backgroundColor: "transparent",
+    color: "var(--ta-cream)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalKicker: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(10px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+  modalTitle: {
+    margin: "7px 28px 8px 0",
+    color: "var(--ta-cream)",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.05,
+  },
+  modalText: {
+    margin: 0,
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
+  },
+  modalActions: {
+    display: "flex",
+    gap: "8px",
+    marginTop: "16px",
+  },
+  replaceBtn: {
+    flex: 1,
+    border: "1px solid rgba(211, 106, 88, 0.4)",
+    borderRadius: "999px",
+    backgroundColor: "transparent",
+    color: "var(--ta-red)",
+    padding: "9px 10px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
+  },
+  addBtn: {
+    flex: 1,
+    border: "1px solid var(--ta-green)",
+    borderRadius: "999px",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    padding: "9px 10px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    fontWeight: 800,
   },
 };

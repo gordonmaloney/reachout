@@ -71,7 +71,11 @@ export default function MobileWorkspace({
         template.body === initialTemplates[index]?.body
     );
   const showExampleToast =
-    isMobile && view === "deck" && isExampleData && !exampleToastDismissed;
+    isMobile &&
+    view === "deck" &&
+    isExampleData &&
+    !exampleToastDismissed &&
+    !isTourOpen;
 
   const changeView = (nextView) => {
     setExampleToastDismissed(true);
@@ -139,7 +143,7 @@ export default function MobileWorkspace({
 
     const timeout = window.setTimeout(
       () => setExampleToastDismissed(true),
-      4200
+      5200
     );
     return () => window.clearTimeout(timeout);
   }, [showExampleToast]);
@@ -346,8 +350,9 @@ export default function MobileWorkspace({
           <div style={styles.exampleToast}>
             <span style={styles.exampleToastTitle}>Example data</span>
             <span style={styles.exampleToastText}>
-              These contacts and templates are here to demo the tool. Scan data
-              or open a transfer link to load your real setup.
+              These contacts and templates are here to demo the tool. It is
+              easiest to get set up on your laptop, and then transfer the data
+              to your phone.
             </span>
             <span className="example-data-toast-progress" aria-hidden="true" />
           </div>
