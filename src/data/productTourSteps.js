@@ -57,7 +57,7 @@ export const mobileProductTourSteps = [
   {
     eyebrow: "Step 1 of 4",
     title: "Start contacting",
-    body: "Your contacts are already loaded, so you can start calling and texting from the phonebank deck right away.",
+    body: "Your contacts are loaded up, so you can start calling and texting from the phonebank deck right away.",
     highlightTarget: "mobile-phonebank-tab",
     view: "deck",
   },

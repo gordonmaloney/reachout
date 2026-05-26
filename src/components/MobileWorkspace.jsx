@@ -157,7 +157,7 @@ export default function MobileWorkspace({
 
     setCurrentIdx(0);
     setContactReports({});
-    if (view !== "faq" && view !== "privacy") {
+    if (view !== "faq" && view !== "privacy" && view !== "scan") {
       setView("deck");
     }
     setExampleToastDismissed(true);

@@ -152,6 +152,13 @@ export default function MobileSwipeDeck({
     markCardTourSeen();
     setCardTourOpen(false);
     setCardTourStep(0);
+    window.requestAnimationFrame(() => {
+      document.querySelector(".mobile-card-scroll")?.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "smooth",
+      });
+    });
   };
 
   const goToNextCardTourStep = () => {
@@ -418,22 +425,12 @@ export default function MobileSwipeDeck({
         </div>
       </div>
 
-      <div style={styles.guideStrip}>
-        <button
-          type="button"
-          onClick={() => openCardTour()}
-          style={styles.guideBtn}
-          aria-label="Open card guide"
-          title="Open card guide"
-        >
-          <Map size={13} />
-          <span>Card guide</span>
-        </button>
-      </div>
-
       {/* Navigation buttons */}
       {(index > 0 || index < itemCount - 1) && (
-        <div style={styles.navRow}>
+        <div
+          style={styles.navRow}
+          data-tour-target="mobile-card-tour-navigation"
+        >
           <div style={styles.navSlot}>
             {index > 0 && (
               <button
@@ -445,6 +442,17 @@ export default function MobileSwipeDeck({
                 <ArrowLeft size={20} /> Prev
               </button>
             )}
+          </div>
+          <div style={styles.guideStrip}>
+            <button
+              type="button"
+              onClick={() => openCardTour()}
+              style={styles.guideBtn}
+              aria-label="Open card guide"
+              title="Open card guide"
+            >
+              <Map size={13} />
+            </button>
           </div>
           <div style={styles.navSlot}>
             {index < itemCount - 1 && (
@@ -486,6 +494,8 @@ export default function MobileSwipeDeck({
           onPrev={goToPreviousCardTourStep}
           onClose={closeCardTour}
           layout="mobile"
+          closeOnOverlayClick
+          scrollTargetIntoView
         />
       )}
     </div>
@@ -514,18 +524,12 @@ function buildMobileCardTourSteps({
     {
       eyebrow: "Card guide",
       title: "Work one contact at a time",
-      body: "Each card is one person. Start with the name and number, then use the actions on the card to call, message, and record anything your organiser has asked for.",
-    },
-    {
-      eyebrow: "Contact details",
-      title: "Check the number",
-      body: "Tap the phone number if you need to copy it. The dial code chosen by the organiser is applied where the number does not already include one.",
-      highlightTarget: "mobile-card-tour-phone",
+      body: "Each card is one person. Start with the name and number, then use the actions on the card to call and/or message them",
     },
     {
       eyebrow: "Calling",
       title: "Start with the call button",
-      body: "Call opens your phone dialler for this contact. After the call, come back to this card to send a message or record what happened.",
+      body: "Call opens your phone dialler for this contact. After the call, come back to this card to send a message or move on to the next contact",
       highlightTarget: "mobile-card-tour-call",
     },
   ];
@@ -541,36 +545,19 @@ function buildMobileCardTourSteps({
 
   steps.push({
     eyebrow: "Messages",
-    title: "Send the prepared messages",
-    body: "Each template has buttons for WhatsApp and SMS. If there is message text, the preview shows what will be sent and can be copied if you need it.",
+    title: "Send a message",
+    body: <>Each template has buttons for {!extraChannelsEnabled ? "WhatsApp and SMS" : "WhatsApp, SMS, Signal and Telegram"}.</>,
     highlightTarget: "mobile-card-tour-messages",
   });
 
-  if (hasBlankMessages) {
-    steps.push({
-      eyebrow: "Blank messages",
-      title: "Message without a template",
-      body: "Some message buttons may open a blank chat. Use those when the organiser wants you to write something personal rather than use prepared copy.",
-      highlightTarget: "mobile-card-tour-messages",
-    });
-  }
-
-  if (extraChannelsEnabled) {
-    steps.push({
-      eyebrow: "Extra channels",
-      title: "Signal and Telegram",
-      body: "When enabled, extra buttons appear alongside WhatsApp and SMS. Signal opens the chat and copies the message text first, because Signal does not support pre-filled messages.",
-      highlightTarget: "mobile-card-tour-messages",
-    });
-  }
 
   if (reportBackEnabled) {
     steps.push({
       eyebrow: "Reportback",
       title: "Record the outcome",
       body: reportBackRequired
-        ? "Reportback is required for this phonebank. Answer the required questions before swiping on, so the organiser receives the key outcomes."
-        : "Use Report back when the organiser has asked for outcomes. Your answers are gathered into the report at the end.",
+        ? "Reportback is required for this phonebank. Answer the required questions before swiping on, so your organiser knows how the calls went."
+        : "Use this button to tell your organiser how the calls went. Your answers are gathered into the report at the end.",
       highlightTarget: "mobile-card-tour-report",
     });
   }
@@ -578,7 +565,8 @@ function buildMobileCardTourSteps({
   steps.push({
     eyebrow: "Moving through",
     title: "Swipe or use Next",
-    body: "Move through the deck one contact at a time. If a required reportback is missing, Reachout will show which question needs an answer before you continue.",
+    body: "Move through the deck one contact at a time.",
+    highlightTarget: "mobile-card-tour-navigation",
   });
 
   return steps;
@@ -605,24 +593,22 @@ const styles = {
     overflow: "hidden",
   },
   guideStrip: {
-    display: "none",
-    //display: "flex",
+    display: "flex",
     justifyContent: "center",
-    width: "100%",
-    marginTop: "-2px",
+    alignItems: "center",
+    minWidth: 0,
   },
   guideBtn: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "5px",
     border: "1px solid rgba(79, 159, 104, 0.24)",
     backgroundColor: "transparent",
     color: "var(--ta-muted-strong)",
     borderRadius: "999px",
-    padding: "4px 9px",
-    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
-    lineHeight: 1,
+    padding: 0,
+    width: "28px",
+    height: "28px",
   },
   counter: {
     fontFamily: "var(--font-heading)",
@@ -632,11 +618,12 @@ const styles = {
   },
   navRow: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
+    gridTemplateColumns: "1fr auto 1fr",
+    gap: "8px",
     marginTop: "auto",
     width: "100%",
-    maxWidth: "320px",
+    maxWidth: "340px",
+    alignItems: "center",
   },
   navSlot: {
     display: "flex",

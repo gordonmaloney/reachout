@@ -313,6 +313,11 @@ export default function MobileDataScanner({
           If you opened this page by scanning a QR code with your normal camera
           app, that first code has already been counted.
         </p>
+        <p style={styles.instructionText}>
+          Very large QR codes can be harder for the in-browser scanner to read.
+          If it struggles to focus, try opening your phone's camera app directly
+          and scanning from there instead.
+        </p>
       </div>
 
       {importSummary && (

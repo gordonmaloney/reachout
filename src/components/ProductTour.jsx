@@ -10,6 +10,8 @@ export default function ProductTour({
   onPrev,
   onClose,
   layout = "desktop",
+  closeOnOverlayClick = false,
+  scrollTargetIntoView = false,
 }) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -17,6 +19,7 @@ export default function ProductTour({
 
   useEffect(() => {
     let frame = 0;
+    const timeouts = [];
 
     if (!spotlightSelector) {
       frame = window.requestAnimationFrame(() => setSpotlightRect(null));
@@ -40,16 +43,29 @@ export default function ProductTour({
       });
     };
 
-    frame = window.requestAnimationFrame(updateSpotlight);
+    frame = window.requestAnimationFrame(() => {
+      const element = document.querySelector(spotlightSelector);
+      if (scrollTargetIntoView && element) {
+        element.scrollIntoView({
+          behavior: "auto",
+          block: "center",
+          inline: "nearest",
+        });
+        timeouts.push(window.setTimeout(updateSpotlight, 80));
+      }
+
+      updateSpotlight();
+    });
     window.addEventListener("resize", updateSpotlight);
     window.addEventListener("scroll", updateSpotlight, true);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      timeouts.forEach((timeout) => window.clearTimeout(timeout));
       window.removeEventListener("resize", updateSpotlight);
       window.removeEventListener("scroll", updateSpotlight, true);
     };
-  }, [spotlightSelector, currentStep]);
+  }, [spotlightSelector, currentStep, scrollTargetIntoView]);
 
   const overlayPieces = spotlightRect
     ? [
@@ -82,20 +98,24 @@ export default function ProductTour({
       {overlayPieces.map((piece, index) => (
         <div
           key={`${piece.top || 0}-${piece.left || 0}-${index}`}
+          onClick={closeOnOverlayClick ? onClose : undefined}
           style={{
             ...styles.overlayPiece,
             ...piece,
+            ...(closeOnOverlayClick ? styles.overlayPieceDismissible : {}),
           }}
         />
       ))}
       {spotlightRect && (
         <div
+          onClick={closeOnOverlayClick ? onClose : undefined}
           style={{
             ...styles.spotlightClickBlocker,
             top: spotlightRect.top,
             left: spotlightRect.left,
             width: spotlightRect.right - spotlightRect.left,
             height: spotlightRect.bottom - spotlightRect.top,
+            ...(closeOnOverlayClick ? styles.overlayPieceDismissible : {}),
           }}
         />
       )}
@@ -216,6 +236,9 @@ const styles = {
     backgroundColor: "var(--tour-overlay)",
     pointerEvents: "auto",
     backdropFilter: "blur(1px)",
+  },
+  overlayPieceDismissible: {
+    cursor: "pointer",
   },
   spotlightClickBlocker: {
     position: "fixed",
