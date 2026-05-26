@@ -769,6 +769,7 @@ function TransferPasswordModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="transfer-password-title"
+        autoComplete="off"
         onSubmit={onSubmit}
       >
         <span style={styles.kicker}>Encrypted link</span>
@@ -781,6 +782,11 @@ function TransferPasswordModal({
         </p>
         <input
           type="password"
+          name="reachout-transfer-unlock-key"
+          autoComplete="new-password"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="Password"
