@@ -52,6 +52,8 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
   };
 
   const copyPlainMessage = async () => {
+    if (!hasMessageText) return;
+
     try {
       await navigator.clipboard.writeText(getOutboundMessage(contact, template, { plainText: true }));
       markCopied('message');
@@ -75,6 +77,11 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
             <span>{previewText}</span>
           </button>
         )}
+        {!hasMessageText && (
+          <span className="message-link-preview message-link-preview-empty">
+            no template
+          </span>
+        )}
       </div>
       <div className="message-link-actions">
         <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">
@@ -85,7 +92,7 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
         </a>
         {extraChannelsEnabled && (
           <>
-            <a href={signalLink} target="_blank" rel="noopener noreferrer" onClick={copyPlainMessage} className="message-link-action hover-lift">
+            <a href={signalLink} target="_blank" rel="noopener noreferrer" onClick={hasMessageText ? copyPlainMessage : undefined} className="message-link-action hover-lift">
               <MessageCircle size={14} /> Signal
             </a>
             <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">

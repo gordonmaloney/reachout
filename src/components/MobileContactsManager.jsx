@@ -183,10 +183,13 @@ export default function MobileContactsManager({
   };
 
   const copySignalMessage = async (contact, template) => {
+    const message = getOutboundMessage(contact, template, {
+      plainText: true,
+    }).trim();
+    if (!message) return;
+
     try {
-      await navigator.clipboard.writeText(
-        getOutboundMessage(contact, template, { plainText: true })
-      );
+      await navigator.clipboard.writeText(message);
       const copiedId = `${contact.id}:${template.id}`;
       setCopiedSignalId(copiedId);
       window.setTimeout(() => {
@@ -394,11 +397,16 @@ export default function MobileContactsManager({
                   <div style={styles.contactActions}>
                     {templateList.map((template) => {
                       const copiedId = `${contact.id}:${template.id}`;
+                      const hasMessageText = getOutboundMessage(
+                        contact,
+                        template,
+                        { plainText: true }
+                      ).trim();
 
                       return (
                         <div key={template.id} style={styles.messageGroup}>
                           <span style={styles.templateTitle}>
-                            {template.title}:
+                            {template.title ? <>{template.title}:</> : <i>No template:</i>}
                           </span>
                           <div style={styles.messageActions}>
                             <a
@@ -438,8 +446,11 @@ export default function MobileContactsManager({
                                   )}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  onClick={() =>
-                                    copySignalMessage(contact, template)
+                                  onClick={
+                                    hasMessageText
+                                      ? () =>
+                                          copySignalMessage(contact, template)
+                                      : undefined
                                   }
                                   aria-label={`Signal ${contact.name}: ${template.title}`}
                                   title={`Signal: ${template.title}`}

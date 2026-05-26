@@ -227,16 +227,22 @@ export function getOutboundMessage(
 export function generateWhatsAppLink(contact, template, dialCode = "+44") {
   const base = "https://wa.me/";
   const phone = getWhatsAppPhoneNumber(contact.phone, dialCode);
-  const text = encodeURIComponent(personalizeMessage(contact, template));
+  const message = personalizeMessage(contact, template).trim();
+  if (!message) return `${base}${phone}`;
+
+  const text = encodeURIComponent(message);
   return `${base}${phone}?text=${text}`;
 }
 
 export function generateSmsLink(contact, template, dialCode = "+44") {
   const base = "sms:";
   const phone = normalizePhoneNumber(contact.phone, dialCode);
-  const body = encodeURIComponent(
-    getOutboundMessage(contact, template, { plainText: true })
-  );
+  const message = getOutboundMessage(contact, template, {
+    plainText: true,
+  }).trim();
+  if (!message) return `${base}${phone}`;
+
+  const body = encodeURIComponent(message);
   return `${base}${phone}&body=${body}`;
 }
 

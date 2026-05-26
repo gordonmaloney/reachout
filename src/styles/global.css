@@ -428,6 +428,13 @@ select:focus-visible {
   overflow: hidden;
 }
 
+.message-link-preview-empty {
+  color: var(--ta-muted-strong);
+  cursor: default;
+  font-style: italic;
+  opacity: 0.82;
+}
+
 .message-link-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
