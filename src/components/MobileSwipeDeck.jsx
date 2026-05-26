@@ -1,16 +1,20 @@
 // MobileSwipeDeck – single-card animation using CSS @keyframes + onAnimationEnd
 // Inspired by the SwipeExplainer pattern: phase-driven, no setTimeout for animation sync.
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MobileContactCard from "./MobileContactCard";
 import MobileReportBackCard from "./MobileReportBackCard";
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
+  Map,
   MessageSquare,
   Phone,
 } from "lucide-react";
+import ProductTour from "./ProductTour";
 import "./MobileSwipeDeck.css";
+
+const MOBILE_CARD_TOUR_STORAGE_KEY = "reachout.mobileCardTourSeen";
 
 export default function MobileSwipeDeck({
   contacts,
@@ -25,6 +29,7 @@ export default function MobileSwipeDeck({
   initialIndex = 0,
   onFirstTouch,
   onOpenFaq = () => {},
+  onOpenPrivacy = () => {},
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -49,12 +54,42 @@ export default function MobileSwipeDeck({
   const [isDragging, setIsDragging] = useState(false);
   const [blockMessage, setBlockMessage] = useState("");
   const [blockedQuestionIds, setBlockedQuestionIds] = useState([]);
+  const [cardTourOpen, setCardTourOpen] = useState(false);
+  const [cardTourStep, setCardTourStep] = useState(0);
+  const [hasSeenCardTour, setHasSeenCardTour] = useState(() => {
+    try {
+      return window.localStorage.getItem(MOBILE_CARD_TOUR_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
   const reportQuestions =
     reportBackSettings.questions?.filter((question) =>
       question.label?.trim()
     ) || [];
   const mandatoryReportQuestions = reportQuestions.filter((question) =>
     Boolean(question.mandatory)
+  );
+  const cardTourSteps = useMemo(
+    () =>
+      buildMobileCardTourSteps({
+        hasContacts: contacts.length > 0,
+        hasCallNotes: callNotes.some((note) => note.text?.trim()),
+        hasBlankMessages:
+          templates.length === 0 ||
+          templates.some((template) => !template.body?.trim()),
+        extraChannelsEnabled,
+        reportBackEnabled: Boolean(reportBackSettings.enabled),
+        reportBackRequired: Boolean(reportBackSettings.mandatory),
+      }),
+    [
+      callNotes,
+      contacts.length,
+      extraChannelsEnabled,
+      reportBackSettings.enabled,
+      reportBackSettings.mandatory,
+      templates,
+    ]
   );
 
   const getMissingRequiredQuestionIds = () => {
@@ -80,6 +115,67 @@ export default function MobileSwipeDeck({
   const isCurrentReportComplete = () => {
     return getMissingRequiredQuestionIds().length === 0;
   };
+
+  const showIndexImmediately = (nextIndex) => {
+    setIndex(nextIndex);
+    setPhase("idle");
+    setDirection(0);
+    pendingIndexRef.current = null;
+    setDragX(0);
+    setIsDragging(false);
+    setDisplayContact(contacts[Math.max(0, nextIndex - 1)]);
+    onIndexChange(nextIndex);
+  };
+
+  const markCardTourSeen = () => {
+    setHasSeenCardTour(true);
+    try {
+      window.localStorage.setItem(MOBILE_CARD_TOUR_STORAGE_KEY, "true");
+    } catch {
+      // The guide can still be used if storage is unavailable.
+    }
+  };
+
+  const openCardTour = ({ markSeen = true } = {}) => {
+    onFirstTouch?.();
+
+    if (contacts.length > 0 && (index === 0 || index > contacts.length)) {
+      showIndexImmediately(1);
+    }
+
+    setCardTourStep(0);
+    setCardTourOpen(true);
+    if (markSeen) markCardTourSeen();
+  };
+
+  const closeCardTour = () => {
+    markCardTourSeen();
+    setCardTourOpen(false);
+    setCardTourStep(0);
+  };
+
+  const goToNextCardTourStep = () => {
+    if (cardTourStep >= cardTourSteps.length - 1) {
+      closeCardTour();
+      return;
+    }
+
+    setCardTourStep((step) => step + 1);
+  };
+
+  const goToPreviousCardTourStep = () => {
+    setCardTourStep((step) => Math.max(0, step - 1));
+  };
+
+  useEffect(() => {
+    if (hasSeenCardTour || cardTourOpen || contacts.length === 0 || index !== 1) {
+      return;
+    }
+
+    setCardTourStep(0);
+    setCardTourOpen(true);
+    markCardTourSeen();
+  }, [cardTourOpen, contacts.length, hasSeenCardTour, index]);
 
   // ── Gesture handlers ──────────────────────────────────────────────────
   const handleTouchStart = (e) => {
@@ -287,6 +383,7 @@ export default function MobileSwipeDeck({
               templateCount={templates.length}
               reportBackEnabled={Boolean(reportBackSettings.enabled)}
               onOpenFaq={onOpenFaq}
+              onOpenPrivacy={onOpenPrivacy}
             />
           ) : index === contacts.length + 1 && reportBackSettings.enabled ? (
             <MobileReportBackCard
@@ -319,6 +416,19 @@ export default function MobileSwipeDeck({
             />
           )}
         </div>
+      </div>
+
+      <div style={styles.guideStrip}>
+        <button
+          type="button"
+          onClick={() => openCardTour()}
+          style={styles.guideBtn}
+          aria-label="Open card guide"
+          title="Open card guide"
+        >
+          <Map size={13} />
+          <span>Card guide</span>
+        </button>
       </div>
 
       {/* Navigation buttons */}
@@ -363,8 +473,115 @@ export default function MobileSwipeDeck({
           </div>
         </div>
       )}
+      {cardTourOpen && (
+        <ProductTour
+          currentStep={cardTourStep}
+          steps={cardTourSteps}
+          spotlightSelector={
+            cardTourSteps[cardTourStep]?.highlightTarget
+              ? `[data-tour-target="${cardTourSteps[cardTourStep].highlightTarget}"]`
+              : null
+          }
+          onNext={goToNextCardTourStep}
+          onPrev={goToPreviousCardTourStep}
+          onClose={closeCardTour}
+          layout="mobile"
+        />
+      )}
     </div>
   );
+}
+
+function buildMobileCardTourSteps({
+  hasContacts,
+  hasCallNotes,
+  hasBlankMessages,
+  extraChannelsEnabled,
+  reportBackEnabled,
+  reportBackRequired,
+}) {
+  if (!hasContacts) {
+    return [
+      {
+        eyebrow: "Card guide",
+        title: "Load contacts first",
+        body: "Once contacts are loaded, this guide will walk through the buttons and prompts on each contact card.",
+      },
+    ];
+  }
+
+  const steps = [
+    {
+      eyebrow: "Card guide",
+      title: "Work one contact at a time",
+      body: "Each card is one person. Start with the name and number, then use the actions on the card to call, message, and record anything your organiser has asked for.",
+    },
+    {
+      eyebrow: "Contact details",
+      title: "Check the number",
+      body: "Tap the phone number if you need to copy it. The dial code chosen by the organiser is applied where the number does not already include one.",
+      highlightTarget: "mobile-card-tour-phone",
+    },
+    {
+      eyebrow: "Calling",
+      title: "Start with the call button",
+      body: "Call opens your phone dialler for this contact. After the call, come back to this card to send a message or record what happened.",
+      highlightTarget: "mobile-card-tour-call",
+    },
+  ];
+
+  if (hasCallNotes) {
+    steps.push({
+      eyebrow: "Call notes",
+      title: "Use the reminders",
+      body: "These notes are shared prompts from the organiser. They are here to guide the conversation, not to be copied word-for-word.",
+      highlightTarget: "mobile-card-tour-notes",
+    });
+  }
+
+  steps.push({
+    eyebrow: "Messages",
+    title: "Send the prepared messages",
+    body: "Each template has buttons for WhatsApp and SMS. If there is message text, the preview shows what will be sent and can be copied if you need it.",
+    highlightTarget: "mobile-card-tour-messages",
+  });
+
+  if (hasBlankMessages) {
+    steps.push({
+      eyebrow: "Blank messages",
+      title: "Message without a template",
+      body: "Some message buttons may open a blank chat. Use those when the organiser wants you to write something personal rather than use prepared copy.",
+      highlightTarget: "mobile-card-tour-messages",
+    });
+  }
+
+  if (extraChannelsEnabled) {
+    steps.push({
+      eyebrow: "Extra channels",
+      title: "Signal and Telegram",
+      body: "When enabled, extra buttons appear alongside WhatsApp and SMS. Signal opens the chat and copies the message text first, because Signal does not support pre-filled messages.",
+      highlightTarget: "mobile-card-tour-messages",
+    });
+  }
+
+  if (reportBackEnabled) {
+    steps.push({
+      eyebrow: "Reportback",
+      title: "Record the outcome",
+      body: reportBackRequired
+        ? "Reportback is required for this phonebank. Answer the required questions before swiping on, so the organiser receives the key outcomes."
+        : "Use Report back when the organiser has asked for outcomes. Your answers are gathered into the report at the end.",
+      highlightTarget: "mobile-card-tour-report",
+    });
+  }
+
+  steps.push({
+    eyebrow: "Moving through",
+    title: "Swipe or use Next",
+    body: "Move through the deck one contact at a time. If a required reportback is missing, Reachout will show which question needs an answer before you continue.",
+  });
+
+  return steps;
 }
 
 const styles = {
@@ -386,6 +603,26 @@ const styles = {
     flex: 1,
     minHeight: 0,
     overflow: "hidden",
+  },
+  guideStrip: {
+    display: "none",
+    //display: "flex",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: "-2px",
+  },
+  guideBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    border: "1px solid rgba(79, 159, 104, 0.24)",
+    backgroundColor: "transparent",
+    color: "var(--ta-muted-strong)",
+    borderRadius: "999px",
+    padding: "4px 9px",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
   },
   counter: {
     fontFamily: "var(--font-heading)",
@@ -434,9 +671,14 @@ function MobileIntroCard({
   templateCount,
   reportBackEnabled,
   onOpenFaq,
+  onOpenPrivacy,
 }) {
   return (
-    <div style={infoStyles.card} className="glass-card">
+    <div
+      style={infoStyles.card}
+      className="glass-card"
+      data-tour-target="mobile-card-tour-card"
+    >
       <span style={infoStyles.kicker}>Phonebank ready</span>
       <h2 style={infoStyles.title}>You're ready to start</h2>
       <p style={infoStyles.text}>
@@ -457,9 +699,18 @@ function MobileIntroCard({
           templates first.
         </span>
       </div>
-      <button type="button" onClick={onOpenFaq} style={infoStyles.faqLink}>
-        Read the FAQ
-      </button>
+      <div style={infoStyles.policyLinks}>
+        <button type="button" onClick={onOpenFaq} style={infoStyles.faqLink}>
+          Read the FAQ
+        </button>
+        <button
+          type="button"
+          onClick={onOpenPrivacy}
+          style={infoStyles.faqLink}
+        >
+          Privacy policy
+        </button>
+      </div>
     </div>
   );
 }
@@ -527,14 +778,20 @@ const infoStyles = {
     color: "var(--ta-muted-strong)",
     fontSize: "calc(14px * var(--reachout-text-scale, 1))",
   },
-  faqLink: {
+  policyLinks: {
     alignSelf: "flex-start",
+    display: "flex",
+    flexDirection: "column",
+    gap: "7px",
+    borderTop: "1px solid var(--ta-border-subtle)",
+    paddingTop: "12px",
+  },
+  faqLink: {
     backgroundColor: "transparent",
     border: "none",
     color: "var(--ta-green)",
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     textDecoration: "none",
-    borderTop: "1px solid var(--ta-border-subtle)",
-    paddingTop: "12px",
+    padding: 0,
   },
 };

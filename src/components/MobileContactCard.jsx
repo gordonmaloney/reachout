@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Links from "./Links";
-import { Check, Contact, Copy, Phone, X} from "lucide-react";
+import { Check, Contact, Copy, Phone, X } from "lucide-react";
 import { generateCallLink, normalizePhoneNumber } from "../utils";
 
 const callButtonStyle = {
@@ -77,11 +77,11 @@ export default function MobileContactCard({
     });
   };
 
-    const undoContacted = () => {
-      setReport({
-        contacted: false
-      });
-    };
+  const undoContacted = () => {
+    setReport({
+      contacted: false,
+    });
+  };
 
 
   const updateAnswer = (questionId, answer) => {
@@ -94,7 +94,11 @@ export default function MobileContactCard({
   };
 
   return (
-    <div style={styles.card} className="glass-card">
+    <div
+      style={styles.card}
+      className="glass-card"
+      data-tour-target="mobile-card-tour-card"
+    >
       <div style={styles.header}>
         <div style={styles.avatar}>
           <Contact size={18} />
@@ -106,6 +110,7 @@ export default function MobileContactCard({
             onClick={copyPhoneNumber}
             style={styles.phone}
             className="hover-lift"
+            data-tour-target="mobile-card-tour-phone"
           >
             {copiedPhone ? <Check size={13} /> : <Copy size={13} />}
             <span>{previewPhone}</span>
@@ -118,6 +123,7 @@ export default function MobileContactCard({
             rel="noopener noreferrer"
             style={callButtonStyle}
             className="hover-lift"
+            data-tour-target="mobile-card-tour-call"
           >
             <Phone size={14} /> Call
           </a>
@@ -230,7 +236,10 @@ export default function MobileContactCard({
             </div>
           ) : (
             callNotes.filter((note) => note.text?.trim()).length > 0 && (
-              <div style={styles.callNotesBlock}>
+              <div
+                style={styles.callNotesBlock}
+                data-tour-target="mobile-card-tour-notes"
+              >
                 <span style={styles.callNotesTitle}>
                   Talking point reminders:
                 </span>
@@ -245,7 +254,10 @@ export default function MobileContactCard({
             )
           )}
           {!isReporting && (
-            <div style={styles.templates}>
+            <div
+              style={styles.templates}
+              data-tour-target="mobile-card-tour-messages"
+            >
               {templateList.map((t) => (
                 <div key={t.id} style={styles.templateBlock}>
                   <Links
@@ -262,7 +274,10 @@ export default function MobileContactCard({
       </div>
 
       {reportEnabled && !isReporting && (
-        <div style={styles.reportAction}>
+        <div
+          style={styles.reportAction}
+          data-tour-target="mobile-card-tour-report"
+        >
           {showReportBackTooltip && (
             <div style={styles.reportTooltip}>
               Use this to record what happened after this contact. Your answers

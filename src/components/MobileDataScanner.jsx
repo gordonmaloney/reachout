@@ -16,7 +16,9 @@ export default function MobileDataScanner({
   onImported,
 }) {
   const [isScanning, setIsScanning] = useState(false);
-  const [progress, setProgress] = useState("Ready to scan QR codes from desktop.");
+  const [progress, setProgress] = useState(
+    "Ready to scan QR codes from desktop."
+  );
   const [importSummary, setImportSummary] = useState(null);
   const [cameraStarting, setCameraStarting] = useState(false);
   const chunksRef = useRef([]);
@@ -182,8 +184,22 @@ export default function MobileDataScanner({
       scanner = new Html5Qrcode("reachout-reader", false);
 
       const config = {
-        fps: 12,
-        qrbox: { width: 240, height: 240 },
+        fps: 8,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const size = Math.floor(minEdge * 0.85);
+
+          return {
+            width: size,
+            height: size,
+          };
+        },
+        aspectRatio: 1.0,
+        videoConstraints: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
       };
 
       const onScanSuccess = async (decodedText) => {

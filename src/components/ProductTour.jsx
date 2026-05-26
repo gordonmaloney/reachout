@@ -74,6 +74,8 @@ export default function ProductTour({
         },
       ]
     : [{ inset: 0 }];
+  const mobilePositionStyle =
+    layout === "mobile" ? getMobileTourPosition(spotlightRect) : {};
 
   return (
     <>
@@ -101,6 +103,7 @@ export default function ProductTour({
         style={{
           ...styles.card,
           ...(layout === "mobile" ? styles.cardMobile : {}),
+          ...mobilePositionStyle,
         }}
       >
         <button
@@ -195,6 +198,17 @@ export default function ProductTour({
   );
 }
 
+function getMobileTourPosition(spotlightRect) {
+  if (!spotlightRect) return styles.cardMobileBottom;
+
+  const viewportHeight = window.innerHeight || 0;
+  const targetMiddle = (spotlightRect.top + spotlightRect.bottom) / 2;
+
+  return targetMiddle > viewportHeight * 0.46
+    ? styles.cardMobileTop
+    : styles.cardMobileBottom;
+}
+
 const styles = {
   overlayPiece: {
     position: "fixed",
@@ -227,12 +241,21 @@ const styles = {
   cardMobile: {
     left: "12px",
     right: "12px",
-    bottom: "72px",
     width: "auto",
-    padding: "12px",
+    padding: "10px",
     borderRadius: "12px",
-    maxWidth: "360px",
+    maxWidth: "340px",
+    maxHeight: "42dvh",
     marginInline: "auto",
+    overflowY: "auto",
+  },
+  cardMobileTop: {
+    top: "12px",
+    bottom: "auto",
+  },
+  cardMobileBottom: {
+    top: "auto",
+    bottom: "72px",
   },
   closeBtn: {
     position: "absolute",
@@ -267,7 +290,7 @@ const styles = {
     fontSize: "calc(10px * var(--reachout-text-scale, 1))",
   },
   titleMobile: {
-    fontSize: "calc(22px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(20px * var(--reachout-text-scale, 1))",
     marginTop: "4px",
     marginBottom: "6px",
   },
@@ -278,7 +301,7 @@ const styles = {
     paddingRight: "18px",
   },
   bodyMobile: {
-    fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
     lineHeight: 1.35,
     paddingRight: "12px",
   },
@@ -301,7 +324,7 @@ const styles = {
   progressRow: {
     display: "flex",
     gap: "6px",
-    marginTop: "16px",
+    marginTop: "12px",
   },
   progressDot: {
     width: "22px",
@@ -316,7 +339,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     gap: "10px",
-    marginTop: "18px",
+    marginTop: "12px",
   },
   secondaryBtn: {
     backgroundColor: "transparent",

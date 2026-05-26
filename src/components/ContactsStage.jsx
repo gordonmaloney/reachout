@@ -16,6 +16,7 @@ export default function ContactsStage({
   setSelectedDialCode,
   stageNumLabel = "Stage 1 of 3",
   onNext,
+  onOpenPrivacy,
 }) {
   const [pasteOverlayText, setPasteOverlayText] = useState("");
   const [showClipboardSuccess, setShowClipboardSuccess] = useState(false);
@@ -367,6 +368,16 @@ export default function ContactsStage({
               duplicateContactIds={duplicateContactIds}
             />
           </div>
+
+          {onOpenPrivacy && (
+            <button
+              type="button"
+              onClick={onOpenPrivacy}
+              style={styles.privacyLink}
+            >
+              Privacy policy
+            </button>
+          )}
         </div>
       </div>
 
@@ -516,6 +527,16 @@ const styles = {
     textDecoration: "underline",
     textUnderlineOffset: "3px",
     whiteSpace: "nowrap",
+  },
+  privacyLink: {
+    alignSelf: "flex-end",
+    backgroundColor: "transparent",
+    border: "none",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    textDecoration: "underline",
+    textUnderlineOffset: "3px",
+    padding: "0 2px",
   },
   kbd: {
     display: "inline-block",

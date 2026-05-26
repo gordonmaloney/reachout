@@ -10,6 +10,7 @@ import OrganiserModeModal from "./components/OrganiserModeModal";
 import ReportbackNumberModal from "./components/ReportbackNumberModal";
 import ProductTour from "./components/ProductTour";
 import FaqPage from "./components/FaqPage";
+import PrivacyPolicy from "./components/PrivacyPolicy";
 import { initialContacts, initialTemplates } from "./data/mockData";
 import { organiserTourSteps, productTourSteps } from "./data/productTourSteps";
 import {
@@ -112,6 +113,7 @@ function getInitialFontScale() {
 export default function App() {
   const routePath = window.location.pathname.replace(/\/+$/, "");
   const isFaqRoute = routePath === "/faq";
+  const isPrivacyRoute = routePath === "/privacy";
   const isOrganiserRoute = routePath === "/organiser";
   const isReportbackRoute = routePath === "/reportback";
   const [organiserModeEnabled, setOrganiserModeEnabled] =
@@ -139,6 +141,7 @@ export default function App() {
   const [linkPassword, setLinkPassword] = useState("");
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(isFaqRoute);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(isPrivacyRoute);
   const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
   const [isReportbackNumberModalOpen, setIsReportbackNumberModalOpen] =
     useState(false);
@@ -170,10 +173,11 @@ export default function App() {
   };
 
   const goToStage = (targetStage) => {
-    if (targetStage === activeStage && !isFaqOpen) return;
+    if (targetStage === activeStage && !isFaqOpen && !isPrivacyOpen) return;
     if (!verifyCanLeaveStage(targetStage)) return;
-    if (isFaqOpen) clearFaqPath();
+    if (isFaqOpen || isPrivacyOpen) clearContentPath();
     setIsFaqOpen(false);
+    setIsPrivacyOpen(false);
     setActiveStage(targetStage);
   };
 
@@ -191,18 +195,29 @@ export default function App() {
 
   const openFaq = () => {
     setIsFaqOpen(true);
+    setIsPrivacyOpen(false);
     setIsTourOpen(false);
   };
 
-  const clearFaqPath = () => {
-    if (window.location.pathname === "/faq") {
+  const openPrivacy = () => {
+    setIsPrivacyOpen(true);
+    setIsFaqOpen(false);
+    setIsTourOpen(false);
+  };
+
+  const clearContentPath = () => {
+    if (
+      window.location.pathname === "/faq" ||
+      window.location.pathname === "/privacy"
+    ) {
       window.history.replaceState({}, "", "/");
     }
   };
 
   const closeFaqToContacts = () => {
-    clearFaqPath();
+    clearContentPath();
     setIsFaqOpen(false);
+    setIsPrivacyOpen(false);
     setActiveStage(1);
   };
 
@@ -448,7 +463,7 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (isFaqOpen) return;
+    if (isFaqOpen || isPrivacyOpen) return;
     if (isMobile) return;
     if (hasTransferLink()) return;
 
@@ -462,7 +477,7 @@ export default function App() {
       setIsTourOpen(true);
       setActiveStage(getTourStage(0));
     }, 0);
-  }, [getTourStage, isFaqOpen, isMobile]);
+  }, [getTourStage, isFaqOpen, isMobile, isPrivacyOpen]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -528,7 +543,15 @@ export default function App() {
           setSelectedDialCode={setSelectedDialCode}
           extraChannelsEnabled={extraChannelsEnabled}
           setExtraChannelsEnabled={setExtraChannelsEnabled}
-          initialView={isFaqOpen ? "faq" : shouldOpenScanner ? "scan" : "deck"}
+          initialView={
+            isFaqOpen
+              ? "faq"
+              : isPrivacyOpen
+                ? "privacy"
+                : shouldOpenScanner
+                  ? "scan"
+                  : "deck"
+          }
           onCloseFaq={closeFaqToContacts}
           theme={theme}
           onToggleTheme={toggleTheme}
@@ -554,7 +577,7 @@ export default function App() {
         {/* Left Sidebar: Journey Nav */}
         <aside className="sidebar-panel">
           <JourneyNav
-            activeStage={isFaqOpen ? null : activeStage}
+            activeStage={isFaqOpen || isPrivacyOpen ? null : activeStage}
             setActiveStage={goToStage}
             onToggleHelp={toggleHelp}
             isOrganiser={isOrganiser}
@@ -584,6 +607,8 @@ export default function App() {
         <section ref={workspacePanelRef} className="workspace-panel">
           {isFaqOpen ? (
             <FaqPage onBack={closeFaqToContacts} />
+          ) : isPrivacyOpen ? (
+            <PrivacyPolicy onBack={closeFaqToContacts} />
           ) : activeStage === 1 ? (
             <ContactsStage
               contacts={contacts}
@@ -592,10 +617,11 @@ export default function App() {
               setSelectedDialCode={setSelectedDialCode}
               stageNumLabel={`Stage 1 of ${totalStages}`}
               onNext={handleNextStage}
+              onOpenPrivacy={openPrivacy}
             />
           ) : null}
 
-          {!isFaqOpen && activeStage === 2 && (
+          {!isFaqOpen && !isPrivacyOpen && activeStage === 2 && (
             <MessagesStage
               templates={templates}
               setTemplates={setTemplates}
@@ -608,7 +634,7 @@ export default function App() {
             />
           )}
 
-          {!isFaqOpen && isOrganiser && activeStage === 3 && (
+          {!isFaqOpen && !isPrivacyOpen && isOrganiser && activeStage === 3 && (
             <CallNotesStage
               callNotes={callNotes}
               setCallNotes={setCallNotes}
@@ -625,7 +651,7 @@ export default function App() {
             />
           )}
 
-          {!isFaqOpen && activeStage === finalStage && (
+          {!isFaqOpen && !isPrivacyOpen && activeStage === finalStage && (
             <ReviewLinksStage
               contacts={contacts}
               templates={templates}

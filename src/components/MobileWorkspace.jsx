@@ -19,6 +19,7 @@ import ProductTour from "./ProductTour";
 import { mobileProductTourSteps } from "../data/productTourSteps";
 import { CircleHelp } from "lucide-react";
 import FaqPage from "./FaqPage";
+import PrivacyPolicy from "./PrivacyPolicy";
 
 const MOBILE_TOUR_STORAGE_KEY = "reachout.mobileProductTourSeen";
 
@@ -41,7 +42,7 @@ export default function MobileWorkspace({
   onToggleTheme = () => {},
   fontScale = 1,
 }) {
-  const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', or 'faq'
+  const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', 'faq', or 'privacy'
   const [currentIdx, setCurrentIdx] = useState(0);
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
@@ -88,6 +89,16 @@ export default function MobileWorkspace({
   };
 
   const closeFaq = () => {
+    setView("deck");
+    onCloseFaq();
+  };
+
+  const openPrivacy = () => {
+    setExampleToastDismissed(true);
+    setView("privacy");
+  };
+
+  const closePrivacy = () => {
     setView("deck");
     onCloseFaq();
   };
@@ -146,7 +157,7 @@ export default function MobileWorkspace({
 
     setCurrentIdx(0);
     setContactReports({});
-    if (view !== "faq") {
+    if (view !== "faq" && view !== "privacy") {
       setView("deck");
     }
     setExampleToastDismissed(true);
@@ -279,6 +290,8 @@ export default function MobileWorkspace({
       <main style={styles.main}>
         {view === "faq" ? (
           <FaqPage onBack={closeFaq} />
+        ) : view === "privacy" ? (
+          <PrivacyPolicy onBack={closePrivacy} />
         ) : view === "deck" ? (
           <MobileSwipeDeck
             key={`${contacts
@@ -299,6 +312,7 @@ export default function MobileWorkspace({
             onFirstTouch={() => setExampleToastDismissed(true)}
             initialIndex={currentIdx}
             onOpenFaq={openFaq}
+            onOpenPrivacy={openPrivacy}
           />
         ) : view === "contacts" ? (
           <MobileContactsManager
