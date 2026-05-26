@@ -121,20 +121,10 @@ export default function MobileWorkspace({
       window.history.forward();
     };
 
-    const handleBeforeUnload = (event) => {
-      if (allowExitRef.current) return undefined;
-
-      event.preventDefault();
-      event.returnValue = "";
-      return "";
-    };
-
     window.addEventListener("popstate", handlePopState);
-    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [isMobile]);
 
@@ -426,7 +416,7 @@ export default function MobileWorkspace({
               Are you sure you're finished?
             </h3>
             <p style={styles.exitText}>
-              If you close this tab, you may lose where you were in this
+              If you go back now, you may lose where you were in this
               phonebank.
             </p>
             <div style={styles.exitActions}>
