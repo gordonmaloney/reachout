@@ -3,16 +3,16 @@ const META_IMAGE_URL = new URL("meta.jpg", SITE_URL).href;
 
 export const siteMetadata = {
   main: {
-    title: "REACHOUT | Phone- and text-banking",
+    title: "Reachout | Phone- and text-banking",
     description:
       "Easily phone and message contacts to build for meetings, mobilisations, actions and more.",
     image: META_IMAGE_URL,
     urlPath: "/",
   },
   share: {
-    title: "REACHOUT | Phone- and text-banking",
+    title: "Reachout | Phone- and text-banking",
     description:
-      "Open this REACHOUT phonebank on your phone to start calling and messaging contacts.",
+      "Open this Reachout phonebank on your phone to start calling and messaging contacts.",
     image: META_IMAGE_URL,
     urlPath: "/s",
   },
