@@ -1,18 +1,16 @@
-import metaImage from "./assets/meta.jpeg";
-
 export const siteMetadata = {
   main: {
     title: "REACHOUT | Phone- and text-banking",
     description:
       "Easily phone and message contacts to build for meetings, mobilisations, actions and more.",
-    image: metaImage,
+    image: "/meta.jpg",
     urlPath: "/",
   },
   share: {
     title: "REACHOUT | Phone- and text-banking",
     description:
       "Open this REACHOUT phonebank on your phone to start calling and messaging contacts.",
-    image: metaImage,
+    image: "/meta.jpg",
     urlPath: "/s",
   },
 };
@@ -40,6 +38,7 @@ export function applyMetadata(metadata = getMetadataForPath()) {
   setMeta('meta[property="og:description"]', "content", metadata.description);
   setMeta('meta[property="og:url"]', "content", absoluteUrl);
   setMeta('meta[property="og:image"]', "content", absoluteImageUrl);
+  setMeta('meta[property="og:image:secure_url"]', "content", absoluteImageUrl);
   setMeta('meta[name="twitter:title"]', "content", metadata.title);
   setMeta('meta[name="twitter:description"]', "content", metadata.description);
   setMeta('meta[name="twitter:image"]', "content", absoluteImageUrl);
