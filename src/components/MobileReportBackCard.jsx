@@ -38,7 +38,7 @@ function getPlainText(rows) {
     return `${row.name} (${row.phone}) - ${answers.join("; ")}; Date: ${date}`;
   });
 
-  return `REACHOUT reportback\n\n${lines.join("\n")}`;
+  return `Reachout reportback\n\n${lines.join("\n")}`;
 }
 
 function getSpreadsheetText(rows, questions) {

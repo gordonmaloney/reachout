@@ -92,17 +92,17 @@ export default function MessagesStage({
           <span style={styles.helperTitle}>Writing template messages</span>
           <span>
             Type <code style={styles.code}>{"{FIRSTNAME}"}</code> wherever you
-            want REACHOUT to insert the contact's first name. For example,{" "}
+            want Reachout to insert the contact's first name. For example,{" "}
             <code style={styles.code}>Hi {"{FIRSTNAME}"}</code> becomes{" "}
             <code style={styles.code}>Hi Sandy</code>.
           </span>
           <span>
             WhatsApp formatting can go straight into the template: surround
             words with asterisks to make them bold, like{" "}
-            <code style={styles.code}>*this*</code>, or with
-            underscores to make them italic, like{" "}
-            <code style={styles.code}>_this_</code>. SMS and Signal will
-            receive the same words without relying on the formatting.
+            <code style={styles.code}>*this*</code>, or with underscores to make
+            them italic, like <code style={styles.code}>_this_</code>. SMS and
+            Signal will receive the same words without relying on the
+            formatting.
           </span>
         </div>
 

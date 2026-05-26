@@ -421,7 +421,7 @@ export default function MobileWorkspace({
             aria-modal="true"
             aria-labelledby="mobile-exit-title"
           >
-            <span style={styles.exitKicker}>Leaving REACHOUT?</span>
+            <span style={styles.exitKicker}>Leaving Reachout?</span>
             <h3 id="mobile-exit-title" style={styles.exitTitle}>
               Are you sure you're finished?
             </h3>

@@ -30,7 +30,7 @@ export default function HelpDrawer({ isOpen, onClose }) {
               style={{ flexShrink: 0 }}
             />
             <p style={styles.securityText}>
-              REACHOUT helps you turn contact lists and message templates into
+              Reachout helps you turn contact lists and message templates into
               quick WhatsApp and SMS links — useful for follow-ups,
               mobilisation, turnout, and supporter care.
             </p>

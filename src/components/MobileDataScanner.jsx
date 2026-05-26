@@ -65,7 +65,7 @@ export default function MobileDataScanner({
   const processChunk = useCallback(
     (chunk) => {
       if (!chunk) {
-        setProgress("That QR code is not REACHOUT transfer data.");
+        setProgress("That QR code is not Reachout transfer data.");
         return false;
       }
 
@@ -101,7 +101,7 @@ export default function MobileDataScanner({
           if (isPasswordProtectedTransferLink(url.hash)) {
             password =
               window.prompt(
-                "This REACHOUT link is password protected. Enter the password shared by the organiser."
+                "This Reachout link is password protected. Enter the password shared by the organiser."
               ) || "";
             if (!password.trim()) {
               setProgress("Password needed to import this encrypted link.");
@@ -122,7 +122,7 @@ export default function MobileDataScanner({
         // Fall through to the invalid QR message below.
       }
 
-      setProgress("That QR code is not REACHOUT transfer data.");
+      setProgress("That QR code is not Reachout transfer data.");
       return false;
     },
     [importTransfer, processChunk]
