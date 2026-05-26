@@ -8,16 +8,6 @@ const faqItems = [
       "Reachout is a tool for community organising, campaigning, and member outreach. It helps people send personalised texts, WhatsApp messages, emails, and make phone calls to supporters, neighbours, tenants, or members. It is designed for relational organising rather than mass spam. The idea is that conversations between real people matter. A message from a volunteer, organiser, or fellow member is often far more effective than an automated blast.",
   },
   {
-    question: "Who is Reachout built for?",
-    answer:
-      "Reachout is mainly designed for grassroots organisations, tenants' unions, campaign groups, and volunteer-led organising projects. It works best for groups that want to coordinate outreach while still keeping a human, conversational approach. It is especially useful for phonebanks, turnout work, follow-ups, surveys, member check-ins, and local campaigns.",
-  },
-  {
-    question: "Who built Reachout?",
-    answer:
-      "Reachout was built independently by Living Rent members to make phonebanking easier and less tedious. It was designed around the practical realities of grassroots organising, especially the need for tools that are low-cost, easy to use, and do not require large technical teams or expensive infrastructure.",
-  },
-  {
     question: "How do the pre-filled links work?",
     answer:
       "Reachout uses compressed pre-filled links to transfer outreach sessions between devices. When you create a session on desktop, the contact data and message templates are compressed into a link which can then be opened on a phone or shared with volunteers. This avoids the need for accounts, logins, or a large backend system, and keeps the tool lightweight and cheap to run.",
