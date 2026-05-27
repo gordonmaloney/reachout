@@ -12,6 +12,7 @@ export default function ProductTour({
   layout = "desktop",
   closeOnOverlayClick = false,
   scrollTargetIntoView = false,
+  mobilePlacement = "auto",
 }) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -91,7 +92,12 @@ export default function ProductTour({
       ]
     : [{ inset: 0 }];
   const mobilePositionStyle =
-    layout === "mobile" ? getMobileTourPosition(spotlightRect) : {};
+    layout === "mobile"
+      ? getMobileTourPosition(spotlightRect, mobilePlacement)
+      : {};
+  const primaryLabel = isLast
+    ? step.doneLabel || "Done"
+    : step.nextLabel || "Next";
 
   return (
     <>
@@ -101,6 +107,7 @@ export default function ProductTour({
           onClick={closeOnOverlayClick ? onClose : undefined}
           style={{
             ...styles.overlayPiece,
+            ...(layout === "mobile" ? styles.overlayPieceMobile : {}),
             ...piece,
             ...(closeOnOverlayClick ? styles.overlayPieceDismissible : {}),
           }}
@@ -204,11 +211,11 @@ export default function ProductTour({
           >
             {isLast ? (
               <>
-                Done <Check size={16} />
+                {primaryLabel} <Check size={16} />
               </>
             ) : (
               <>
-                Next <ArrowRight size={16} />
+                {primaryLabel} <ArrowRight size={16} />
               </>
             )}
           </button>
@@ -218,7 +225,9 @@ export default function ProductTour({
   );
 }
 
-function getMobileTourPosition(spotlightRect) {
+function getMobileTourPosition(spotlightRect, placement = "auto") {
+  if (placement === "bottom") return styles.cardMobileBottom;
+  if (placement === "top") return styles.cardMobileTop;
   if (!spotlightRect) return styles.cardMobileBottom;
 
   const viewportHeight = window.innerHeight || 0;
@@ -236,6 +245,9 @@ const styles = {
     backgroundColor: "var(--tour-overlay)",
     pointerEvents: "auto",
     backdropFilter: "blur(1px)",
+  },
+  overlayPieceMobile: {
+    backgroundColor: "var(--tour-mobile-overlay)",
   },
   overlayPieceDismissible: {
     cursor: "pointer",
@@ -265,6 +277,9 @@ const styles = {
     left: "12px",
     right: "12px",
     width: "auto",
+    backgroundColor: "var(--tour-mobile-card-bg)",
+    borderColor: "var(--tour-mobile-card-border)",
+    boxShadow: "var(--tour-mobile-card-shadow)",
     padding: "10px",
     borderRadius: "12px",
     maxWidth: "340px",
@@ -322,6 +337,7 @@ const styles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.45,
     paddingRight: "18px",
+    whiteSpace: "pre-line",
   },
   bodyMobile: {
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",

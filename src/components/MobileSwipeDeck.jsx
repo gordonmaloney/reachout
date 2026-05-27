@@ -3,18 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileContactCard from "./MobileContactCard";
 import MobileReportBackCard from "./MobileReportBackCard";
+import { initialContacts } from "../data/mockData";
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
-  Map,
   MessageSquare,
   Phone,
 } from "lucide-react";
 import ProductTour from "./ProductTour";
 import "./MobileSwipeDeck.css";
-
-const MOBILE_CARD_TOUR_STORAGE_KEY = "reachout.mobileCardTourSeen";
 
 export default function MobileSwipeDeck({
   contacts,
@@ -30,6 +28,10 @@ export default function MobileSwipeDeck({
   onFirstTouch,
   onOpenFaq = () => {},
   onOpenPrivacy = () => {},
+  deckResetToken = 0,
+  cardTourRequestToken = 0,
+  onCardTourClose = () => {},
+  returnToWelcomeOnCardTourComplete = false,
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -56,13 +58,7 @@ export default function MobileSwipeDeck({
   const [blockedQuestionIds, setBlockedQuestionIds] = useState([]);
   const [cardTourOpen, setCardTourOpen] = useState(false);
   const [cardTourStep, setCardTourStep] = useState(0);
-  const [hasSeenCardTour, setHasSeenCardTour] = useState(() => {
-    try {
-      return window.localStorage.getItem(MOBILE_CARD_TOUR_STORAGE_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [pendingCombinedCardTour, setPendingCombinedCardTour] = useState(false);
   const reportQuestions =
     reportBackSettings.questions?.filter((question) =>
       question.label?.trim()
@@ -127,16 +123,7 @@ export default function MobileSwipeDeck({
     onIndexChange(nextIndex);
   };
 
-  const markCardTourSeen = () => {
-    setHasSeenCardTour(true);
-    try {
-      window.localStorage.setItem(MOBILE_CARD_TOUR_STORAGE_KEY, "true");
-    } catch {
-      // The guide can still be used if storage is unavailable.
-    }
-  };
-
-  const openCardTour = ({ markSeen = true } = {}) => {
+  const openCardTour = () => {
     onFirstTouch?.();
 
     if (contacts.length > 0 && (index === 0 || index > contacts.length)) {
@@ -145,11 +132,9 @@ export default function MobileSwipeDeck({
 
     setCardTourStep(0);
     setCardTourOpen(true);
-    if (markSeen) markCardTourSeen();
   };
 
-  const closeCardTour = () => {
-    markCardTourSeen();
+  const closeCardTour = ({ completed = false } = {}) => {
     setCardTourOpen(false);
     setCardTourStep(0);
     window.requestAnimationFrame(() => {
@@ -159,11 +144,17 @@ export default function MobileSwipeDeck({
         behavior: "smooth",
       });
     });
+    onCardTourClose({ completed });
+    if (returnToWelcomeOnCardTourComplete && index > 0) {
+      window.setTimeout(() => {
+        triggerSwipe(-1);
+      }, 80);
+    }
   };
 
   const goToNextCardTourStep = () => {
     if (cardTourStep >= cardTourSteps.length - 1) {
-      closeCardTour();
+      closeCardTour({ completed: true });
       return;
     }
 
@@ -175,14 +166,43 @@ export default function MobileSwipeDeck({
   };
 
   useEffect(() => {
-    if (hasSeenCardTour || cardTourOpen || contacts.length === 0 || index !== 1) {
+    if (!deckResetToken) return;
+    setPendingCombinedCardTour(false);
+    setCardTourOpen(false);
+    setCardTourStep(0);
+    showIndexImmediately(0);
+    document.querySelector(".mobile-card-scroll")?.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  }, [deckResetToken]);
+
+  useEffect(() => {
+    if (!cardTourRequestToken || contacts.length === 0) return;
+
+    setPendingCombinedCardTour(true);
+    setCardTourStep(0);
+
+    if (index !== 0) {
+      showIndexImmediately(0);
+    }
+  }, [cardTourRequestToken]);
+
+  useEffect(() => {
+    if (!pendingCombinedCardTour || contacts.length === 0 || phase !== "idle") {
       return;
     }
 
-    setCardTourStep(0);
-    setCardTourOpen(true);
-    markCardTourSeen();
-  }, [cardTourOpen, contacts.length, hasSeenCardTour, index]);
+    if (index === 1) {
+      setPendingCombinedCardTour(false);
+      openCardTour();
+      return;
+    }
+
+    if (index !== 0) return;
+    triggerSwipe(1);
+  }, [contacts.length, index, pendingCombinedCardTour, phase]);
 
   // ── Gesture handlers ──────────────────────────────────────────────────
   const handleTouchStart = (e) => {
@@ -324,6 +344,10 @@ export default function MobileSwipeDeck({
       setPhase("idle");
       setDirection(0);
       setExitStartX(0);
+      if (pendingCombinedCardTour && pendingIndexRef.current === 1) {
+        setPendingCombinedCardTour(false);
+        window.requestAnimationFrame(() => openCardTour());
+      }
     }
   };
 
@@ -419,7 +443,9 @@ export default function MobileSwipeDeck({
               reportBackRequired={Boolean(reportBackSettings.mandatory)}
               reportBackBlockMessage={blockMessage}
               blockedQuestionIds={blockedQuestionIds}
-              showReportBackTooltip={index === 1}
+              isExampleContact={initialContacts.some(
+                (example) => example.id === displayContact.id
+              )}
             />
           )}
         </div>
@@ -442,17 +468,6 @@ export default function MobileSwipeDeck({
                 <ArrowLeft size={20} /> Prev
               </button>
             )}
-          </div>
-          <div style={styles.guideStrip}>
-            <button
-              type="button"
-              onClick={() => openCardTour()}
-              style={styles.guideBtn}
-              aria-label="Open card guide"
-              title="Open card guide"
-            >
-              <Map size={13} />
-            </button>
           </div>
           <div style={styles.navSlot}>
             {index < itemCount - 1 && (
@@ -592,24 +607,6 @@ const styles = {
     minHeight: 0,
     overflow: "hidden",
   },
-  guideStrip: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minWidth: 0,
-  },
-  guideBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid rgba(79, 159, 104, 0.24)",
-    backgroundColor: "transparent",
-    color: "var(--ta-muted-strong)",
-    borderRadius: "999px",
-    padding: 0,
-    width: "28px",
-    height: "28px",
-  },
   counter: {
     fontFamily: "var(--font-heading)",
     color: "var(--ta-green)",
@@ -618,11 +615,11 @@ const styles = {
   },
   navRow: {
     display: "grid",
-    gridTemplateColumns: "1fr auto 1fr",
-    gap: "8px",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "12px",
     marginTop: "auto",
     width: "100%",
-    maxWidth: "340px",
+    maxWidth: "320px",
     alignItems: "center",
   },
   navSlot: {

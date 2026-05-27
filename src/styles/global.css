@@ -58,10 +58,15 @@
   --ta-border-subtle: rgba(244, 239, 228, 0.1);
   --ta-border-medium: rgba(244, 239, 228, 0.28);
   --ta-divider: rgba(247, 244, 236, 0.25);
-  --tour-overlay: rgba(0, 0, 0, 0.6);
-  --tour-card-bg: rgba(12, 20, 15, 0.97);
-  --tour-card-shadow: 0 24px 80px rgba(0, 0, 0, 0.72),
-    0 0 0 1px rgba(247, 244, 236, 0.06);
+  --tour-overlay: rgba(0, 0, 0, 0.5);
+  --tour-card-bg: color-mix(in srgb, var(--ta-dark) 88%, var(--ta-green) 12%);
+  --tour-mobile-overlay: rgba(0, 0, 0, 0.46);
+  --tour-mobile-card-bg: color-mix(in srgb, var(--ta-dark) 88%, var(--ta-green) 12%);
+  --tour-mobile-card-border: rgba(244, 239, 228, 0.18);
+  --tour-mobile-card-shadow: 0 18px 54px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(79, 159, 104, 0.2);
+  --tour-card-shadow: 0 24px 80px rgba(0, 0, 0, 0.56),
+    0 0 0 1px rgba(79, 159, 104, 0.2);
   --modal-overlay: rgba(0, 0, 0, 0.64);
   --modal-card-bg: var(--ta-dark-2);
   --modal-card-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
@@ -270,6 +275,11 @@ select:focus-visible {
   --ta-divider: rgba(21, 29, 23, 0.2);
   --tour-overlay: rgba(21, 29, 23, 0.46);
   --tour-card-bg: rgba(249, 250, 248, 0.98);
+  --tour-mobile-overlay: rgba(21, 29, 23, 0.42);
+  --tour-mobile-card-bg: rgba(249, 250, 248, 0.98);
+  --tour-mobile-card-border: rgba(21, 29, 23, 0.14);
+  --tour-mobile-card-shadow: 0 18px 54px rgba(27, 38, 31, 0.22),
+    0 0 0 1px rgba(21, 29, 23, 0.08);
   --tour-card-shadow: 0 24px 80px rgba(27, 38, 31, 0.24),
     0 0 0 1px rgba(21, 29, 23, 0.08);
   --modal-overlay: rgba(21, 29, 23, 0.38);

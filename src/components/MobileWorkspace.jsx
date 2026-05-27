@@ -49,6 +49,9 @@ export default function MobileWorkspace({
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [combinedTourPhase, setCombinedTourPhase] = useState("idle");
+  const [deckResetToken, setDeckResetToken] = useState(0);
+  const [cardTourRequestToken, setCardTourRequestToken] = useState(0);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const exitConfirmOpenRef = useRef(false);
   const allowExitRef = useRef(false);
@@ -76,7 +79,8 @@ export default function MobileWorkspace({
     view === "deck" &&
     isExampleData &&
     !exampleToastDismissed &&
-    !isTourOpen;
+    !isTourOpen &&
+    combinedTourPhase === "idle";
 
   const changeView = (nextView) => {
     setExampleToastDismissed(true);
@@ -173,9 +177,10 @@ export default function MobileWorkspace({
     }
 
     window.setTimeout(() => {
-      setView(mobileProductTourSteps[0].view);
+      moveToPhonebankWelcome();
       setTourStep(0);
       setIsTourOpen(true);
+      setCombinedTourPhase("overview");
     }, 0);
   }, []);
 
@@ -187,21 +192,36 @@ export default function MobileWorkspace({
     }
   };
 
+  const moveToPhonebankWelcome = () => {
+    setView("deck");
+    setCurrentIdx(0);
+    setDeckResetToken((token) => token + 1);
+  };
+
   const closeTour = () => {
     markTourSeen();
-    setView("deck");
+    moveToPhonebankWelcome();
     setIsTourOpen(false);
+    setCombinedTourPhase("idle");
   };
 
   const openTour = () => {
-    setView(mobileProductTourSteps[0].view);
+    setExampleToastDismissed(true);
+    moveToPhonebankWelcome();
     setTourStep(0);
     setIsTourOpen(true);
+    setCombinedTourPhase("overview");
   };
 
   const handleTourNext = () => {
     if (tourStep >= mobileProductTourSteps.length - 1) {
-      closeTour();
+      markTourSeen();
+      setIsTourOpen(false);
+      setCombinedTourPhase("card");
+      moveToPhonebankWelcome();
+      window.setTimeout(() => {
+        setCardTourRequestToken((token) => token + 1);
+      }, 0);
       return;
     }
 
@@ -221,6 +241,13 @@ export default function MobileWorkspace({
       setView(prevView);
     }
     setTourStep(prevStep);
+  };
+
+  const handleCardTourClose = ({ completed } = {}) => {
+    if (combinedTourPhase !== "card") return;
+
+    markTourSeen();
+    setCombinedTourPhase("idle");
   };
 
   const stayInApp = () => {
@@ -313,6 +340,10 @@ export default function MobileWorkspace({
             initialIndex={currentIdx}
             onOpenFaq={openFaq}
             onOpenPrivacy={openPrivacy}
+            deckResetToken={deckResetToken}
+            cardTourRequestToken={cardTourRequestToken}
+            onCardTourClose={handleCardTourClose}
+            returnToWelcomeOnCardTourComplete={combinedTourPhase === "card"}
           />
         ) : view === "contacts" ? (
           <MobileContactsManager
@@ -415,6 +446,8 @@ export default function MobileWorkspace({
           onPrev={handleTourPrev}
           onClose={closeTour}
           layout="mobile"
+          closeOnOverlayClick
+          mobilePlacement="bottom"
         />
       )}
       {exitConfirmOpen && (

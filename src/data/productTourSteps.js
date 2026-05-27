@@ -55,31 +55,37 @@ export const organiserTourSteps = [
 
 export const mobileProductTourSteps = [
   {
-    eyebrow: "Step 1 of 4",
+    eyebrow: "Overview 1 of 4",
     title: "Start contacting",
     body: "Your contacts are loaded up, so you can start calling and texting from the phonebank deck right away.",
     highlightTarget: "mobile-phonebank-tab",
     view: "deck",
   },
   {
-    eyebrow: "Step 2 of 4",
+    eyebrow: "Overview 2 of 4",
     title: "Check your contacts",
     body: "Use Contacts to browse the list, fix a number or remove someone before you start working through the phonebank.",
     highlightTarget: "mobile-contacts-tab",
     view: "contacts",
   },
   {
-    eyebrow: "Step 3 of 4",
+    eyebrow: "Overview 3 of 4",
     title: "Write your messages",
     body: "Use Templates to create messages to send to contacts, over WhatsApp, SMS, Signal or Telegram. You can create multiple templates - for example, one for people you get through to, and one for people who don't pick up.",
     highlightTarget: "mobile-setup-tab",
     view: "templates",
   },
   {
-    eyebrow: "Step 4 of 4",
+    eyebrow: "Overview 4 of 4",
     title: "Import or refresh data",
-    body: "If you need to load a new list, use Scan data to pull contacts and templates from desktop.",
+    body: 
+      `If you need to load a new list, use Scan data to pull contacts and templates from desktop.
+
+        Now let's look at the contact cards.
+      `
+    ,
     highlightTarget: "mobile-scan-tab",
     view: "scan",
+    doneLabel: "Show me a card",
   },
 ];

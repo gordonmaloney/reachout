@@ -34,7 +34,7 @@ export default function MobileContactCard({
   reportBackRequired = false,
   reportBackBlockMessage = "",
   blockedQuestionIds = [],
-  showReportBackTooltip = false,
+  isExampleContact = false,
 }) {
   const templateList =
     templates.length > 0
@@ -129,6 +129,14 @@ export default function MobileContactCard({
           </a>
         )}
       </div>
+      {isExampleContact && !isReporting && (
+        <div style={styles.exampleChip}>
+          <span style={styles.exampleChipTitle}>Example data</span>
+          <span style={styles.exampleChipText}>
+            Demo contact only - please do not actually call or message this person!
+          </span>
+        </div>
+      )}
       <div style={styles.scrollShell}>
         <div style={styles.scrollBody} className="mobile-card-scroll">
           {isReporting ? (
@@ -278,12 +286,6 @@ export default function MobileContactCard({
           style={styles.reportAction}
           data-tour-target="mobile-card-tour-report"
         >
-          {showReportBackTooltip && (
-            <div style={styles.reportTooltip}>
-              Use this to record what happened after this contact. Your answers
-              will be included in the report at the end.
-            </div>
-          )}
           <button
             type="button"
             onClick={startReport}
@@ -339,6 +341,28 @@ const styles = {
   contactText: {
     flex: 1,
     minWidth: 0,
+  },
+  exampleChip: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    border: "1px solid rgba(211, 106, 88, 0.38)",
+    backgroundColor: "rgba(211, 106, 88, 0.1)",
+    borderRadius: "9px",
+    padding: "8px 10px",
+    color: "var(--ta-muted-strong)",
+    flexShrink: 0,
+  },
+  exampleChipTitle: {
+    color: "var(--ta-red)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(10px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+  exampleChipText: {
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.3,
   },
   iconBtn: {
     position: "absolute",
@@ -435,16 +459,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
-  },
-  reportTooltip: {
-    position: "relative",
-    color: "var(--ta-muted-strong)",
-    backgroundColor: "rgba(79, 159, 104, 0.1)",
-    border: "1px solid rgba(79, 159, 104, 0.32)",
-    borderRadius: "8px",
-    padding: "8px 10px",
-    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
-    lineHeight: 1.35,
   },
   reportBlockMessage: {
     color: "var(--ta-muted-strong)",
