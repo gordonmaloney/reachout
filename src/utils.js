@@ -285,16 +285,28 @@ export function generateWhatsAppLink(contact, template, dialCode = "+44") {
   return `${base}${phone}?text=${text}`;
 }
 
+export function getSmsBodySeparator() {
+  if (typeof navigator === "undefined") return "&";
+
+  const userAgent = navigator.userAgent || "";
+  return /android/i.test(userAgent) ? "?" : "&";
+}
+
+export function generateSmsHref(phone, message = "", dialCode = "+44") {
+  const normalizedPhone = normalizePhoneNumber(phone, dialCode);
+  const trimmedMessage = String(message || "").trim();
+  if (!trimmedMessage) return `sms:${normalizedPhone}`;
+
+  return `sms:${normalizedPhone}${getSmsBodySeparator()}body=${encodeURIComponent(
+    trimmedMessage
+  )}`;
+}
+
 export function generateSmsLink(contact, template, dialCode = "+44") {
-  const base = "sms:";
-  const phone = normalizePhoneNumber(contact.phone, dialCode);
   const message = getOutboundMessage(contact, template, {
     plainText: true,
-  }).trim();
-  if (!message) return `${base}${phone}`;
-
-  const body = encodeURIComponent(message);
-  return `${base}${phone}&body=${body}`;
+  });
+  return generateSmsHref(contact.phone, message, dialCode);
 }
 
 export function generateSignalLink(contact, dialCode = "+44") {

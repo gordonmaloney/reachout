@@ -1,6 +1,10 @@
 import { Check, Copy, MessageCircle, Send, CheckCircle } from "lucide-react";
 import { useMemo, useState } from "react";
-import { getWhatsAppPhoneNumber, normalizePhoneNumber } from "../utils";
+import {
+  generateSmsHref,
+  getWhatsAppPhoneNumber,
+  normalizePhoneNumber,
+} from "../utils";
 
 function formatDate(value) {
   if (!value) return "";
@@ -101,7 +105,7 @@ export default function MobileReportBackCard({
   const whatsappLink = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
     plainText
   )}`;
-  const smsLink = `sms:${organiserPhone}&body=${encodeURIComponent(plainText)}`;
+  const smsLink = generateSmsHref(organiserPhone, plainText, reportDialCode);
   const recordedCount = contacts.filter(
     (contact) => contactReports[contact.id]?.contacted
   ).length;
