@@ -23,6 +23,8 @@ export default function ReviewLinksStage({
   reportBackSettings = { enabled: false, phone: "" },
   stageNumLabel = "Stage 3 of 3",
   backLabel = "Back to messages",
+  theme = "dark",
+  fontScale = 1,
   onPrev,
 }) {
   const templateList =
@@ -314,6 +316,8 @@ export default function ReviewLinksStage({
             linkPassword={linkPassword}
             hostSessionEnabled={isOrganiser && hostSessionEnabled}
             hostSessionCallers={hostSessionCallers}
+            theme={theme}
+            fontScale={fontScale}
             onClose={handleCloseQR}
           />
         )}

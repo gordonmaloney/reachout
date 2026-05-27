@@ -55,8 +55,12 @@ export default function JourneyNav({
   ];
 
   return (
-    <nav style={styles.navContainer}>
-      <div style={styles.topRow}>
+    <nav
+      style={styles.navContainer}
+      className="journey-nav"
+      data-stage-count={steps.length}
+    >
+      <div style={styles.topRow} className="journey-top-row">
         <div style={styles.journeyHeader}>SET UP YOUR REACHOUT</div>
       </div>
 
@@ -65,14 +69,15 @@ export default function JourneyNav({
           type="button"
           onClick={onOpenOrganiserInfo}
           style={styles.organiserEdition}
+          className="journey-organiser-edition"
         >
           <span style={styles.organiserEditionTitle}>Organiser mode</span>
           <span style={styles.organiserEditionText}>Notes, reportbacks and session hosting enabled.</span>
         </button>
       )}
       
-      <div style={styles.stepsWrapper}>
-        <div style={styles.connectingLine}></div>
+      <div style={styles.stepsWrapper} className="journey-steps-wrapper">
+        <div style={styles.connectingLine} className="journey-connecting-line"></div>
         
         {steps.map((step) => {
           const isActive = activeStage === step.id;
@@ -84,6 +89,7 @@ export default function JourneyNav({
               key={step.id}
               type="button"
               data-tour-target={`stage-${step.id}`}
+              className="journey-step-row"
               onClick={() => setActiveStage(step.id)}
               aria-current={isActive ? 'step' : undefined}
               style={{
@@ -92,7 +98,7 @@ export default function JourneyNav({
                 ...(isTourHighlighted ? styles.tourSpotlight : {}),
               }}
             >
-              <div style={{
+              <div className="journey-step-circle" style={{
                 ...styles.circle,
                 ...(isActive ? styles.circleActive : {}),
                 ...(isPast ? styles.circlePast : {}),
@@ -100,7 +106,7 @@ export default function JourneyNav({
                 {step.id}
               </div>
               
-              <div style={styles.stepTextGroup}>
+              <div style={styles.stepTextGroup} className="journey-step-text">
                 <span style={{
                   ...styles.stepTitle,
                   ...(isActive ? styles.stepTitleActive : {}),
@@ -120,6 +126,7 @@ export default function JourneyNav({
       {canToggleOrganiser && (
         <div
           data-tour-target="organiser-toggle"
+          className="journey-organiser-toggle-box"
           style={{
             ...styles.organiserToggleBox,
             ...(tourHighlightTarget === 'organiser-toggle'
@@ -128,8 +135,8 @@ export default function JourneyNav({
           }}
         >
           <div>
-            <span style={styles.organiserToggleTitle}>Organiser mode</span>
-            <p style={styles.organiserToggleText}>
+            <span style={styles.organiserToggleTitle} className="journey-organiser-toggle-title">Organiser mode</span>
+            <p style={styles.organiserToggleText} className="journey-organiser-toggle-text">
               Add call notes, reportbacks and hosting tools.
             </p>
           </div>
@@ -140,6 +147,7 @@ export default function JourneyNav({
               ...styles.switchBtn,
               ...(organiserModeEnabled ? styles.switchBtnActive : {}),
             }}
+            className="journey-switch-btn"
             aria-pressed={organiserModeEnabled}
           >
             <span
@@ -147,13 +155,14 @@ export default function JourneyNav({
                 ...styles.switchKnob,
                 ...(organiserModeEnabled ? styles.switchKnobActive : {}),
               }}
+              className="journey-switch-knob"
             />
           </button>
         </div>
       )}
 
       {/* NEED HELP */}
-      <div style={styles.helpBox} className="glass-card">
+      <div style={styles.helpBox} className="glass-card journey-help-box">
         <h4 style={styles.helpTitle}>NEED HELP?</h4>
         <p style={styles.helpDesc}>Learn how REACHOUT works and how to use it on your phone.</p>
         <button onClick={onToggleHelp} style={styles.guideBtn} className="hover-lift">
@@ -162,7 +171,7 @@ export default function JourneyNav({
         </button>
       </div>
 
-      <div style={styles.displayBox}>
+      <div style={styles.displayBox} className="journey-display-box">
         <div style={styles.displayCopy}>
           <span style={styles.displayTitle}>Display</span>
           <span style={styles.displayHint}>Text size and colour mode</span>
@@ -207,7 +216,7 @@ export default function JourneyNav({
       </div>
 
       {/* ORGANISING IMPRINT */}
-      <div style={styles.imprintRow}>
+      <div style={styles.imprintRow} className="journey-imprint-row">
         <img
           src="/brand-assets/living-rent-logo.png"
           alt="Living Rent"

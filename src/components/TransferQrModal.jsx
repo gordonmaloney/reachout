@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   ChevronLeft,
@@ -22,6 +23,8 @@ export default function TransferQrModal({
   linkPassword = "",
   hostSessionEnabled = false,
   hostSessionCallers = 1,
+  theme = "dark",
+  fontScale = 1,
   onClose,
 }) {
   const batches = useMemo(() => {
@@ -238,7 +241,7 @@ export default function TransferQrModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [batches.length, fullscreenQrOpen, hostSessionEnabled]);
 
-  return (
+  const modalContent = (
     <div
       style={{
         ...styles.overlay,
@@ -558,7 +561,6 @@ export default function TransferQrModal({
           </button>
           <div
             style={styles.fullscreenQrShell}
-            onClick={(event) => event.stopPropagation()}
           >
             <img
               src={qrCodes[currentLinkIndex]}
@@ -568,8 +570,12 @@ export default function TransferQrModal({
                   : "Full-screen transfer QR code"
               }
               style={styles.fullscreenQrImage}
+              onClick={(event) => event.stopPropagation()}
             />
-            <span style={styles.fullscreenQrCaption}>
+            <span
+              style={styles.fullscreenQrCaption}
+              onClick={(event) => event.stopPropagation()}
+            >
               {hostSessionEnabled && batches.length > 1
                 ? `${currentBatch?.label} · `
                 : ""}
@@ -579,7 +585,10 @@ export default function TransferQrModal({
             </span>
             <button
               type="button"
-              onClick={() => setFullscreenQrOpen(false)}
+              onClick={(event) => {
+                event.stopPropagation();
+                setFullscreenQrOpen(false);
+              }}
               style={styles.fullscreenCloseTextBtn}
             >
               Close
@@ -589,6 +598,19 @@ export default function TransferQrModal({
       )}
     </div>
   );
+
+  const themedModalContent = (
+    <div
+      className="reachout-theme-scope"
+      data-theme={theme}
+      style={{ "--reachout-text-scale": fontScale }}
+    >
+      {modalContent}
+    </div>
+  );
+
+  if (typeof document === "undefined") return themedModalContent;
+  return createPortal(themedModalContent, document.body);
 }
 
 const styles = {
@@ -598,17 +620,21 @@ const styles = {
     backgroundColor:
       "color-mix(in srgb, var(--ta-cream) 10%, var(--modal-overlay))",
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
-    zIndex: 1000,
-    padding: "24px",
+    zIndex: 2147483000,
+    padding: "calc(24px + env(safe-area-inset-top)) 24px 24px",
+    overflowY: "auto",
+    overscrollBehavior: "contain",
+    isolation: "isolate",
   },
   overlayFullscreenActive: {
-    zIndex: 10000,
+    zIndex: 2147483000,
   },
   modal: {
     width: "min(1020px, 100%)",
-    maxHeight: "calc(100dvh - 40px)",
+    maxHeight: "calc(100dvh - 48px - env(safe-area-inset-top))",
+    margin: "auto 0",
     backgroundColor: "var(--modal-card-bg)",
     border: "1px solid rgba(244, 239, 228, 0.24)",
     borderRadius: "16px",
@@ -630,7 +656,7 @@ const styles = {
     gap: "18px",
     alignItems: "stretch",
     minHeight: 0,
-    maxHeight: "calc(100dvh - 84px)",
+    maxHeight: "calc(100dvh - 92px - env(safe-area-inset-top))",
   },
   infoPane: {
     display: "flex",
@@ -890,19 +916,21 @@ const styles = {
   fullscreenOverlay: {
     position: "fixed",
     inset: 0,
-    zIndex: 10001,
+    zIndex: 2147483001,
     backgroundColor: "rgba(0, 0, 0, 0.74)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "24px",
+    padding: "calc(24px + env(safe-area-inset-top)) 24px 24px",
     overflowY: "auto",
+    overscrollBehavior: "contain",
+    isolation: "isolate",
   },
   fullscreenCloseBtn: {
     position: "fixed",
-    top: "18px",
+    top: "calc(18px + env(safe-area-inset-top))",
     right: "18px",
-    zIndex: 10002,
+    zIndex: 2147483002,
     width: "42px",
     height: "42px",
     borderRadius: "999px",
@@ -919,12 +947,14 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     gap: "12px",
-    maxWidth: "min(92vw, 86dvh)",
-    maxHeight: "calc(100dvh - 48px)",
+    width: "min(92vw, 86dvh)",
+    minHeight: "calc(100dvh - 72px - env(safe-area-inset-top))",
+    justifyContent: "center",
+    padding: "48px 0 16px",
   },
   fullscreenQrImage: {
-    width: "min(86vw, 70dvh)",
-    height: "min(86vw, 70dvh)",
+    width: "min(86vw, calc(100dvh - 190px - env(safe-area-inset-top)), 70dvh)",
+    height: "min(86vw, calc(100dvh - 190px - env(safe-area-inset-top)), 70dvh)",
     backgroundColor: "#ffffff",
     borderRadius: "18px",
     padding: "18px",

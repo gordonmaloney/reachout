@@ -671,6 +671,8 @@ export default function App() {
               linkPasswordProtected={linkPasswordProtected}
               linkPassword={linkPassword}
               isOrganiser={isOrganiser}
+              theme={theme}
+              fontScale={fontScale}
               stageNumLabel={`Stage ${finalStage} of ${totalStages}`}
               backLabel={
                 isOrganiser ? "Back to notes & reportbacks" : "Back to messages"

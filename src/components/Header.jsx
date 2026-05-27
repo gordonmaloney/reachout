@@ -2,23 +2,23 @@ import { ExternalLink, ListChecks, MessageCircleQuestion } from "lucide-react";
 
 export default function Header({ onStartTour, onOpenFaq }) {
   return (
-    <header style={styles.header}>
-      <div style={styles.logoGroup}>
-        <span style={styles.reachout}>
+    <header style={styles.header} className="app-header">
+      <div style={styles.logoGroup} className="app-header-logo-group">
+        <span style={styles.reachout} className="app-header-wordmark">
           <span style={styles.actGreen}>REACH</span>OUT
         </span>
-        <span style={styles.divider}>|</span>
-        <span style={styles.tenantCredit}>
+        <span style={styles.divider} className="app-header-divider">|</span>
+        <span style={styles.tenantCredit} className="app-header-credit">
           by Tenant<span style={styles.actGreen}>Act</span>
         </span>
       </div>
 
-      <div style={styles.headerActions}>
+      <div style={styles.headerActions} className="app-header-actions">
         <button
           type="button"
           onClick={onStartTour}
           style={styles.howItWorksBtn}
-          className="hover-lift"
+          className="hover-lift app-header-action"
         >
           <ListChecks size={14} color="var(--ta-green)" />
           <span>Get started</span>
@@ -28,7 +28,7 @@ export default function Header({ onStartTour, onOpenFaq }) {
           type="button"
           onClick={onOpenFaq}
           style={styles.faqLink}
-          className="hover-lift"
+          className="hover-lift app-header-action"
         >
           <MessageCircleQuestion size={14} color="var(--ta-green)" />
           <span>FAQ</span>
@@ -39,7 +39,7 @@ export default function Header({ onStartTour, onOpenFaq }) {
           target="_blank"
           rel="noreferrer"
           style={styles.livingRentLink}
-          className="hover-lift"
+          className="hover-lift app-header-action app-header-living-rent"
         >
           <span>Living Rent</span>
           <ExternalLink size={14} color="var(--ta-cream)" />

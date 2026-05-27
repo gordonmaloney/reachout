@@ -175,7 +175,7 @@ export default function CallNotesStage({
     >
       <div className="glass-card" style={styles.container}>
         <section style={styles.settingPanel}>
-          <div style={styles.settingHeader}>
+          <div style={styles.settingHeader} className="callnotes-setting-header">
             <div style={styles.settingTitleRow}>
               <span style={styles.settingIcon}>
                 <Lightbulb size={17} />
@@ -184,7 +184,7 @@ export default function CallNotesStage({
                 <h3 style={styles.settingTitle}>Call notes</h3>
               </div>
             </div>
-            <p style={styles.settingText}>
+            <p style={styles.settingText} className="callnotes-setting-text">
               Add short reminders that appear alongside each contact while
               people are phonebanking. Useful for campaign context, asks, or
               local issues.
