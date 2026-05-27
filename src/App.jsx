@@ -56,9 +56,13 @@ const reportbackRouteSettings = {
 };
 
 function getSystemTheme() {
-  return window.matchMedia?.("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
+  try {
+    if (!window.matchMedia) return "light";
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    return "light";
+  } catch {
+    return "light";
+  }
 }
 
 function getInitialTheme() {
@@ -340,9 +344,9 @@ export default function App() {
     let mediaQuery;
     try {
       if (window.localStorage.getItem(THEME_STORAGE_KEY)) return undefined;
-      mediaQuery = window.matchMedia?.("(prefers-color-scheme: light)");
+      mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
     } catch {
-      mediaQuery = window.matchMedia?.("(prefers-color-scheme: light)");
+      mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
     }
 
     if (!mediaQuery) return undefined;
@@ -353,7 +357,7 @@ export default function App() {
       } catch {
         // Keep following the device theme if storage is unavailable.
       }
-      setTheme(event.matches ? "light" : "dark");
+      setTheme(event.matches ? "dark" : "light");
     };
 
     if (mediaQuery.addEventListener) {

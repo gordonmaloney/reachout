@@ -8,8 +8,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
-  MessageSquare,
   Phone,
+  FileText,
 } from "lucide-react";
 import ProductTour from "./ProductTour";
 import "./MobileSwipeDeck.css";
@@ -679,7 +679,7 @@ function MobileIntroCard({
           <Phone size={16} /> The Call button opens your phone dialler.
         </span>
         <span>
-          <MessageSquare size={16} /> Use Set up if you want to change the
+          <FileText size={16} /> Use 'Templates' if you want to change the
           templates first.
         </span>
       </div>
