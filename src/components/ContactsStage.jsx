@@ -24,6 +24,7 @@ export default function ContactsStage({
   const [showFormattingHelp, setShowFormattingHelp] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const hasExampleContacts = contacts.some((contact) =>
     initialContacts.some((example) => example.id === contact.id)
   );
@@ -152,9 +153,12 @@ export default function ContactsStage({
 
   const clearAllContacts = () => {
     if (contacts.length === 0) return;
-    if (window.confirm("Are you sure you want to clear all contacts?")) {
-      setContacts([]);
-    }
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearAllContacts = () => {
+    setContacts([]);
+    setShowClearConfirm(false);
   };
 
   return (
@@ -442,6 +446,52 @@ export default function ContactsStage({
                 }
               >
                 Add to list
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClearConfirm && (
+        <div style={styles.modalOverlay} role="presentation">
+          <div
+            style={styles.importModal}
+            className="glass-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contacts-clear-title"
+          >
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              style={styles.modalCloseBtn}
+              aria-label="Cancel clear contacts"
+            >
+              <X size={18} />
+            </button>
+            <span style={styles.modalKicker}>Clear contacts</span>
+            <h3 id="contacts-clear-title" style={styles.modalTitle}>
+              Delete all imported contacts?
+            </h3>
+            <p style={styles.modalText}>
+              This will remove all {contacts.length} contact
+              {contacts.length === 1 ? "" : "s"} from this phonebank. You can
+              import them again, but this list will be cleared now.
+            </p>
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                style={styles.replaceBtn}
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={styles.clearConfirmBtn}
+                onClick={confirmClearAllContacts}
+              >
+                Delete contacts
               </button>
             </div>
           </div>
@@ -926,6 +976,17 @@ const styles = {
   addBtn: {
     border: "1px solid var(--ta-green)",
     backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    borderRadius: "10px",
+    padding: "11px 12px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+  },
+  clearConfirmBtn: {
+    border: "1px solid var(--ta-red)",
+    backgroundColor: "var(--ta-red)",
     color: "var(--ta-dark)",
     borderRadius: "10px",
     padding: "11px 12px",
