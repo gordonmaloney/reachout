@@ -199,7 +199,9 @@ export function normalizePhoneNumber(phone, dialCode = "+44") {
   const matchingCode = knownCodeDigits
     .filter(
       (code) =>
-        phoneDigits.startsWith(code) && phoneDigits.length > code.length + 5
+        phoneDigits.startsWith(code) &&
+        phoneDigits.length > code.length + 5 &&
+        (code.length > 1 || phoneDigits.length - code.length >= 10)
     )
     .sort((a, b) => b.length - a.length)[0];
 
