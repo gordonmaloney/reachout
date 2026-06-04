@@ -1,8 +1,8 @@
 // src/components/MessagesStage.jsx
-import { Info, X, Plus, ArrowRight, Check } from "lucide-react";
+import { Info, X, Plus, ArrowRight, Check, GripVertical } from "lucide-react";
 import { initialTemplates } from "../data/mockData";
 import StageShell from "./StageShell";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const FIRSTNAME_TOKEN = "{FIRSTNAME}";
 const FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS = [
@@ -31,6 +31,54 @@ function fixFirstnameToken(body = "") {
   );
 }
 
+function normalizeTemplateText(value = "") {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function getEditDistance(firstValue = "", secondValue = "") {
+  const first = normalizeTemplateText(firstValue);
+  const second = normalizeTemplateText(secondValue);
+
+  if (first === second) return 0;
+  if (!first) return second.length;
+  if (!second) return first.length;
+
+  const distances = Array.from({ length: second.length + 1 }, (_, index) => index);
+
+  for (let firstIndex = 1; firstIndex <= first.length; firstIndex += 1) {
+    let previousDiagonal = distances[0];
+    distances[0] = firstIndex;
+
+    for (let secondIndex = 1; secondIndex <= second.length; secondIndex += 1) {
+      const previousAbove = distances[secondIndex];
+      const substitutionCost =
+        first[firstIndex - 1] === second[secondIndex - 1] ? 0 : 1;
+
+      distances[secondIndex] = Math.min(
+        distances[secondIndex] + 1,
+        distances[secondIndex - 1] + 1,
+        previousDiagonal + substitutionCost
+      );
+      previousDiagonal = previousAbove;
+    }
+  }
+
+  return distances[second.length];
+}
+
+function isSubstantiallyChanged(template) {
+  const starterTemplate = initialTemplates.find(
+    (initialTemplate) => initialTemplate.id === template.id
+  );
+
+  if (!starterTemplate) return false;
+
+  const titleEditDistance = getEditDistance(template.title, starterTemplate.title);
+  const bodyEditDistance = getEditDistance(template.body, starterTemplate.body);
+
+  return titleEditDistance > 3 || bodyEditDistance > 5;
+}
+
 export default function MessagesStage({
   templates = initialTemplates,
   setTemplates,
@@ -39,6 +87,74 @@ export default function MessagesStage({
   stageNumLabel = "Stage 2 of 3",
   nextLabel = "Start messaging",
 }) {
+  const [dragState, setDragState] = useState(null);
+  const [dragOrder, setDragOrder] = useState(null);
+  const cardRefs = useRef(new Map());
+  const previousCardRectsRef = useRef(new Map());
+  const dragStateRef = useRef(null);
+  const dragOrderRef = useRef(null);
+  const dragHandlersRef = useRef({ move: null, release: null });
+  const templatesRef = useRef(templates);
+  const templateById = new Map(
+    templates.map((template) => [template.id, template])
+  );
+  const orderedTemplates = dragOrder
+    ? dragOrder.map((id) => templateById.get(id)).filter(Boolean)
+    : templates;
+  const draggedTemplate = dragState ? templateById.get(dragState.id) : null;
+
+  const getLayoutPosition = (node) => ({
+    left: node.offsetLeft,
+    top: node.offsetTop,
+    width: node.offsetWidth,
+    height: node.offsetHeight,
+  });
+
+  useLayoutEffect(() => {
+    templatesRef.current = templates;
+
+    const previousRects = previousCardRectsRef.current;
+    if (previousRects.size === 0) return;
+
+    cardRefs.current.forEach((node, id) => {
+      const previousPosition = previousRects.get(id);
+      if (!previousPosition) return;
+
+      const currentRect = node.getBoundingClientRect();
+      const deltaX = previousPosition.rect.left - currentRect.left;
+      const deltaY = previousPosition.rect.top - currentRect.top;
+
+      if (deltaX === 0 && deltaY === 0) return;
+
+      node.animate(
+        [
+          { transform: `translate(${deltaX}px, ${deltaY}px)` },
+          { transform: "translate(0, 0)" },
+        ],
+        {
+          duration: 240,
+          easing: "cubic-bezier(0.42, 0, 0.2, 1)",
+        }
+      );
+    });
+
+    previousRects.clear();
+  }, [templates, dragOrder]);
+
+  const rememberTemplatePositions = () => {
+    const positions = new Map();
+
+    cardRefs.current.forEach((node, id) => {
+      const rect = node.getBoundingClientRect();
+      node.getAnimations().forEach((animation) => animation.cancel());
+      positions.set(id, {
+        rect,
+        layout: getLayoutPosition(node),
+      });
+    });
+
+    previousCardRectsRef.current = positions;
+  };
 
   const handleTitleChange = (id, value) => {
     setTemplates((prev) =>
@@ -64,6 +180,216 @@ export default function MessagesStage({
   const deleteTemplate = (id) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   };
+
+  const getInsertionIndex = (draggedId, pointer, activeOrder) => {
+    const draggedNode = cardRefs.current.get(draggedId);
+    const offsetParentRect =
+      draggedNode?.offsetParent?.getBoundingClientRect() || {
+        left: 0,
+        top: 0,
+      };
+    const draggedCenter = {
+      x:
+        pointer.x -
+        dragStateRef.current.grabOffset.x +
+        dragStateRef.current.size.width / 2,
+      y:
+        pointer.y -
+        dragStateRef.current.grabOffset.y +
+        dragStateRef.current.size.height / 2,
+    };
+
+    const layoutItems = activeOrder
+      .filter((id) => id !== draggedId)
+      .map((id) => {
+        const node = cardRefs.current.get(id);
+        if (!node) return null;
+
+        const layout = getLayoutPosition(node);
+        return {
+          id,
+          centerX: offsetParentRect.left + layout.left + layout.width / 2,
+          centerY: offsetParentRect.top + layout.top + layout.height / 2,
+          height: layout.height,
+        };
+      })
+      .filter(Boolean);
+
+    return layoutItems.reduce((insertIndex, item) => {
+      const rowThreshold = item.height * 0.32;
+      const isAfterItem =
+        draggedCenter.y > item.centerY + rowThreshold ||
+        (Math.abs(draggedCenter.y - item.centerY) <= rowThreshold &&
+          draggedCenter.x > item.centerX);
+
+      return isAfterItem ? insertIndex + 1 : insertIndex;
+    }, 0);
+  };
+
+  const setPreviewOrder = (draggedId, insertionIndex) => {
+    const activeOrder =
+      dragOrderRef.current || templatesRef.current.map((template) => template.id);
+    const orderWithoutDragged = activeOrder.filter((id) => id !== draggedId);
+    const safeInsertionIndex = Math.max(
+      0,
+      Math.min(insertionIndex, orderWithoutDragged.length)
+    );
+    const nextOrder = [...orderWithoutDragged];
+
+    nextOrder.splice(safeInsertionIndex, 0, draggedId);
+
+    if (activeOrder.join("|") === nextOrder.join("|")) return;
+
+    rememberTemplatePositions();
+    dragOrderRef.current = nextOrder;
+    setDragOrder(nextOrder);
+  };
+
+  const updateDragPreview = (pointer) => {
+    const state = dragStateRef.current;
+    if (!state) return;
+
+    const activeOrder =
+      dragOrderRef.current || templatesRef.current.map((template) => template.id);
+    const insertionIndex = getInsertionIndex(state.id, pointer, activeOrder);
+
+    setPreviewOrder(state.id, insertionIndex);
+  };
+
+  const startTemplateDrag = (id, event) => {
+    const node = cardRefs.current.get(id);
+    const rect = node?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    event.preventDefault();
+
+    const initialOrder = templatesRef.current.map((template) => template.id);
+    const nextDragState = {
+      id,
+      pointer: { x: event.clientX, y: event.clientY },
+      grabOffset: { x: event.clientX - rect.left, y: event.clientY - rect.top },
+      size: { width: rect.width, height: rect.height },
+    };
+
+    dragStateRef.current = nextDragState;
+    dragOrderRef.current = initialOrder;
+    setDragState(nextDragState);
+    setDragOrder(initialOrder);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handleTemplateDrag = (event) => {
+    const state = dragStateRef.current;
+    if (!state) return;
+
+    const pointer = { x: event.clientX, y: event.clientY };
+    const nextDragState = { ...state, pointer };
+
+    dragStateRef.current = nextDragState;
+    setDragState(nextDragState);
+    updateDragPreview(pointer);
+  };
+
+  const stopTemplateDrag = () => {
+    const finalOrder = dragOrderRef.current;
+
+    cardRefs.current.forEach((node) => {
+      node.getAnimations().forEach((animation) => animation.cancel());
+      node.style.transform = "";
+    });
+
+    if (finalOrder) {
+      setTemplates((prev) => {
+        const nextTemplateById = new Map(
+          prev.map((template) => [template.id, template])
+        );
+        const ordered = finalOrder
+          .map((templateId) => nextTemplateById.get(templateId))
+          .filter(Boolean);
+        const orderedIds = new Set(ordered.map((template) => template.id));
+        const newTemplates = prev.filter(
+          (template) => !orderedIds.has(template.id)
+        );
+
+        return [...ordered, ...newTemplates];
+      });
+    }
+
+    previousCardRectsRef.current.clear();
+    dragStateRef.current = null;
+    dragOrderRef.current = null;
+    setDragState(null);
+    setDragOrder(null);
+  };
+
+  const getDragOverlayStyle = () => {
+    if (!dragState) return {};
+
+    return {
+      ...styles.dragOverlay,
+      left: `${dragState.pointer.x - dragState.grabOffset.x}px`,
+      top: `${dragState.pointer.y - dragState.grabOffset.y}px`,
+      width: `${dragState.size.width}px`,
+      height: `${dragState.size.height}px`,
+    };
+  };
+
+  const renderDragOverlay = () => {
+    if (!dragState || !draggedTemplate) return null;
+
+    return (
+      <div style={getDragOverlayStyle()} className="glass-card" aria-hidden="true">
+        <div style={styles.cardHeader}>
+          <span style={{ ...styles.dragHandle, opacity: 0.32 }}>
+            <GripVertical size={14} />
+          </span>
+          <div style={styles.overlayTitleField}>
+            {starterTemplateIds.has(draggedTemplate.id) &&
+              !isSubstantiallyChanged(draggedTemplate) && (
+                <span style={styles.examplePill}>Example template</span>
+              )}
+            <span style={styles.overlayTitle}>
+              {draggedTemplate.title || "Template title"}
+            </span>
+          </div>
+        </div>
+        <div style={styles.overlayBody}>
+          {draggedTemplate.body ||
+            "Message body - use {FIRSTNAME} for personalization"}
+        </div>
+      </div>
+    );
+  };
+
+  useLayoutEffect(() => {
+    dragHandlersRef.current = {
+      move: handleTemplateDrag,
+      release: stopTemplateDrag,
+    };
+  });
+
+  useEffect(() => {
+    if (!dragState?.id) return undefined;
+
+    const handleWindowPointerMove = (event) => {
+      dragHandlersRef.current.move?.(event);
+    };
+    const handleWindowPointerRelease = () => {
+      dragHandlersRef.current.release?.();
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerup", handleWindowPointerRelease);
+    window.addEventListener("pointercancel", handleWindowPointerRelease);
+
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerRelease);
+      window.removeEventListener("pointercancel", handleWindowPointerRelease);
+    };
+  }, [dragState?.id]);
+
   const fixTemplateToken = (id) => {
     setTemplates((prev) =>
       prev.map((t) =>
@@ -115,15 +441,59 @@ export default function MessagesStage({
 
         {/* Templates List */}
         <div style={styles.templatesGrid}>
-          {templates.map((t) => {
+          {orderedTemplates.map((t) => {
             const showTokenFix = hasFirstnameTokenMistake(t.body);
+            const isDraggingTemplate = dragState?.id === t.id;
+            const showExamplePill =
+              starterTemplateIds.has(t.id) && !isSubstantiallyChanged(t);
 
             return (
-              <div key={t.id} style={styles.card} className="glass-card">
+              <div
+                key={t.id}
+                ref={(node) => {
+                  if (node) {
+                    cardRefs.current.set(t.id, node);
+                  } else {
+                    cardRefs.current.delete(t.id);
+                  }
+                }}
+                data-template-drop-id={t.id}
+                style={{
+                  ...styles.card,
+                  ...(isDraggingTemplate ? styles.dragPlaceholder : {}),
+                }}
+                className="glass-card"
+              >
                 <div style={styles.cardHeader}>
+                  {!showExamplePill && (
+                    <button
+                      type="button"
+                      aria-label={`Drag ${t.title || "template"} to reorder`}
+                      title="Drag to reorder"
+                      style={styles.dragHandle}
+                      onPointerDown={(event) => startTemplateDrag(t.id, event)}
+                      onPointerUp={stopTemplateDrag}
+                      onPointerCancel={stopTemplateDrag}
+                    >
+                      <GripVertical size={14} />
+                    </button>
+                  )}
                   <label style={styles.titleField}>
-                    {starterTemplateIds.has(t.id) && (
-                      <span style={styles.examplePill}>Example template</span>
+                    {showExamplePill && (
+                      <span style={styles.examplePillRow}>
+                        <button
+                          type="button"
+                          aria-label={`Drag ${t.title || "template"} to reorder`}
+                          title="Drag to reorder"
+                          style={styles.dragHandle}
+                          onPointerDown={(event) => startTemplateDrag(t.id, event)}
+                          onPointerUp={stopTemplateDrag}
+                          onPointerCancel={stopTemplateDrag}
+                        >
+                          <GripVertical size={14} />
+                        </button>
+                        <span style={styles.examplePill}>Example template</span>
+                      </span>
                     )}
                     <input
                       type="text"
@@ -176,6 +546,7 @@ export default function MessagesStage({
             <span style={styles.addLabel}>Add Template</span>
           </div>
         </div>
+        {renderDragOverlay()}
 
         <div style={styles.tipsBanner}>
           <div style={styles.infoIconWrapper}>
@@ -265,11 +636,85 @@ const styles = {
     padding: "16px",
     minHeight: "200px",
   },
+  dragPlaceholder: {
+    opacity: 0.22,
+    pointerEvents: "none",
+  },
+  dragOverlay: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    padding: "16px",
+    position: "fixed",
+    zIndex: 2000,
+    pointerEvents: "none",
+    boxShadow: "0 18px 44px rgba(0, 0, 0, 0.34)",
+    borderColor: "rgba(79, 159, 104, 0.5)",
+    overflow: "hidden",
+  },
+  overlayTitleField: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+    minWidth: 0,
+  },
+  overlayTitle: {
+    width: "100%",
+    background: "rgba(79, 159, 104, 0.08)",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "6px",
+    color: "var(--ta-cream)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(18px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.05em",
+    padding: "7px 9px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  overlayBody: {
+    flex: 1,
+    background: "color-mix(in srgb, var(--ta-cream) 3%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    color: "var(--ta-cream)",
+    padding: "8px",
+    borderRadius: "6px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    minHeight: "80px",
+    fontFamily: "var(--font-body)",
+    overflow: "hidden",
+    whiteSpace: "pre-wrap",
+  },
+  draggingCard: {
+    borderColor: "rgba(79, 159, 104, 0.5)",
+    boxShadow: "0 16px 34px rgba(0, 0, 0, 0.28)",
+    opacity: 0.96,
+    pointerEvents: "none",
+    position: "relative",
+    zIndex: 5,
+  },
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "10px",
+  },
+  dragHandle: {
+    width: "12px",
+    height: "24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: "transparent",
+    border: "none",
+    borderRadius: "6px",
+    color: "var(--ta-muted)",
+    cursor: "grab",
+    opacity: 0.22,
+    padding: 0,
+    touchAction: "none",
   },
   titleField: {
     flex: 1,
@@ -288,6 +733,11 @@ const styles = {
     fontSize: "calc(9px * var(--reachout-text-scale, 1))",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
+  },
+  examplePillRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
   },
   titleInput: {
     width: "100%",
