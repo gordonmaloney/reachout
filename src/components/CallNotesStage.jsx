@@ -8,6 +8,7 @@ import {
   Lightbulb,
   Plus,
   RefreshCw,
+  UserRound,
   X,
 } from "lucide-react";
 import StageShell from "./StageShell";
@@ -22,19 +23,28 @@ const defaultReportQuestions = [
 export default function CallNotesStage({
   callNotes,
   setCallNotes,
+  callNotesEnabled = false,
+  setCallNotesEnabled = () => {},
   reportBackSettings = { enabled: false, dialCode: "+44", phone: "", mandatory: false, questions: defaultReportQuestions },
   setReportBackSettings = () => {},
   linkPasswordProtected = false,
   setLinkPasswordProtected = () => {},
   linkPassword = "",
   setLinkPassword = () => {},
+  callerNameTokenEnabled = false,
+  setCallerNameTokenEnabled = () => {},
   reportbackPhoneFocusToken = 0,
   stageNumLabel = "Stage 3 of 4",
   onPrev,
   onNext,
 }) {
   const phoneInputRef = useRef(null);
+  const noteInputRefs = useRef(new Map());
+  const reportQuestionInputRefs = useRef(new Map());
   const lastFocusTokenRef = useRef(reportbackPhoneFocusToken);
+  const pendingNoteFocusRef = useRef(null);
+  const pendingReportQuestionFocusRef = useRef(null);
+  const pendingReportPhoneFocusRef = useRef(false);
   const [passwordStatus, setPasswordStatus] = useState("");
   const reportQuestions = reportBackSettings.questions?.length
     ? reportBackSettings.questions
@@ -63,6 +73,21 @@ export default function CallNotesStage({
       ? "This number looks a bit short. Include the full mobile number so phonebankers can send WhatsApp reportbacks."
       : "";
 
+  const focusInput = (input, { select = false, attention = false } = {}) => {
+    if (!input) return undefined;
+
+    input.focus({ preventScroll: true });
+    if (select) input.select();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    if (!attention) return undefined;
+
+    input.classList.add("reportback-number-attention");
+    return window.setTimeout(() => {
+      input.classList.remove("reportback-number-attention");
+    }, 2200);
+  };
+
   useEffect(() => {
     const isNewFocusRequest = reportbackPhoneFocusToken !== lastFocusTokenRef.current;
     lastFocusTokenRef.current = reportbackPhoneFocusToken;
@@ -76,24 +101,52 @@ export default function CallNotesStage({
       return undefined;
     }
 
-    const input = phoneInputRef.current;
-    if (!input) return undefined;
-
-    input.focus({ preventScroll: true });
-    input.scrollIntoView({ behavior: "smooth", block: "center" });
-    input.classList.add("reportback-number-attention");
-
-    const timeout = window.setTimeout(() => {
-      input.classList.remove("reportback-number-attention");
-    }, 2200);
+    const timeout = focusInput(phoneInputRef.current, { attention: true });
+    if (!timeout) return undefined;
 
     return () => window.clearTimeout(timeout);
   }, [reportbackPhoneFocusToken, reportBackSettings.enabled, reportBackSettings.phone]);
 
+  useEffect(() => {
+    const pendingNoteFocus = pendingNoteFocusRef.current;
+    if (!pendingNoteFocus) return;
+
+    const input = noteInputRefs.current.get(pendingNoteFocus);
+    if (!input) return;
+
+    focusInput(input);
+    pendingNoteFocusRef.current = null;
+  }, [callNotes]);
+
+  useEffect(() => {
+    if (!pendingReportPhoneFocusRef.current || !reportBackSettings.enabled) {
+      return undefined;
+    }
+
+    const timeout = focusInput(phoneInputRef.current, { attention: true });
+    if (!timeout) return undefined;
+
+    pendingReportPhoneFocusRef.current = false;
+    return () => window.clearTimeout(timeout);
+  }, [reportBackSettings.enabled]);
+
+  useEffect(() => {
+    const pendingReportQuestionFocus = pendingReportQuestionFocusRef.current;
+    if (!pendingReportQuestionFocus) return;
+
+    const input = reportQuestionInputRefs.current.get(pendingReportQuestionFocus);
+    if (!input) return;
+
+    focusInput(input);
+    pendingReportQuestionFocusRef.current = null;
+  }, [reportQuestions]);
+
   const addNote = () => {
+    const id = `note_${Date.now()}`;
+    pendingNoteFocusRef.current = id;
     setCallNotes((notes) => [
       ...notes,
-      { id: `note_${Date.now()}`, text: "" },
+      { id, text: "" },
     ]);
   };
 
@@ -116,12 +169,20 @@ export default function CallNotesStage({
   };
 
   const addReportQuestion = () => {
+    const id = `question_${Date.now()}`;
+    pendingReportQuestionFocusRef.current = id;
     updateReportBack({
       questions: [
         ...reportQuestions,
-        { id: `question_${Date.now()}`, label: "", type: "text", mandatory: false },
+        { id, label: "", type: "text", mandatory: false },
       ],
     });
+  };
+
+  const toggleReportBack = () => {
+    const enabled = !reportBackSettings.enabled;
+    pendingReportPhoneFocusRef.current = enabled;
+    updateReportBack({ enabled });
   };
 
   const updateReportQuestion = (id, patch) => {
@@ -167,71 +228,146 @@ export default function CallNotesStage({
   return (
     <StageShell
       stageNumLabel={stageNumLabel}
-      title="CALL NOTES AND REPORTBACKS"
-      accentPhrase="CALL NOTES"
+      title="ORGANISER SETTINGS"
+      accentPhrase="ORGANISER"
       accentVariant={2}
-      subtitle="Add phonebanking prompts and choose what people should report back after each contact."
+      subtitle="Configure the extra tools people need for this organised phonebank."
       allowOverflow
     >
       <div className="glass-card" style={styles.container}>
-        <section style={styles.settingPanel}>
-          <div style={styles.settingHeader} className="callnotes-setting-header">
-            <div style={styles.settingTitleRow}>
-              <span style={styles.settingIcon}>
-                <Lightbulb size={17} />
-              </span>
-              <div>
-                <h3 style={styles.settingTitle}>Call notes</h3>
+        <section
+          style={{
+            ...styles.settingPanel,
+            ...(callNotesEnabled ? styles.settingPanelActive : {}),
+          }}
+        >
+          <div style={styles.reportHeader} className="callnotes-setting-header">
+            <div>
+              <div style={styles.settingTitleRow}>
+                <span style={styles.settingIcon}>
+                  <Lightbulb size={17} />
+                </span>
+                <div>
+                  <h3 style={styles.settingTitle}>Call notes</h3>
+                </div>
               </div>
+              <p style={styles.settingText} className="callnotes-setting-text">
+                Add short reminders that appear alongside each contact while
+                people are phonebanking. Useful for campaign context, asks, or
+                local issues.
+              </p>
             </div>
-            <p style={styles.settingText} className="callnotes-setting-text">
-              Add short reminders that appear alongside each contact while
-              people are phonebanking. Useful for campaign context, asks, or
-              local issues.
-            </p>
+            <button
+              type="button"
+              onClick={() => setCallNotesEnabled(!callNotesEnabled)}
+              style={{
+                ...styles.toggleBtn,
+                ...(callNotesEnabled ? styles.toggleBtnActive : {}),
+              }}
+              aria-pressed={callNotesEnabled}
+            >
+              {callNotesEnabled ? "Enabled" : "Enable"}
+            </button>
           </div>
 
-          <div style={styles.notesList}>
-            {callNotes.map((note, index) => (
-              <div key={note.id} style={styles.noteRow}>
-                <span style={styles.noteNumber}>{index + 1}</span>
-                <input
-                  value={note.text}
-                  onChange={(event) => updateNote(note.id, event.target.value)}
-                  placeholder="e.g. Remind them about the AGM on the 18th"
-                  style={styles.noteInput}
-                />
-                <button
-                  type="button"
-                  onClick={() => deleteNote(note.id)}
-                  style={styles.deleteBtn}
-                  title="Remove note"
-                >
-                  <X size={16} />
-                </button>
+          {callNotesEnabled && (
+            <>
+              <div style={styles.notesList}>
+                {callNotes.map((note, index) => (
+                  <div key={note.id} style={styles.noteRow}>
+                    <span style={styles.noteNumber}>{index + 1}</span>
+                    <input
+                      ref={(node) => {
+                        if (node) {
+                          noteInputRefs.current.set(note.id, node);
+                        } else {
+                          noteInputRefs.current.delete(note.id);
+                        }
+                      }}
+                      value={note.text}
+                      onChange={(event) => updateNote(note.id, event.target.value)}
+                      placeholder="e.g. Remind them about the AGM on the 18th"
+                      style={styles.noteInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => deleteNote(note.id)}
+                      style={styles.deleteBtn}
+                      title="Remove note"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <button type="button" onClick={addNote} style={styles.addBtn}>
-            <Plus size={16} />
-            Add call note
-          </button>
+              <button type="button" onClick={addNote} style={styles.addBtn}>
+                <Plus size={16} />
+                Add call note
+              </button>
 
-          <div style={styles.previewBox}>
-            <span style={styles.previewTitle}>How this appears to phonebankers</span>
-            {callNotes.filter((note) => note.text.trim()).length > 0 ? (
-              <ul style={styles.previewList}>
-                {callNotes
-                  .filter((note) => note.text.trim())
-                  .map((note) => (
-                    <li key={note.id}>{note.text}</li>
-                  ))}
-              </ul>
-            ) : (
-              <p style={styles.emptyPreview}>No call notes yet. Phonebankers will just see each contact and the message options.</p>
-            )}
+              <div style={styles.previewBox}>
+                <span style={styles.previewTitle}>How this appears to phonebankers</span>
+                {callNotes.filter((note) => note.text.trim()).length > 0 ? (
+                  <ul style={styles.previewList}>
+                    {callNotes
+                      .filter((note) => note.text.trim())
+                      .map((note) => (
+                        <li key={note.id}>{note.text}</li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p style={styles.emptyPreview}>No call notes yet. Phonebankers will just see each contact and the message options.</p>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+
+        <section
+          style={{
+            ...styles.settingPanel,
+            ...(callerNameTokenEnabled ? styles.settingPanelActive : {}),
+          }}
+        >
+          <div style={styles.reportHeader}>
+            <div>
+              <div style={styles.settingTitleRow}>
+                <span style={styles.settingIcon}>
+                  <UserRound size={17} />
+                </span>
+                <div>
+                  <h3 style={styles.settingTitle}>Caller name token</h3>
+                </div>
+              </div>
+              <p style={styles.settingText}>
+                Let templates use <code style={styles.inlineCode}>{"{CALLERNAME}"}</code>.
+                Phonebankers opening a shared session will enter their name
+                before starting.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setCallerNameTokenEnabled(!callerNameTokenEnabled)
+              }
+              style={{
+                ...styles.toggleBtn,
+                ...(callerNameTokenEnabled ? styles.toggleBtnActive : {}),
+              }}
+              aria-pressed={callerNameTokenEnabled}
+            >
+              {callerNameTokenEnabled ? "Enabled" : "Enable"}
+            </button>
           </div>
+          {callerNameTokenEnabled && (
+            <p style={styles.reportText}>
+              For example:{" "}
+              <code style={styles.inlineCode}>
+                Hey {"{FIRSTNAME}"}, this is {"{CALLERNAME}"} from Living Rent!
+              </code>
+            </p>
+          )}
         </section>
 
         <section
@@ -257,9 +393,7 @@ export default function CallNotesStage({
             </div>
             <button
               type="button"
-              onClick={() =>
-                updateReportBack({ enabled: !reportBackSettings.enabled })
-              }
+              onClick={toggleReportBack}
               style={{
                 ...styles.toggleBtn,
                 ...(reportBackSettings.enabled ? styles.toggleBtnActive : {}),
@@ -288,7 +422,7 @@ export default function CallNotesStage({
                     aria-label="Reportback phone dial code"
                   >
                     {dialCodeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <option key={`${option.label}-${option.value}`} value={option.value}>
                         {option.label}
                       </option>
                     ))}
@@ -345,6 +479,13 @@ export default function CallNotesStage({
                   >
                     <span style={styles.noteNumber}>{index + 1}</span>
                     <input
+                      ref={(node) => {
+                        if (node) {
+                          reportQuestionInputRefs.current.set(question.id, node);
+                        } else {
+                          reportQuestionInputRefs.current.delete(question.id);
+                        }
+                      }}
                       value={question.label}
                       onChange={(event) =>
                         updateReportQuestion(question.id, { label: event.target.value })
@@ -592,6 +733,11 @@ const styles = {
     padding: "10px 12px",
     fontFamily: "var(--font-body)",
     fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+  },
+  inlineCode: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.95em",
   },
   deleteBtn: {
     width: "36px",

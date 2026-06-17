@@ -27,12 +27,24 @@ function WhatsAppMark({ size = 14 }) {
   );
 }
 
-export default function Links({ contact, template, dialCode, extraChannelsEnabled }) {
-  const whatsappLink = generateWhatsAppLink(contact, template, dialCode);
-  const smsLink = generateSmsLink(contact, template, dialCode);
+export default function Links({
+  contact,
+  template,
+  dialCode,
+  extraChannelsEnabled,
+  callerName = "",
+}) {
+  const messageOptions = { callerName };
+  const whatsappLink = generateWhatsAppLink(
+    contact,
+    template,
+    dialCode,
+    messageOptions
+  );
+  const smsLink = generateSmsLink(contact, template, dialCode, messageOptions);
   const signalLink = generateSignalLink(contact, dialCode);
   const telegramLink = generateTelegramLink(contact, dialCode);
-  const preview = generatePreview(contact, template);
+  const preview = generatePreview(contact, template, messageOptions);
   const previewText = preview.trim();
   const hasMessageText = previewText.length > 0;
   const [copied, setCopied] = useState('');
@@ -55,7 +67,12 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
     if (!hasMessageText) return;
 
     try {
-      await navigator.clipboard.writeText(getOutboundMessage(contact, template, { plainText: true }));
+      await navigator.clipboard.writeText(
+        getOutboundMessage(contact, template, {
+          plainText: true,
+          callerName,
+        })
+      );
       markCopied('message');
     } catch {
       // Some mobile browsers only allow clipboard writes after opening the app.
@@ -69,7 +86,15 @@ export default function Links({ contact, template, dialCode, extraChannelsEnable
         {hasMessageText && (
           <button
             type="button"
-            onClick={() => copyToClipboard(getOutboundMessage(contact, template, { plainText: true }), 'message')}
+            onClick={() =>
+              copyToClipboard(
+                getOutboundMessage(contact, template, {
+                  plainText: true,
+                  callerName,
+                }),
+                'message'
+              )
+            }
             className="message-link-preview"
             title="Copy message text"
           >

@@ -1,11 +1,16 @@
-import { GripVertical, Plus, X } from "lucide-react";
+import { Check, GripVertical, Plus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  fixTemplateTokens,
+  getTemplateTokenFixes,
+} from "../templateTokenUtils";
 
 export default function MobileTemplateEditor({
   templates,
   setTemplates,
   extraChannelsEnabled,
   setExtraChannelsEnabled,
+  callerNameTokenEnabled = false,
 }) {
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [dragState, setDragState] = useState(null);
@@ -85,6 +90,21 @@ export default function MobileTemplateEditor({
 
   const handleRemoveTemplate = (id) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const fixTemplateToken = (id) => {
+    setTemplates((prev) =>
+      prev.map((template) =>
+        template.id === id
+          ? {
+              ...template,
+              body: fixTemplateTokens(template.body, {
+                callerNameTokenEnabled,
+              }),
+            }
+          : template
+      )
+    );
   };
 
   const getInsertionIndex = (draggedId, pointer, activeOrder) => {
@@ -231,7 +251,10 @@ export default function MobileTemplateEditor({
           <span style={styles.overlayRemoveSpacer} />
         </div>
         <div style={styles.overlayBody}>
-          {draggedTemplate.body || "Message body"}
+          {draggedTemplate.body ||
+            (callerNameTokenEnabled
+              ? "Message body - use {FIRSTNAME} and {CALLERNAME}"
+              : "Message body - use {FIRSTNAME}")}
         </div>
       </div>
     );
@@ -291,6 +314,10 @@ export default function MobileTemplateEditor({
       <div style={styles.list} className="mobile-template-list">
         {orderedTemplates.map((t) => {
           const isDraggingTemplate = dragState?.id === t.id;
+          const tokenFixes = getTemplateTokenFixes(t.body, {
+            callerNameTokenEnabled,
+          });
+          const showTokenFix = tokenFixes.length > 0;
 
           return (
             <div
@@ -341,7 +368,34 @@ export default function MobileTemplateEditor({
                 rows={5}
                 value={t.body}
                 onChange={(e) => handleChange(t.id, "body", e.target.value)}
+                placeholder={
+                  callerNameTokenEnabled
+                    ? "Message body - use {FIRSTNAME} and {CALLERNAME}"
+                    : "Message body - use {FIRSTNAME}"
+                }
               />
+              {showTokenFix && (
+                <div style={styles.tokenFixNotice}>
+                  <span style={styles.tokenFixText}>
+                    Did you mean{" "}
+                    {tokenFixes.map((token, index) => (
+                      <span key={token}>
+                        {index > 0 ? " or " : ""}
+                        <code style={styles.inlineCode}>{token}</code>
+                      </span>
+                    ))}
+                    ?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fixTemplateToken(t.id)}
+                    style={styles.tokenFixBtn}
+                  >
+                    <Check size={13} />
+                    Fix
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -489,6 +543,38 @@ const styles = {
     lineHeight: 1.45,
     minHeight: "128px",
     resize: "none",
+  },
+  tokenFixNotice: {
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "8px",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    color: "var(--ta-muted-strong)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  tokenFixText: {
+    minWidth: 0,
+    lineHeight: 1.35,
+  },
+  inlineCode: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-mono)",
+  },
+  tokenFixBtn: {
+    border: "1px solid rgba(79, 159, 104, 0.45)",
+    borderRadius: "7px",
+    backgroundColor: "rgba(79, 159, 104, 0.12)",
+    color: "var(--ta-green)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    padding: "6px 8px",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    flexShrink: 0,
   },
   addBtn: {
     backgroundColor: "transparent",

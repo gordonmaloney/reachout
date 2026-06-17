@@ -12,7 +12,9 @@ export default function MobileDataScanner({
   setSelectedDialCode,
   setExtraChannelsEnabled,
   setCallNotes = () => {},
+  setCallNotesEnabled = () => {},
   setReportBackSettings = () => {},
+  setCallerNameTokenEnabled = () => {},
   onImported,
 }) {
   const [isScanning, setIsScanning] = useState(false);
@@ -39,7 +41,11 @@ export default function MobileDataScanner({
       setTemplates(reconstructed.templates);
       setSelectedDialCode(reconstructed.selectedDialCode);
       setExtraChannelsEnabled(reconstructed.extraChannelsEnabled);
+      setCallerNameTokenEnabled(Boolean(reconstructed.callerNameTokenEnabled));
       setCallNotes(reconstructed.callNotes || []);
+      setCallNotesEnabled(
+        Boolean(reconstructed.callNotesEnabled ?? reconstructed.callNotes?.length)
+      );
       setReportBackSettings({
         enabled: false,
         dialCode: "+44",
@@ -58,8 +64,10 @@ export default function MobileDataScanner({
       setCallNotes,
       setContacts,
       setExtraChannelsEnabled,
+      setCallNotesEnabled,
       setReportBackSettings,
       setSelectedDialCode,
+      setCallerNameTokenEnabled,
       setTemplates,
     ]
   );

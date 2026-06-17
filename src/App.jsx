@@ -130,6 +130,7 @@ export default function App() {
   const [contacts, setContacts] = useState(initialContacts);
   const [templates, setTemplates] = useState(initialTemplates);
   const [callNotes, setCallNotes] = useState([]);
+  const [callNotesEnabled, setCallNotesEnabled] = useState(false);
   const [reportBackSettings, setReportBackSettings] = useState({
     enabled: false,
     dialCode: "+44",
@@ -139,6 +140,7 @@ export default function App() {
   });
   const [selectedDialCode, setSelectedDialCode] = useState("+44");
   const [extraChannelsEnabled, setExtraChannelsEnabled] = useState(false);
+  const [callerNameTokenEnabled, setCallerNameTokenEnabled] = useState(false);
   const [hostSessionEnabled, setHostSessionEnabled] = useState(false);
   const [hostSessionCallers, setHostSessionCallers] = useState(2);
   const [linkPasswordProtected, setLinkPasswordProtected] = useState(false);
@@ -275,6 +277,8 @@ export default function App() {
       }
       if (!nextEnabled) {
         setHostSessionEnabled(false);
+        setCallerNameTokenEnabled(false);
+        setCallNotesEnabled(false);
       }
       return nextEnabled;
     });
@@ -422,6 +426,9 @@ export default function App() {
         setContacts(imported.contacts || []);
         setTemplates(imported.templates || []);
         setCallNotes(imported.callNotes || []);
+        setCallNotesEnabled(
+          Boolean(imported.callNotesEnabled ?? imported.callNotes?.length)
+        );
         setReportBackSettings({
           enabled: false,
           dialCode: "+44",
@@ -432,6 +439,7 @@ export default function App() {
         });
         setSelectedDialCode(imported.selectedDialCode || "+44");
         setExtraChannelsEnabled(Boolean(imported.extraChannelsEnabled));
+        setCallerNameTokenEnabled(Boolean(imported.callerNameTokenEnabled));
         setActiveStage(finalStage);
         setImportedTransferHash(transferLinkHash);
         setTransferPasswordPrompt(null);
@@ -526,7 +534,9 @@ export default function App() {
     const mobileCallNotes =
       shouldUseReportbackDemo && callNotes.length === 0
         ? reportbackRouteCallNotes
-        : callNotes;
+        : callNotesEnabled
+          ? callNotes
+          : [];
     const mobileReportBackSettings =
       shouldUseReportbackDemo && !reportBackSettings.enabled
         ? reportbackRouteSettings
@@ -541,12 +551,15 @@ export default function App() {
           setTemplates={setTemplates}
           callNotes={mobileCallNotes}
           setCallNotes={setCallNotes}
+          setCallNotesEnabled={setCallNotesEnabled}
           reportBackSettings={mobileReportBackSettings}
           setReportBackSettings={setReportBackSettings}
           selectedDialCode={selectedDialCode}
           setSelectedDialCode={setSelectedDialCode}
           extraChannelsEnabled={extraChannelsEnabled}
           setExtraChannelsEnabled={setExtraChannelsEnabled}
+          callerNameTokenEnabled={callerNameTokenEnabled}
+          setCallerNameTokenEnabled={setCallerNameTokenEnabled}
           initialView={
             isFaqOpen
               ? "faq"
@@ -631,8 +644,11 @@ export default function App() {
               setTemplates={setTemplates}
               stageNumLabel={`Stage 2 of ${totalStages}`}
               nextLabel={
-                isOrganiser ? "Add notes & reportbacks" : "Start messaging"
+                isOrganiser ? "Organiser settings" : "Start messaging"
               }
+              callerNameTokenEnabled={isOrganiser && callerNameTokenEnabled}
+              canUseCallerNameToken={isOrganiser}
+              setCallerNameTokenEnabled={setCallerNameTokenEnabled}
               onPrev={handlePrevStage}
               onNext={handleNextStage}
             />
@@ -642,12 +658,16 @@ export default function App() {
             <CallNotesStage
               callNotes={callNotes}
               setCallNotes={setCallNotes}
+              callNotesEnabled={callNotesEnabled}
+              setCallNotesEnabled={setCallNotesEnabled}
               reportBackSettings={reportBackSettings}
               setReportBackSettings={setReportBackSettings}
               linkPasswordProtected={linkPasswordProtected}
               setLinkPasswordProtected={setLinkPasswordProtected}
               linkPassword={linkPassword}
               setLinkPassword={setLinkPassword}
+              callerNameTokenEnabled={callerNameTokenEnabled}
+              setCallerNameTokenEnabled={setCallerNameTokenEnabled}
               reportbackPhoneFocusToken={reportbackPhoneFocusToken}
               stageNumLabel="Stage 3 of 4"
               onPrev={handlePrevStage}
@@ -659,11 +679,13 @@ export default function App() {
             <ReviewLinksStage
               contacts={contacts}
               templates={templates}
-              callNotes={callNotes}
+              callNotes={callNotesEnabled ? callNotes : []}
+              callNotesEnabled={callNotesEnabled}
               reportBackSettings={reportBackSettings}
               selectedDialCode={selectedDialCode}
               extraChannelsEnabled={extraChannelsEnabled}
               setExtraChannelsEnabled={setExtraChannelsEnabled}
+              callerNameTokenEnabled={isOrganiser && callerNameTokenEnabled}
               hostSessionEnabled={hostSessionEnabled}
               setHostSessionEnabled={setHostSessionEnabled}
               hostSessionCallers={hostSessionCallers}
@@ -675,7 +697,7 @@ export default function App() {
               fontScale={fontScale}
               stageNumLabel={`Stage ${finalStage} of ${totalStages}`}
               backLabel={
-                isOrganiser ? "Back to notes & reportbacks" : "Back to messages"
+                isOrganiser ? "Back to organiser settings" : "Back to messages"
               }
               onPrev={handlePrevStage}
               onRestart={() => setActiveStage(1)}

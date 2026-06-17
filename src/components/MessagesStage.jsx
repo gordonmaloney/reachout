@@ -3,33 +3,14 @@ import { Info, X, Plus, ArrowRight, Check, GripVertical } from "lucide-react";
 import { initialTemplates } from "../data/mockData";
 import StageShell from "./StageShell";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
-const FIRSTNAME_TOKEN = "{FIRSTNAME}";
-const FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS = [
-  /[[{(]\s*first\s*[_-]?\s*name\s*[\]})]/gi,
-  /[[{(]\s*firstname\s*[\]})]/gi,
-];
-const FIRSTNAME_BARE_TOKEN_MISTAKE_PATTERN = /\bFIRST\s*[_-]?\s*NAME\b/g;
-
-function hasFirstnameTokenMistake(body = "") {
-  return fixFirstnameToken(body) !== body;
-}
-
-function fixFirstnameToken(body = "") {
-  const fixedBracketTokens = FIRSTNAME_BRACKET_TOKEN_MISTAKE_PATTERNS.reduce(
-    (nextBody, pattern) => nextBody.replace(pattern, FIRSTNAME_TOKEN),
-    body
-  );
-
-  return fixedBracketTokens.replace(
-    FIRSTNAME_BARE_TOKEN_MISTAKE_PATTERN,
-    (match, offset, fullText) => {
-      const alreadyFixed =
-        fullText[offset - 1] === "{" && fullText[offset + match.length] === "}";
-      return alreadyFixed ? match : FIRSTNAME_TOKEN;
-    }
-  );
-}
+import {
+  CALLERNAME_TOKEN,
+  FIRSTNAME_TOKEN,
+  fixTemplateTokens,
+  getTemplateTokenFixes,
+  hasCallerNameToken,
+  removeCallerNameToken,
+} from "../templateTokenUtils";
 
 function normalizeTemplateText(value = "") {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
@@ -86,15 +67,24 @@ export default function MessagesStage({
   onPrev,
   stageNumLabel = "Stage 2 of 3",
   nextLabel = "Start messaging",
+  callerNameTokenEnabled = false,
+  canUseCallerNameToken = false,
+  setCallerNameTokenEnabled = () => {},
 }) {
   const [dragState, setDragState] = useState(null);
   const [dragOrder, setDragOrder] = useState(null);
+  const [showCallerNameChoice, setShowCallerNameChoice] = useState(false);
   const cardRefs = useRef(new Map());
+  const templateTitleRefs = useRef(new Map());
+  const templateBodyRefs = useRef(new Map());
+  const templateCursorRefs = useRef(new Map());
   const previousCardRectsRef = useRef(new Map());
   const dragStateRef = useRef(null);
   const dragOrderRef = useRef(null);
   const dragHandlersRef = useRef({ move: null, release: null });
   const templatesRef = useRef(templates);
+  const pendingTemplateTitleFocusRef = useRef(null);
+  const pendingTemplateBodyFocusRef = useRef(null);
   const templateById = new Map(
     templates.map((template) => [template.id, template])
   );
@@ -112,6 +102,28 @@ export default function MessagesStage({
 
   useLayoutEffect(() => {
     templatesRef.current = templates;
+
+    const pendingTemplateTitleFocus = pendingTemplateTitleFocusRef.current;
+    if (pendingTemplateTitleFocus) {
+      const input = templateTitleRefs.current.get(pendingTemplateTitleFocus);
+      if (input) {
+        input.focus({ preventScroll: true });
+        input.select();
+        input.scrollIntoView({ behavior: "smooth", block: "center" });
+        pendingTemplateTitleFocusRef.current = null;
+      }
+    }
+
+    const pendingTemplateBodyFocus = pendingTemplateBodyFocusRef.current;
+    if (pendingTemplateBodyFocus) {
+      const { id, cursor } = pendingTemplateBodyFocus;
+      const textarea = templateBodyRefs.current.get(id);
+      if (textarea) {
+        textarea.focus({ preventScroll: true });
+        textarea.setSelectionRange(cursor, cursor);
+        pendingTemplateBodyFocusRef.current = null;
+      }
+    }
 
     const previousRects = previousCardRectsRef.current;
     if (previousRects.size === 0) return;
@@ -168,12 +180,41 @@ export default function MessagesStage({
     );
   };
 
+  const rememberBodyCursor = (id, element) => {
+    if (!element) return;
+    templateCursorRefs.current.set(id, {
+      start: element.selectionStart ?? element.value.length,
+      end: element.selectionEnd ?? element.value.length,
+    });
+  };
+
+  const insertToken = (id, token) => {
+    const textarea = templateBodyRefs.current.get(id);
+    const template = templatesRef.current.find((item) => item.id === id);
+    if (!template) return;
+
+    const fallbackCursor = template.body.length;
+    const rememberedCursor = templateCursorRefs.current.get(id);
+    const start = textarea?.selectionStart ?? rememberedCursor?.start ?? fallbackCursor;
+    const end = textarea?.selectionEnd ?? rememberedCursor?.end ?? start;
+    const nextBody = `${template.body.slice(0, start)}${token}${template.body.slice(end)}`;
+    const nextCursor = start + token.length;
+
+    templateCursorRefs.current.set(id, {
+      start: nextCursor,
+      end: nextCursor,
+    });
+    pendingTemplateBodyFocusRef.current = { id, cursor: nextCursor };
+    handleBodyChange(id, nextBody);
+  };
+
   const addTemplate = () => {
     const newTemplate = {
       id: `t${Date.now()}`,
       title: "New Template",
       body: "",
     };
+    pendingTemplateTitleFocusRef.current = newTemplate.id;
     setTemplates((prev) => [...prev, newTemplate]);
   };
 
@@ -356,7 +397,9 @@ export default function MessagesStage({
         </div>
         <div style={styles.overlayBody}>
           {draggedTemplate.body ||
-            "Message body - use {FIRSTNAME} for personalization"}
+            (callerNameTokenEnabled
+              ? "Message body - use {FIRSTNAME} and {CALLERNAME}"
+              : "Message body - use {FIRSTNAME} for personalization")}
         </div>
       </div>
     );
@@ -393,9 +436,44 @@ export default function MessagesStage({
   const fixTemplateToken = (id) => {
     setTemplates((prev) =>
       prev.map((t) =>
-        t.id === id ? { ...t, body: fixFirstnameToken(t.body) } : t
+        t.id === id
+          ? {
+              ...t,
+              body: fixTemplateTokens(t.body, { callerNameTokenEnabled }),
+            }
+          : t
       )
     );
+  };
+  const templatesUseCallerNameToken = templates.some((template) =>
+    hasCallerNameToken(template.body)
+  );
+  const continueFromMessages = () => {
+    if (
+      canUseCallerNameToken &&
+      !callerNameTokenEnabled &&
+      templatesUseCallerNameToken
+    ) {
+      setShowCallerNameChoice(true);
+      return;
+    }
+
+    onNext();
+  };
+  const enableCallerNameAndContinue = () => {
+    setCallerNameTokenEnabled(true);
+    setShowCallerNameChoice(false);
+    onNext();
+  };
+  const removeCallerNameAndContinue = () => {
+    setTemplates((prev) =>
+      prev.map((template) => ({
+        ...template,
+        body: removeCallerNameToken(template.body),
+      }))
+    );
+    setShowCallerNameChoice(false);
+    onNext();
   };
   const starterTemplateIds = new Set(
     initialTemplates.map((template) => template.id)
@@ -416,20 +494,29 @@ export default function MessagesStage({
       <div className="glass-card" style={styles.container}>
         <div style={styles.tokenHelper}>
           <span style={styles.helperTitle}>Writing template messages</span>
-          <span>
-            Type <code style={styles.code}>{"{FIRSTNAME}"}</code> wherever you
-            want Reachout to insert the contact's first name. For example,{" "}
-            <code style={styles.code}>Hi {"{FIRSTNAME}"}</code> becomes{" "}
-            <code style={styles.code}>Hi Sandy</code>.
-          </span>
-          <span>
-            WhatsApp formatting can go straight into the template: surround
-            words with asterisks to make them bold, like{" "}
-            <code style={styles.code}>*this*</code>, or with underscores to make
-            them italic, like <code style={styles.code}>_this_</code>. SMS and
-            Signal will receive the same words without relying on the
-            formatting.
-          </span>
+          <ul style={styles.helperList}>
+            <li>
+              Type <code style={styles.code}>{FIRSTNAME_TOKEN}</code> wherever
+              you want Reachout to insert the contact's first name. For example,{" "}
+              <code style={styles.code}>Hi {FIRSTNAME_TOKEN}</code> becomes{" "}
+              <code style={styles.code}>Hi Sandy</code>.
+            </li>
+            {callerNameTokenEnabled && (
+              <li>
+                Type <code style={styles.code}>{CALLERNAME_TOKEN}</code>{" "}
+                wherever you want the caller's name to appear. For example,{" "}
+                <code style={styles.code}>
+                  Hey {FIRSTNAME_TOKEN}, this is {CALLERNAME_TOKEN}
+                </code>.
+              </li>
+            )}
+            <li>
+              WhatsApp formatting can go straight into the template: surround
+              words with asterisks to make them bold, like{" "}
+              <code style={styles.code}>*this*</code>, or with underscores to
+              make them italic, like <code style={styles.code}>_this_</code>.
+            </li>
+          </ul>
         </div>
 
         {hasStarterTemplates && (
@@ -442,7 +529,10 @@ export default function MessagesStage({
         {/* Templates List */}
         <div style={styles.templatesGrid}>
           {orderedTemplates.map((t) => {
-            const showTokenFix = hasFirstnameTokenMistake(t.body);
+            const tokenFixes = getTemplateTokenFixes(t.body, {
+              callerNameTokenEnabled,
+            });
+            const showTokenFix = tokenFixes.length > 0;
             const isDraggingTemplate = dragState?.id === t.id;
             const showExamplePill =
               starterTemplateIds.has(t.id) && !isSubstantiallyChanged(t);
@@ -496,6 +586,13 @@ export default function MessagesStage({
                       </span>
                     )}
                     <input
+                      ref={(node) => {
+                        if (node) {
+                          templateTitleRefs.current.set(t.id, node);
+                        } else {
+                          templateTitleRefs.current.delete(t.id);
+                        }
+                      }}
                       type="text"
                       value={t.title}
                       onChange={(e) => handleTitleChange(t.id, e.target.value)}
@@ -512,16 +609,58 @@ export default function MessagesStage({
                   </button>
                 </div>
                 <textarea
+                  ref={(node) => {
+                    if (node) {
+                      templateBodyRefs.current.set(t.id, node);
+                    } else {
+                      templateBodyRefs.current.delete(t.id);
+                    }
+                  }}
                   value={t.body}
-                  onChange={(e) => handleBodyChange(t.id, e.target.value)}
-                  placeholder="Message body – use {FIRSTNAME} for personalization"
+                  onChange={(e) => {
+                    rememberBodyCursor(t.id, e.target);
+                    handleBodyChange(t.id, e.target.value);
+                  }}
+                  onClick={(e) => rememberBodyCursor(t.id, e.target)}
+                  onKeyUp={(e) => rememberBodyCursor(t.id, e.target)}
+                  onSelect={(e) => rememberBodyCursor(t.id, e.target)}
+                  onFocus={(e) => rememberBodyCursor(t.id, e.target)}
+                  placeholder={
+                    callerNameTokenEnabled
+                      ? "Message body - use {FIRSTNAME} and {CALLERNAME}"
+                      : "Message body - use {FIRSTNAME} for personalization"
+                  }
                   style={styles.bodyTextarea}
                 />
+                <div style={styles.tokenChipRow} aria-label="Insert tokens">
+                  <button
+                    type="button"
+                    onClick={() => insertToken(t.id, FIRSTNAME_TOKEN)}
+                    style={styles.tokenChip}
+                  >
+                    {FIRSTNAME_TOKEN}
+                  </button>
+                  {canUseCallerNameToken && (
+                    <button
+                      type="button"
+                      onClick={() => insertToken(t.id, CALLERNAME_TOKEN)}
+                      style={styles.tokenChip}
+                    >
+                      {CALLERNAME_TOKEN}
+                    </button>
+                  )}
+                </div>
                 {showTokenFix && (
                   <div style={styles.tokenFixNotice}>
                     <span style={styles.tokenFixText}>
                       Did you mean to use{" "}
-                      <code style={styles.inlineCode}>{FIRSTNAME_TOKEN}</code>?
+                      {tokenFixes.map((token, index) => (
+                        <span key={token}>
+                          {index > 0 ? " or " : ""}
+                          <code style={styles.inlineCode}>{token}</code>
+                        </span>
+                      ))}
+                      ?
                     </span>
                     <button
                       type="button"
@@ -574,7 +713,7 @@ export default function MessagesStage({
           </button>
 
           <button
-            onClick={onNext}
+            onClick={continueFromMessages}
             style={styles.continueBtn}
             className="hover-lift"
           >
@@ -582,6 +721,41 @@ export default function MessagesStage({
           </button>
         </div>
       </div>
+      {showCallerNameChoice && (
+        <div style={styles.modalOverlay} role="presentation">
+          <div
+            style={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="caller-name-token-title"
+          >
+            <h3 id="caller-name-token-title" style={styles.modalTitle}>
+              Enable caller names?
+            </h3>
+            <p style={styles.modalText}>
+              One or more templates use{" "}
+              <code style={styles.inlineCode}>{CALLERNAME_TOKEN}</code>, but
+              the caller name token is not enabled.
+            </p>
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                onClick={removeCallerNameAndContinue}
+                style={styles.modalSecondaryBtn}
+              >
+                Remove token
+              </button>
+              <button
+                type="button"
+                onClick={enableCallerNameAndContinue}
+                style={styles.modalPrimaryBtn}
+              >
+                Enable token
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </StageShell>
   );
 }
@@ -619,6 +793,13 @@ const styles = {
     fontWeight: 800,
     fontSize: "calc(12.5px * var(--reachout-text-scale, 1))",
   },
+  helperList: {
+    margin: 0,
+    paddingLeft: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  },
   exampleNotice: {
     marginTop: "-10px",
     color: "var(--ta-muted-strong)",
@@ -634,7 +815,7 @@ const styles = {
     flexDirection: "column",
     gap: "8px",
     padding: "16px",
-    minHeight: "200px",
+    minHeight: "244px",
   },
   dragPlaceholder: {
     opacity: 0.22,
@@ -765,9 +946,26 @@ const styles = {
     borderRadius: "6px",
     resize: "vertical",
     fontSize: "calc(12px * var(--reachout-text-scale, 1))",
-    minHeight: "80px",
+    minHeight: "118px",
     fontFamily: "var(--font-body)",
     outline: "none",
+  },
+  tokenChipRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "7px",
+    marginTop: "-2px",
+  },
+  tokenChip: {
+    border: "1px solid rgba(79, 159, 104, 0.34)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    color: "var(--ta-green)",
+    borderRadius: "999px",
+    padding: "5px 8px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "calc(10.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    cursor: "pointer",
   },
   tokenFixNotice: {
     display: "flex",
@@ -891,5 +1089,61 @@ const styles = {
     alignItems: "center",
     gap: "8px",
     boxShadow: "var(--border-glow)",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1400,
+    backgroundColor: "var(--modal-overlay)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "18px",
+  },
+  modal: {
+    width: "min(390px, 100%)",
+    border: "1px solid rgba(79, 159, 104, 0.3)",
+    borderRadius: "14px",
+    backgroundColor: "var(--modal-card-bg)",
+    color: "var(--ta-cream)",
+    boxShadow: "var(--modal-card-shadow)",
+    padding: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  modalTitle: {
+    color: "var(--ta-green)",
+    fontSize: "calc(23px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    margin: 0,
+  },
+  modalText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.45,
+    margin: 0,
+  },
+  modalActions: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "10px",
+  },
+  modalSecondaryBtn: {
+    border: "1px solid var(--ta-border-medium)",
+    backgroundColor: "transparent",
+    color: "var(--ta-cream)",
+    borderRadius: "8px",
+    padding: "10px",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+  },
+  modalPrimaryBtn: {
+    border: "1px solid var(--ta-green)",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    borderRadius: "8px",
+    padding: "10px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
   },
 };

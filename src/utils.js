@@ -164,9 +164,13 @@ function getFirstName(contact) {
   return (contact?.name || "").split(" ")[0];
 }
 
-function personalizeMessage(contact, template) {
+function personalizeMessage(contact, template, { callerName = "" } = {}) {
   const body = template?.body || "";
-  return body.replace(/\{FIRSTNAME\}/g, getFirstName(contact));
+  const firstNameMessage = body.replace(/\{FIRSTNAME\}/g, getFirstName(contact));
+  const trimmedCallerName = String(callerName || "").trim();
+
+  if (!trimmedCallerName) return firstNameMessage;
+  return firstNameMessage.replace(/\{CALLERNAME\}/g, trimmedCallerName);
 }
 
 function stripWhatsAppFormatting(message) {
@@ -262,6 +266,44 @@ export function removeDuplicateContacts(contacts, selectedDialCode = "+44") {
   });
 }
 
+export function getPhoneFormatIssue(phone, dialCode = "+44") {
+  const raw = String(phone || "").trim();
+  if (!raw) return "Missing phone number.";
+
+  const digits = digitsOnly(raw);
+  if (digits.length < 7) return "This number looks too short.";
+
+  const plusCount = (raw.match(/\+/g) || []).length;
+  if (plusCount > 1 || (plusCount === 1 && !raw.startsWith("+"))) {
+    return "The + should only appear at the start of a number.";
+  }
+
+  if (!/^[+\d\s().-]+$/.test(raw)) {
+    return "This number includes characters phone links may not understand.";
+  }
+
+  const normalizedDigits = digitsOnly(normalizePhoneNumber(raw, dialCode));
+  if (normalizedDigits.length > 15) return "This number looks too long.";
+
+  return "";
+}
+
+export function getIncorrectlyFormattedContactIds(
+  contacts,
+  selectedDialCode = "+44"
+) {
+  const contactIds = new Set();
+
+  contacts.forEach((contact) => {
+    if (!contact?.id) return;
+    if (getPhoneFormatIssue(contact.phone, selectedDialCode)) {
+      contactIds.add(contact.id);
+    }
+  });
+
+  return contactIds;
+}
+
 export function getWhatsAppPhoneNumber(phone, dialCode = "+44") {
   return digitsOnly(normalizePhoneNumber(phone, dialCode));
 }
@@ -269,16 +311,21 @@ export function getWhatsAppPhoneNumber(phone, dialCode = "+44") {
 export function getOutboundMessage(
   contact,
   template,
-  { plainText = false } = {}
+  { plainText = false, callerName = "" } = {}
 ) {
-  const message = personalizeMessage(contact, template);
+  const message = personalizeMessage(contact, template, { callerName });
   return plainText ? stripWhatsAppFormatting(message) : message;
 }
 
-export function generateWhatsAppLink(contact, template, dialCode = "+44") {
+export function generateWhatsAppLink(
+  contact,
+  template,
+  dialCode = "+44",
+  options = {}
+) {
   const base = "https://wa.me/";
   const phone = getWhatsAppPhoneNumber(contact.phone, dialCode);
-  const message = personalizeMessage(contact, template).trim();
+  const message = personalizeMessage(contact, template, options).trim();
   if (!message) return `${base}${phone}`;
 
   const text = encodeURIComponent(message);
@@ -302,9 +349,15 @@ export function generateSmsHref(phone, message = "", dialCode = "+44") {
   )}`;
 }
 
-export function generateSmsLink(contact, template, dialCode = "+44") {
+export function generateSmsLink(
+  contact,
+  template,
+  dialCode = "+44",
+  options = {}
+) {
   const message = getOutboundMessage(contact, template, {
     plainText: true,
+    callerName: options.callerName,
   });
   return generateSmsHref(contact.phone, message, dialCode);
 }
@@ -321,8 +374,8 @@ export function generateTelegramLink(contact, dialCode = "+44") {
   )}`;
 }
 
-export function generatePreview(contact, template) {
-  return personalizeMessage(contact, template);
+export function generatePreview(contact, template, options = {}) {
+  return personalizeMessage(contact, template, options);
 }
 
 export function generateCallLink(contact, dialCode = "+44") {

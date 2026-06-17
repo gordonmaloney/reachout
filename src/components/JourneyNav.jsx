@@ -24,34 +24,34 @@ export default function JourneyNav({
   const steps = [
     {
       id: 1,
-      title: 'IMPORT CONTACTS',
-      sub: 'Add or paste your contacts'
+      title: "IMPORT CONTACTS",
+      sub: "Add or paste your contacts",
     },
     {
       id: 2,
-      title: 'WRITE MESSAGES',
-      sub: 'Create your templates'
+      title: "WRITE MESSAGES",
+      sub: "Create your templates",
     },
     ...(isOrganiser
       ? [
           {
             id: 3,
-            title: 'CALL NOTES & REPORTBACKS',
-            sub: 'Add prompts and reportback questions'
+            title: "ORGANISER MODE SETTINGS",
+            sub: "Call notes, reportbacks, secure links and more",
           },
           {
             id: 4,
-            title: 'START CONTACTING',
-            sub: 'Use your phonebank links'
-          }
+            title: "START CONTACTING",
+            sub: "Use your phonebank links",
+          },
         ]
       : [
           {
             id: 3,
-            title: 'START CONTACTING',
-            sub: 'Use your pre-filled WhatsApp and SMS links'
-          }
-        ])
+            title: "START CONTACTING",
+            sub: "Use your pre-filled WhatsApp and SMS links",
+          },
+        ]),
   ];
 
   return (

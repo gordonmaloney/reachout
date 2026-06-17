@@ -93,6 +93,7 @@ function compactTransferData(data) {
       note.id || "",
       note.text || "",
     ]),
+    ne: data.callNotesEnabled ? 1 : 0,
     r: [
       data.reportBackSettings?.enabled ? 1 : 0,
       data.reportBackSettings?.phone || "",
@@ -107,6 +108,7 @@ function compactTransferData(data) {
     ],
     d: data.selectedDialCode || "+44",
     e: data.extraChannelsEnabled ? 1 : 0,
+    cn: data.callerNameTokenEnabled ? 1 : 0,
   };
 }
 
@@ -130,6 +132,7 @@ function expandTransferData(data) {
       id: note[0] || `note_link_${index}`,
       text: note[1] || "",
     })),
+    callNotesEnabled: Boolean(data.ne ?? (data.n || []).length),
     reportBackSettings: {
       enabled: Boolean(data.r?.[0]),
       phone: data.r?.[1] || "",
@@ -144,6 +147,7 @@ function expandTransferData(data) {
     },
     selectedDialCode: data.d || "+44",
     extraChannelsEnabled: Boolean(data.e),
+    callerNameTokenEnabled: Boolean(data.cn),
   };
 }
 

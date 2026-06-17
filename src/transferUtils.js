@@ -15,9 +15,11 @@ export function createTransferChunks({
   contacts,
   templates,
   callNotes = [],
+  callNotesEnabled = false,
   reportBackSettings = { enabled: false, phone: "" },
   selectedDialCode,
   extraChannelsEnabled,
+  callerNameTokenEnabled,
 }) {
   const dataChunks = [
     {
@@ -25,6 +27,7 @@ export function createTransferChunks({
       data: {
         selectedDialCode,
         extraChannelsEnabled: Boolean(extraChannelsEnabled),
+        callNotesEnabled: Boolean(callNotesEnabled),
         reportBackSettings: {
           enabled: Boolean(reportBackSettings.enabled),
           phone: reportBackSettings.phone || "",
@@ -33,6 +36,7 @@ export function createTransferChunks({
             ? reportBackSettings.questions
             : [],
         },
+        callerNameTokenEnabled: Boolean(callerNameTokenEnabled),
       },
     },
   ];
@@ -172,8 +176,13 @@ export function reconstructTransfer(chunks) {
         body: template.bodyParts.join(""),
       })),
       callNotes,
+      callNotesEnabled:
+        typeof meta.callNotesEnabled === "boolean"
+          ? meta.callNotesEnabled
+          : callNotes.length > 0,
       selectedDialCode: meta.selectedDialCode || "+44",
       extraChannelsEnabled: Boolean(meta.extraChannelsEnabled),
+      callerNameTokenEnabled: Boolean(meta.callerNameTokenEnabled),
       reportBackSettings: meta.reportBackSettings || { enabled: false, phone: "" },
     };
   } catch {

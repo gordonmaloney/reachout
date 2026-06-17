@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Clipboard, FileText, ArrowRight, Check, X } from "lucide-react";
+import { Clipboard, FileText, ArrowRight, Check, X, Plus } from "lucide-react";
 import StageShell from "./StageShell";
 import ContactsPreview from "./ContactsPreview";
 import {
   dialCodeOptions,
   getDuplicateContactIds,
+  getIncorrectlyFormattedContactIds,
   removeDuplicateContacts,
 } from "../utils";
 import { initialContacts } from "../data/mockData";
@@ -25,6 +26,10 @@ export default function ContactsStage({
   const [isFocused, setIsFocused] = useState(false);
   const [pendingImport, setPendingImport] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [addContactError, setAddContactError] = useState("");
   const hasExampleContacts = contacts.some((contact) =>
     initialContacts.some((example) => example.id === contact.id)
   );
@@ -34,6 +39,11 @@ export default function ContactsStage({
     selectedDialCode
   );
   const duplicateCount = duplicateContactIds.size;
+  const incorrectlyFormattedContactIds = getIncorrectlyFormattedContactIds(
+    contacts,
+    selectedDialCode
+  );
+  const incorrectlyFormattedCount = incorrectlyFormattedContactIds.size;
 
   const parsePasteText = (text) => {
     const lines = text.split("\n");
@@ -83,6 +93,10 @@ export default function ContactsStage({
   };
 
   const applyImportedContacts = (parsedContacts, mode) => {
+    const formatIssueCount = getIncorrectlyFormattedContactIds(
+      parsedContacts,
+      selectedDialCode
+    ).size;
     setContacts((currentContacts) =>
       mode === "replace"
         ? parsedContacts
@@ -92,6 +106,14 @@ export default function ContactsStage({
     setShowFormattingHelp(false);
     setPendingImport(null);
     showImportSuccess(parsedContacts.length, mode);
+    if (formatIssueCount > 0) {
+      setErrorMsg(
+        `${formatIssueCount} imported number${
+          formatIssueCount === 1 ? "" : "s"
+        } may need checking. They are highlighted in the preview.`
+      );
+      setTimeout(() => setErrorMsg(""), 5000);
+    }
   };
 
   const processParsedContacts = (parsed, source) => {
@@ -117,8 +139,18 @@ export default function ContactsStage({
   };
 
   const handlePasteEvent = (e) => {
+    const target = e.target;
+    if (
+      target?.tagName === "INPUT" ||
+      target?.tagName === "TEXTAREA" ||
+      target?.isContentEditable
+    ) {
+      return;
+    }
+
     const text = e.clipboardData.getData("text");
     if (text) {
+      e.preventDefault();
       processParsedContacts(parsePasteText(text), "paste");
     }
   };
@@ -159,6 +191,40 @@ export default function ContactsStage({
   const confirmClearAllContacts = () => {
     setContacts([]);
     setShowClearConfirm(false);
+  };
+
+  const openAddContactModal = () => {
+    setNewContactName("");
+    setNewContactPhone("");
+    setAddContactError("");
+    setIsAddContactModalOpen(true);
+  };
+
+  const closeAddContactModal = () => {
+    setIsAddContactModalOpen(false);
+    setAddContactError("");
+  };
+
+  const saveNewContact = (event) => {
+    event.preventDefault();
+    const name = newContactName.trim();
+    const phone = newContactPhone.trim();
+
+    if (!name || !phone) {
+      setAddContactError("Add both a name and a phone number.");
+      return;
+    }
+
+    setContacts((currentContacts) => [
+      ...currentContacts,
+      {
+        id: "c_" + Math.random().toString(36).substr(2, 9),
+        name,
+        phone,
+      },
+    ]);
+    closeAddContactModal();
+    showImportSuccess(1, "add");
   };
 
   return (
@@ -304,7 +370,7 @@ export default function ContactsStage({
               style={styles.dialCodeSelect}
             >
               {dialCodeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={`${option.label}-${option.value}`} value={option.value}>
                   {option.label}
                 </option>
               ))}
@@ -314,7 +380,12 @@ export default function ContactsStage({
 
         {/* Right Side: Preview Card */}
         <div style={styles.previewColumn}>
-          <div style={styles.previewCard} className="glass-card">
+          <div
+            style={styles.previewCard}
+            className="glass-card"
+            tabIndex={0}
+            onPaste={handlePasteEvent}
+          >
             <div style={styles.previewHeader}>
               <div style={styles.previewTitleGroup}>
                 <h3 style={styles.cardTitle}>
@@ -344,6 +415,19 @@ export default function ContactsStage({
               </button>
             </div>
 
+            {incorrectlyFormattedCount > 0 && (
+              <div style={styles.formatWarningNotice}>
+                <span style={styles.formatWarningTitle}>
+                  {incorrectlyFormattedCount} number
+                  {incorrectlyFormattedCount === 1 ? "" : "s"} may need
+                  checking
+                </span>
+                <span style={styles.formatWarningText}>
+                  Check the highlighted numbers before continuing.
+                </span>
+              </div>
+            )}
+
             {duplicateCount > 0 && (
               <div style={styles.duplicateNotice}>
                 <div style={styles.duplicateCopy}>
@@ -370,18 +454,30 @@ export default function ContactsStage({
               setContacts={setContacts}
               selectedDialCode={selectedDialCode}
               duplicateContactIds={duplicateContactIds}
+              incorrectlyFormattedContactIds={incorrectlyFormattedContactIds}
             />
           </div>
 
-          {onOpenPrivacy && (
+          <div style={styles.previewFooter}>
             <button
               type="button"
-              onClick={onOpenPrivacy}
-              style={styles.privacyLink}
+              onClick={openAddContactModal}
+              style={styles.addContactBtn}
             >
-              Privacy policy
+              <Plus size={15} />
+              <span>Add contact</span>
             </button>
-          )}
+
+            {onOpenPrivacy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacy}
+                style={styles.privacyLink}
+              >
+                Privacy policy
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -449,6 +545,70 @@ export default function ContactsStage({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {isAddContactModalOpen && (
+        <div style={styles.modalOverlay} role="presentation">
+          <form
+            style={styles.importModal}
+            className="glass-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contacts-add-title"
+            onSubmit={saveNewContact}
+          >
+            <button
+              type="button"
+              onClick={closeAddContactModal}
+              style={styles.modalCloseBtn}
+              aria-label="Cancel adding contact"
+            >
+              <X size={18} />
+            </button>
+            <span style={styles.modalKicker}>Add contact</span>
+            <h3 id="contacts-add-title" style={styles.modalTitle}>
+              Add one person to this phonebank
+            </h3>
+            <div style={styles.addContactFields}>
+              <label style={styles.modalFieldLabel}>
+                Name
+                <input
+                  type="text"
+                  value={newContactName}
+                  onChange={(event) => setNewContactName(event.target.value)}
+                  style={styles.modalInput}
+                  placeholder="Sandy Mills"
+                  autoFocus
+                />
+              </label>
+              <label style={styles.modalFieldLabel}>
+                Phone number
+                <input
+                  type="tel"
+                  value={newContactPhone}
+                  onChange={(event) => setNewContactPhone(event.target.value)}
+                  style={styles.modalInput}
+                  placeholder="+44 7712 345678"
+                />
+              </label>
+            </div>
+            {addContactError && (
+              <span style={styles.addContactError}>{addContactError}</span>
+            )}
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                style={styles.replaceBtn}
+                onClick={closeAddContactModal}
+              >
+                Cancel
+              </button>
+              <button type="submit" style={styles.addBtn}>
+                Add contact
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -735,6 +895,28 @@ const styles = {
     marginBottom: "12px",
     flexShrink: 0,
   },
+  formatWarningNotice: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    backgroundColor: "color-mix(in srgb, var(--ta-red) 12%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)",
+    borderRadius: "12px",
+    padding: "10px 12px",
+    marginBottom: "12px",
+    flexShrink: 0,
+  },
+  formatWarningTitle: {
+    color: "var(--ta-red)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+  },
+  formatWarningText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.35,
+  },
   duplicateCopy: {
     display: "flex",
     flexDirection: "column",
@@ -790,6 +972,29 @@ const styles = {
     fontSize: "calc(9px * var(--reachout-text-scale, 1))",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
+  },
+  previewFooter: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+  addContactBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    border: "1px solid var(--ta-green)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    color: "var(--ta-green)",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
   },
   clearBtn: {
     backgroundColor: "transparent",
@@ -956,6 +1161,35 @@ const styles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     lineHeight: 1.5,
     marginBottom: "18px",
+  },
+  addContactFields: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "12px",
+    marginBottom: "12px",
+  },
+  modalFieldLabel: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  modalInput: {
+    backgroundColor: "color-mix(in srgb, var(--ta-dark) 70%, transparent)",
+    border: "1px solid var(--ta-border-medium)",
+    color: "var(--ta-cream)",
+    borderRadius: "8px",
+    padding: "10px 12px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+    outline: "none",
+  },
+  addContactError: {
+    display: "block",
+    color: "var(--ta-red)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    marginBottom: "12px",
   },
   modalActions: {
     display: "grid",

@@ -1,6 +1,13 @@
 import { CheckCircle, Users, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export default function OrganiserModeModal({ onClose }) {
+  const primaryButtonRef = useRef(null);
+
+  useEffect(() => {
+    primaryButtonRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(event) => event.stopPropagation()}>
@@ -36,7 +43,12 @@ export default function OrganiserModeModal({ onClose }) {
             participants
           </span>
         </div>
-        <button type="button" onClick={onClose} style={styles.primaryBtn}>
+        <button
+          ref={primaryButtonRef}
+          type="button"
+          onClick={onClose}
+          style={styles.primaryBtn}
+        >
           Got it
         </button>
       </div>

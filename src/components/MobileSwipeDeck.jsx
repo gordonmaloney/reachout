@@ -7,11 +7,17 @@ import { initialContacts } from "../data/mockData";
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   CheckCircle,
+  Copy,
   Phone,
   FileText,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import ProductTour from "./ProductTour";
+import { getOptOutPlainText, getOptOutRows } from "../reportTextUtils";
+import { generateSmsHref } from "../utils";
 import "./MobileSwipeDeck.css";
 
 export default function MobileSwipeDeck({
@@ -32,6 +38,7 @@ export default function MobileSwipeDeck({
   cardTourRequestToken = 0,
   onCardTourClose = () => {},
   returnToWelcomeOnCardTourComplete = false,
+  callerName = "",
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -71,9 +78,6 @@ export default function MobileSwipeDeck({
       buildMobileCardTourSteps({
         hasContacts: contacts.length > 0,
         hasCallNotes: callNotes.some((note) => note.text?.trim()),
-        hasBlankMessages:
-          templates.length === 0 ||
-          templates.some((template) => !template.body?.trim()),
         extraChannelsEnabled,
         reportBackEnabled: Boolean(reportBackSettings.enabled),
         reportBackRequired: Boolean(reportBackSettings.mandatory),
@@ -84,7 +88,6 @@ export default function MobileSwipeDeck({
       extraChannelsEnabled,
       reportBackSettings.enabled,
       reportBackSettings.mandatory,
-      templates,
     ]
   );
 
@@ -424,9 +427,14 @@ export default function MobileSwipeDeck({
               selectedDialCode={selectedDialCode}
             />
           ) : index === contacts.length + 1 ? (
-            <MobileFinishedCard />
+            <MobileFinishedCard
+              contacts={contacts}
+              contactReports={contactReports}
+              selectedDialCode={selectedDialCode}
+            />
           ) : (
             <MobileContactCard
+              key={displayContact.id}
               contact={displayContact}
               templates={templates}
               selectedDialCode={selectedDialCode}
@@ -446,6 +454,7 @@ export default function MobileSwipeDeck({
               isExampleContact={initialContacts.some(
                 (example) => example.id === displayContact.id
               )}
+              callerName={callerName}
             />
           )}
         </div>
@@ -520,7 +529,6 @@ export default function MobileSwipeDeck({
 function buildMobileCardTourSteps({
   hasContacts,
   hasCallNotes,
-  hasBlankMessages,
   extraChannelsEnabled,
   reportBackEnabled,
   reportBackRequired,
@@ -565,6 +573,12 @@ function buildMobileCardTourSteps({
     highlightTarget: "mobile-card-tour-messages",
   });
 
+  steps.push({
+    eyebrow: "Opt-outs",
+    title: "Record opt-outs",
+    body: "If someone asks not to be contacted again, use Opt out to record whether they want no more calls, messages, or both.",
+    highlightTarget: "mobile-card-tour-optout",
+  });
 
   if (reportBackEnabled) {
     steps.push({
@@ -699,7 +713,81 @@ function MobileIntroCard({
   );
 }
 
-function MobileFinishedCard() {
+function MobileFinishedCard({ contacts, contactReports, selectedDialCode }) {
+  const [copied, setCopied] = useState(false);
+  const optOutRows = useMemo(
+    () => getOptOutRows(contacts, contactReports, selectedDialCode),
+    [contacts, contactReports, selectedDialCode]
+  );
+  const optOutText = useMemo(() => getOptOutPlainText(optOutRows), [optOutRows]);
+  const optOutWhatsAppLink = `https://wa.me/?text=${encodeURIComponent(
+    optOutText
+  )}`;
+  const optOutSmsLink = generateSmsHref("", optOutText, selectedDialCode);
+
+  const copyOptOuts = async () => {
+    try {
+      await navigator.clipboard.writeText(optOutText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard can be unavailable in some browsers.
+    }
+  };
+
+  if (optOutRows.length > 0) {
+    return (
+      <div style={infoStyles.card} className="glass-card">
+        <CheckCircle size={42} color="var(--ta-green)" />
+        <h2 style={infoStyles.title}>You’re finished</h2>
+        <p style={infoStyles.text}>
+          Send these opt-outs to your organiser or add them to the CRM.
+        </p>
+        <div style={infoStyles.summary}>
+          {optOutRows.map((row) => (
+            <span key={`${row.name}-${row.phone}`}>
+              {row.name}: no more{" "}
+              {[
+                row.optOut.calls ? "calls" : "",
+                row.optOut.texts ? "messages" : "",
+              ]
+                .filter(Boolean)
+                .join(" and ")}
+            </span>
+          ))}
+        </div>
+        <div style={infoStyles.optOutActions}>
+          <a
+            href={optOutWhatsAppLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={infoStyles.copyBtn}
+            className="message-link-action hover-lift"
+          >
+            <MessageCircle size={16} />
+            Send over WhatsApp
+          </a>
+          <a
+            href={optOutSmsLink}
+            style={infoStyles.secondaryAction}
+            className="message-link-action hover-lift"
+          >
+            <Send size={16} />
+            Send over SMS
+          </a>
+          <button
+            type="button"
+            onClick={copyOptOuts}
+            style={infoStyles.secondaryAction}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            Copy opt-out message
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={infoStyles.card} className="glass-card">
       <CheckCircle size={42} color="var(--ta-green)" />
@@ -777,5 +865,38 @@ const infoStyles = {
     fontSize: "calc(13px * var(--reachout-text-scale, 1))",
     textDecoration: "none",
     padding: 0,
+  },
+  copyBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    border: "1px solid var(--ta-green)",
+    borderRadius: "10px",
+    padding: "11px 14px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    textDecoration: "none",
+  },
+  optOutActions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "9px",
+  },
+  secondaryAction: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    backgroundColor: "transparent",
+    color: "var(--ta-green)",
+    border: "1px solid rgba(79, 159, 104, 0.44)",
+    borderRadius: "10px",
+    padding: "11px 14px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
+    textDecoration: "none",
   },
 };

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Trash2, Edit2, Check, X } from 'lucide-react';
-import { normalizePhoneNumber } from '../utils';
+import { getPhoneFormatIssue, normalizePhoneNumber } from '../utils';
 
 export default function ContactsPreview({
   contacts,
   setContacts,
   selectedDialCode,
   duplicateContactIds = new Set(),
+  incorrectlyFormattedContactIds = new Set(),
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -63,6 +64,10 @@ export default function ContactsPreview({
           contacts.map((contact) => {
             const isEditing = editingId === contact.id;
             const isDuplicate = duplicateContactIds.has(contact.id);
+            const hasPhoneFormatIssue = incorrectlyFormattedContactIds.has(contact.id);
+            const phoneFormatIssue = hasPhoneFormatIssue
+              ? getPhoneFormatIssue(contact.phone, selectedDialCode)
+              : "";
             
             return (
               <div
@@ -70,6 +75,7 @@ export default function ContactsPreview({
                 style={{
                   ...styles.contactRow,
                   ...(isDuplicate ? styles.duplicateContactRow : {}),
+                  ...(hasPhoneFormatIssue ? styles.invalidContactRow : {}),
                 }}
               >
                 <div style={styles.avatar}>
@@ -100,6 +106,14 @@ export default function ContactsPreview({
                         <span style={styles.contactName}>{contact.name}</span>
                         {isDuplicate && (
                           <span style={styles.duplicateLabel}>Duplicate</span>
+                        )}
+                        {hasPhoneFormatIssue && (
+                          <span
+                            style={styles.invalidLabel}
+                            title={phoneFormatIssue}
+                          >
+                            Check number
+                          </span>
                         )}
                       </div>
                       <span style={styles.contactPhone}>{normalizePhoneNumber(contact.phone, selectedDialCode)}</span>
@@ -196,6 +210,10 @@ const styles = {
     backgroundColor: 'color-mix(in srgb, var(--ta-red) 10%, transparent)',
     border: '1px solid color-mix(in srgb, var(--ta-red) 48%, transparent)',
   },
+  invalidContactRow: {
+    backgroundColor: 'color-mix(in srgb, var(--ta-red) 8%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--ta-red) 44%, transparent)',
+  },
   avatar: {
     width: '32px',
     height: '32px',
@@ -237,6 +255,17 @@ const styles = {
     fontWeight: '500',
   },
   duplicateLabel: {
+    flexShrink: 0,
+    border: '1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)',
+    color: 'var(--ta-red)',
+    borderRadius: '999px',
+    padding: '2px 6px',
+    fontFamily: 'var(--font-mono)',
+    fontSize: "calc(9px * var(--reachout-text-scale, 1))",
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  invalidLabel: {
     flexShrink: 0,
     border: '1px solid color-mix(in srgb, var(--ta-red) 52%, transparent)',
     color: 'var(--ta-red)',

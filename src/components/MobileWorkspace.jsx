@@ -1,6 +1,6 @@
 // src/components/MobileWorkspace.jsx
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import MobileSwipeDeck from "./MobileSwipeDeck";
 import MobileTemplateEditor from "./MobileTemplateEditor";
 import MobileDataScanner from "./MobileDataScanner";
@@ -34,8 +34,11 @@ export default function MobileWorkspace({
   setExtraChannelsEnabled,
   callNotes = [],
   setCallNotes = () => {},
+  setCallNotesEnabled = () => {},
   reportBackSettings = { enabled: false, phone: "" },
   setReportBackSettings = () => {},
+  callerNameTokenEnabled = false,
+  setCallerNameTokenEnabled = () => {},
   initialView = "deck",
   onCloseFaq = () => {},
   theme = "dark",
@@ -53,8 +56,12 @@ export default function MobileWorkspace({
   const [deckResetToken, setDeckResetToken] = useState(0);
   const [cardTourRequestToken, setCardTourRequestToken] = useState(0);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [callerName, setCallerName] = useState("");
+  const [callerNameDraft, setCallerNameDraft] = useState("");
+  const [callerNameError, setCallerNameError] = useState("");
   const exitConfirmOpenRef = useRef(false);
   const allowExitRef = useRef(false);
+  const callerNameInputRef = useRef(null);
   const contactSignature = contacts
     .map((contact) => `${contact.id}:${contact.name}:${contact.phone}`)
     .join("|");
@@ -81,6 +88,8 @@ export default function MobileWorkspace({
     !exampleToastDismissed &&
     !isTourOpen &&
     combinedTourPhase === "idle";
+  const shouldAskForCallerName =
+    Boolean(callerNameTokenEnabled) && !callerName.trim();
 
   const changeView = (nextView) => {
     setExampleToastDismissed(true);
@@ -154,18 +163,36 @@ export default function MobileWorkspace({
   }, [showExampleToast]);
 
   useEffect(() => {
+    if (!shouldAskForCallerName) return;
+
+    const timeout = window.setTimeout(() => {
+      callerNameInputRef.current?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [shouldAskForCallerName]);
+
+  useEffect(() => {
     if (previousContactSignatureRef.current === contactSignature) return;
 
     previousContactSignatureRef.current = contactSignature;
     if (view === "contacts") return;
 
-    setCurrentIdx(0);
-    setContactReports({});
-    if (view !== "faq" && view !== "privacy" && view !== "scan") {
-      setView("deck");
-    }
-    setExampleToastDismissed(true);
+    const timeout = window.setTimeout(() => {
+      setCurrentIdx(0);
+      setContactReports({});
+      if (view !== "faq" && view !== "privacy" && view !== "scan") {
+        setView("deck");
+      }
+      setExampleToastDismissed(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [contactSignature, view]);
+
+  const moveToPhonebankWelcome = useCallback(() => {
+    setView("deck");
+    setCurrentIdx(0);
+    setDeckResetToken((token) => token + 1);
+  }, []);
 
   useEffect(() => {
     try {
@@ -182,7 +209,7 @@ export default function MobileWorkspace({
       setIsTourOpen(true);
       setCombinedTourPhase("overview");
     }, 0);
-  }, []);
+  }, [moveToPhonebankWelcome]);
 
   const markTourSeen = () => {
     try {
@@ -190,12 +217,6 @@ export default function MobileWorkspace({
     } catch {
       // Ignore storage failures; the tour still works for this session.
     }
-  };
-
-  const moveToPhonebankWelcome = () => {
-    setView("deck");
-    setCurrentIdx(0);
-    setDeckResetToken((token) => token + 1);
   };
 
   const closeTour = () => {
@@ -243,7 +264,7 @@ export default function MobileWorkspace({
     setTourStep(prevStep);
   };
 
-  const handleCardTourClose = ({ completed } = {}) => {
+  const handleCardTourClose = () => {
     if (combinedTourPhase !== "card") return;
 
     markTourSeen();
@@ -260,6 +281,20 @@ export default function MobileWorkspace({
     exitConfirmOpenRef.current = false;
     setExitConfirmOpen(false);
     window.history.back();
+  };
+
+  const submitCallerName = (event) => {
+    event.preventDefault();
+    const nextCallerName = callerNameDraft.trim();
+
+    if (!nextCallerName) {
+      setCallerNameError("Enter your name to start.");
+      callerNameInputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+
+    setCallerName(nextCallerName);
+    setCallerNameError("");
   };
 
   if (!isMobile) {
@@ -332,6 +367,7 @@ export default function MobileWorkspace({
             callNotes={callNotes}
             reportBackSettings={reportBackSettings}
             contactReports={contactReports}
+            callerName={callerName}
             onIndexChange={(idx) => {
               setCurrentIdx(idx);
             }}
@@ -352,6 +388,7 @@ export default function MobileWorkspace({
             templates={templates}
             selectedDialCode={selectedDialCode}
             extraChannelsEnabled={extraChannelsEnabled}
+            callerName={callerName}
           />
         ) : view === "templates" ? (
           <MobileTemplateEditor
@@ -359,6 +396,7 @@ export default function MobileWorkspace({
             setTemplates={setTemplates}
             extraChannelsEnabled={extraChannelsEnabled}
             setExtraChannelsEnabled={setExtraChannelsEnabled}
+            callerNameTokenEnabled={callerNameTokenEnabled}
           />
         ) : (
           <MobileDataScanner
@@ -367,10 +405,15 @@ export default function MobileWorkspace({
             setSelectedDialCode={setSelectedDialCode}
             setExtraChannelsEnabled={setExtraChannelsEnabled}
             setCallNotes={setCallNotes}
+            setCallNotesEnabled={setCallNotesEnabled}
             setReportBackSettings={setReportBackSettings}
+            setCallerNameTokenEnabled={setCallerNameTokenEnabled}
             onImported={() => {
               setCurrentIdx(0);
               setContactReports({});
+              setCallerName("");
+              setCallerNameDraft("");
+              setCallerNameError("");
               changeView("deck");
             }}
           />
@@ -391,6 +434,48 @@ export default function MobileWorkspace({
             </span>
             <span className="example-data-toast-progress" aria-hidden="true" />
           </div>
+        </div>
+      )}
+      {shouldAskForCallerName && (
+        <div style={styles.callerNameOverlay} role="presentation">
+          <form
+            style={styles.callerNameModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="caller-name-title"
+            onSubmit={submitCallerName}
+          >
+            <span style={styles.callerNameKicker}>Phonebanking as</span>
+            <h3 id="caller-name-title" style={styles.callerNameTitle}>
+              Your name
+            </h3>
+            <p style={styles.callerNameText}>
+              This will be inserted into message templates where the organiser
+              used {"{CALLERNAME}"}.
+            </p>
+            <label style={styles.callerNameLabel}>
+              Name
+              <input
+                ref={callerNameInputRef}
+                value={callerNameDraft}
+                onChange={(event) => {
+                  setCallerNameDraft(event.target.value);
+                  setCallerNameError("");
+                }}
+                style={{
+                  ...styles.callerNameInput,
+                  ...(callerNameError ? styles.callerNameInputError : {}),
+                }}
+                placeholder="e.g. Mairi"
+              />
+            </label>
+            {callerNameError && (
+              <span style={styles.callerNameError}>{callerNameError}</span>
+            )}
+            <button type="submit" style={styles.callerNameSubmit}>
+              Start phonebanking
+            </button>
+          </form>
         </div>
       )}
 
@@ -617,6 +702,81 @@ const styles = {
     zIndex: 1000,
     padding: "24px",
     backdropFilter: "blur(1px)",
+  },
+  callerNameOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 2300,
+    backgroundColor: "var(--modal-overlay)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "18px",
+    backdropFilter: "blur(1px)",
+  },
+  callerNameModal: {
+    width: "min(340px, 100%)",
+    backgroundColor: "var(--modal-card-bg)",
+    border: "1px solid rgba(79, 159, 104, 0.42)",
+    borderRadius: "12px",
+    boxShadow: "var(--modal-card-shadow)",
+    color: "var(--ta-cream)",
+    padding: "18px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  callerNameKicker: {
+    fontFamily: "var(--font-mono)",
+    color: "var(--ta-green)",
+    fontSize: "calc(11px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+  },
+  callerNameTitle: {
+    color: "var(--ta-cream)",
+    fontSize: "calc(24px * var(--reachout-text-scale, 1))",
+    lineHeight: 1,
+    margin: 0,
+  },
+  callerNameText: {
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(13px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.4,
+    margin: 0,
+  },
+  callerNameLabel: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  callerNameInput: {
+    backgroundColor: "color-mix(in srgb, var(--ta-cream) 4%, transparent)",
+    border: "1px solid var(--ta-border-subtle)",
+    borderRadius: "8px",
+    color: "var(--ta-cream)",
+    padding: "11px 12px",
+    fontFamily: "var(--font-body)",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+  },
+  callerNameInputError: {
+    borderColor: "rgba(255, 77, 77, 0.72)",
+    boxShadow: "0 0 0 3px rgba(255, 77, 77, 0.14)",
+  },
+  callerNameError: {
+    color: "var(--ta-red)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+  },
+  callerNameSubmit: {
+    border: "1px solid var(--ta-green)",
+    backgroundColor: "var(--ta-green)",
+    color: "var(--ta-dark)",
+    borderRadius: "8px",
+    padding: "11px 12px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(15px * var(--reachout-text-scale, 1))",
   },
   exitOverlay: {
     position: "fixed",

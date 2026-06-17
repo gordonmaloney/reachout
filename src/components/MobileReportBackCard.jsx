@@ -5,70 +5,11 @@ import {
   getWhatsAppPhoneNumber,
   normalizePhoneNumber,
 } from "../utils";
-
-function formatDate(value) {
-  if (!value) return "";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
-}
-
-function getRows(contacts, contactReports, selectedDialCode, questions) {
-  return contacts.map((contact) => {
-    const report = contactReports[contact.id] || {};
-    const answers = report.answers || {
-      pickedUp: report.pickedUp || "",
-      notes: report.notes || "",
-    };
-    return {
-      name: contact.name,
-      phone: normalizePhoneNumber(contact.phone, selectedDialCode),
-      answers,
-      date: report.date || "",
-      questions,
-    };
-  });
-}
-
-function getPlainText(rows) {
-  const lines = rows.map((row) => {
-    const answers = row.questions.map((question) => {
-      const answer = row.answers[question.id] || "not recorded";
-      return `${question.label}: ${answer}`;
-    });
-    const date = formatDate(row.date) || "date not recorded";
-    return `${row.name} (${row.phone}) - ${answers.join("; ")}; Date: ${date}`;
-  });
-
-  return `Reachout reportback\n\n${lines.join("\n")}`;
-}
-
-function getSpreadsheetText(rows, questions) {
-  const header = [
-    "Name",
-    "Phone",
-    ...questions.map((question) => question.label),
-    "Date",
-  ];
-  const body = rows.map((row) => [
-    row.name,
-    row.phone,
-    ...questions.map((question) =>
-      String(row.answers[question.id] || "")
-        .replace(/\s+/g, " ")
-        .trim()
-    ),
-    formatDate(row.date),
-  ]);
-
-  return [header, ...body]
-    .map((row) =>
-      row.map((cell) => String(cell || "").replace(/\t/g, " ")).join("\t")
-    )
-    .join("\n");
-}
+import {
+  getReportPlainText,
+  getReportRows,
+  getReportSpreadsheetText,
+} from "../reportTextUtils";
 
 export default function MobileReportBackCard({
   contacts,
@@ -85,12 +26,12 @@ export default function MobileReportBackCard({
     [reportBackSettings.questions]
   );
   const rows = useMemo(
-    () => getRows(contacts, contactReports, selectedDialCode, questions),
+    () => getReportRows(contacts, contactReports, selectedDialCode, questions),
     [contacts, contactReports, questions, selectedDialCode]
   );
-  const plainText = useMemo(() => getPlainText(rows), [rows]);
+  const plainText = useMemo(() => getReportPlainText(rows), [rows]);
   const spreadsheetText = useMemo(
-    () => getSpreadsheetText(rows, questions),
+    () => getReportSpreadsheetText(rows, questions),
     [questions, rows]
   );
   const reportDialCode = reportBackSettings.dialCode || selectedDialCode;
@@ -132,14 +73,12 @@ export default function MobileReportBackCard({
           below - just click and send.
         </p>
       </div>
-      {/*
       <div style={styles.summary}>
         <span>
           {recordedCount} of {contacts.length} contacts recorded
         </span>
         {organiserPhone && <span>Send to {organiserPhone}</span>}
       </div>
-      */}
       <div style={styles.actions}>
         <a
           href={whatsappLink}

@@ -12,6 +12,7 @@ export default function ReviewLinksStage({
   selectedDialCode,
   extraChannelsEnabled,
   setExtraChannelsEnabled,
+  callerNameTokenEnabled = false,
   hostSessionEnabled,
   setHostSessionEnabled,
   hostSessionCallers,
@@ -20,6 +21,7 @@ export default function ReviewLinksStage({
   linkPassword = "",
   isOrganiser = false,
   callNotes = [],
+  callNotesEnabled = false,
   reportBackSettings = { enabled: false, phone: "" },
   stageNumLabel = "Stage 3 of 3",
   backLabel = "Back to messages",
@@ -94,9 +96,11 @@ export default function ReviewLinksStage({
             contacts,
             templates,
             callNotes,
+            callNotesEnabled,
             reportBackSettings,
             selectedDialCode,
             extraChannelsEnabled,
+            callerNameTokenEnabled,
           },
           undefined,
           activeLinkPassword ? { password: activeLinkPassword } : {}
@@ -126,6 +130,8 @@ export default function ReviewLinksStage({
   }, [
     activeLinkPassword,
     callNotes,
+    callNotesEnabled,
+    callerNameTokenEnabled,
     contacts,
     extraChannelsEnabled,
     hostSessionEnabled,
@@ -309,7 +315,9 @@ export default function ReviewLinksStage({
             templates={templates}
             selectedDialCode={selectedDialCode}
             extraChannelsEnabled={extraChannelsEnabled}
+            callerNameTokenEnabled={callerNameTokenEnabled}
             callNotes={callNotes}
+            callNotesEnabled={callNotesEnabled}
             reportBackSettings={reportBackSettings}
             isOrganiser={isOrganiser}
             linkPasswordProtected={isOrganiser && linkPasswordProtected}

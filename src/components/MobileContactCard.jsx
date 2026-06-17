@@ -35,6 +35,7 @@ export default function MobileContactCard({
   reportBackBlockMessage = "",
   blockedQuestionIds = [],
   isExampleContact = false,
+  callerName = "",
 }) {
   const templateList =
     templates.length > 0
@@ -43,8 +44,14 @@ export default function MobileContactCard({
   const callLink = generateCallLink(contact, selectedDialCode);
   const previewPhone = normalizePhoneNumber(contact.phone, selectedDialCode);
   const [copiedPhone, setCopiedPhone] = useState(false);
+  const [isOptOutOpen, setIsOptOutOpen] = useState(false);
+  const [draftOptOut, setDraftOptOut] = useState({
+    calls: Boolean(report?.optOut?.calls),
+    texts: Boolean(report?.optOut?.texts),
+  });
   const isReporting = Boolean(report?.contacted);
   const reportEnabled = Boolean(reportBackSettings.enabled);
+  const hasRecordedOptOut = Boolean(report?.optOut?.calls || report?.optOut?.texts);
   const reportQuestions =
     reportBackSettings.questions?.filter((question) =>
       question.label?.trim()
@@ -62,6 +69,7 @@ export default function MobileContactCard({
 
   const startReport = () => {
     setReport({
+      ...(report || {}),
       contacted: true,
       answers: {},
       date: new Date().toISOString(),
@@ -70,6 +78,7 @@ export default function MobileContactCard({
 
   const updateReport = (patch) => {
     setReport({
+      ...(report || {}),
       contacted: true,
       answers: report?.answers || {},
       date: report?.date || new Date().toISOString(),
@@ -79,7 +88,44 @@ export default function MobileContactCard({
 
   const undoContacted = () => {
     setReport({
+      ...(report?.optOut ? { optOut: report.optOut } : {}),
       contacted: false,
+    });
+  };
+
+  const openOptOutPanel = () => {
+    setDraftOptOut({
+      calls: Boolean(report?.optOut?.calls),
+      texts: Boolean(report?.optOut?.texts),
+    });
+    setIsOptOutOpen(true);
+  };
+
+  const applyOptOut = (nextOptOut) => {
+    const currentReport = report || {};
+    setDraftOptOut(nextOptOut);
+
+    if (!nextOptOut.calls && !nextOptOut.texts) {
+      const reportWithoutOptOut = { ...currentReport };
+      delete reportWithoutOptOut.optOut;
+      setReport(reportWithoutOptOut);
+      return;
+    }
+
+    setReport({
+      ...currentReport,
+      optOut: {
+        calls: nextOptOut.calls,
+        texts: nextOptOut.texts,
+        date: new Date().toISOString(),
+      },
+    });
+  };
+
+  const updateOptOutChannel = (channel, checked) => {
+    applyOptOut({
+      ...draftOptOut,
+      [channel]: checked,
     });
   };
 
@@ -241,6 +287,39 @@ export default function MobileContactCard({
                   No reportback questions set.
                 </span>
               )}
+              <div
+                style={styles.optOutReportBlock}
+                data-tour-target="mobile-card-tour-optout"
+              >
+                <span style={styles.question}>Opt-out request</span>
+                <span style={styles.optOutInlineHelper}>
+                  Record requests to stop calls or messages.
+                </span>
+                <div style={styles.optOutInlineChoices}>
+                  <label style={styles.optOutChoice}>
+                    <input
+                      type="checkbox"
+                      checked={draftOptOut.calls}
+                      onChange={(event) =>
+                        updateOptOutChannel("calls", event.target.checked)
+                      }
+                      style={styles.optOutCheckbox}
+                    />
+                    No more calls
+                  </label>
+                  <label style={styles.optOutChoice}>
+                    <input
+                      type="checkbox"
+                      checked={draftOptOut.texts}
+                      onChange={(event) =>
+                        updateOptOutChannel("texts", event.target.checked)
+                      }
+                      style={styles.optOutCheckbox}
+                    />
+                    No more messages
+                  </label>
+                </div>
+              </div>
             </div>
           ) : (
             callNotes.filter((note) => note.text?.trim()).length > 0 && (
@@ -273,6 +352,7 @@ export default function MobileContactCard({
                     template={t}
                     dialCode={selectedDialCode}
                     extraChannelsEnabled={extraChannelsEnabled}
+                    callerName={callerName}
                   />
                 </div>
               ))}
@@ -280,6 +360,65 @@ export default function MobileContactCard({
           )}
         </div>
       </div>
+
+      {!reportEnabled && isOptOutOpen && (
+        <div style={styles.optOutPanel}>
+          <div style={styles.optOutHeader}>
+            <span style={styles.optOutTitle}>Opt out</span>
+            <button
+              type="button"
+              onClick={() => setIsOptOutOpen(false)}
+              style={styles.optOutCloseBtn}
+              aria-label="Close opt-out options"
+            >
+              <X size={15} />
+            </button>
+          </div>
+          <label style={styles.optOutChoice}>
+            <input
+              type="checkbox"
+              checked={draftOptOut.calls}
+              onChange={(event) =>
+                updateOptOutChannel("calls", event.target.checked)
+              }
+              style={styles.optOutCheckbox}
+            />
+            No more calls
+          </label>
+          <label style={styles.optOutChoice}>
+            <input
+              type="checkbox"
+              checked={draftOptOut.texts}
+              onChange={(event) =>
+                updateOptOutChannel("texts", event.target.checked)
+              }
+              style={styles.optOutCheckbox}
+            />
+            No more messages
+          </label>
+        </div>
+      )}
+
+      {!reportEnabled && (
+        <div style={styles.cardActions}>
+          <button
+            type="button"
+            onClick={() =>
+              isOptOutOpen ? setIsOptOutOpen(false) : openOptOutPanel()
+            }
+            style={{
+              ...styles.optOutBtn,
+              ...(hasRecordedOptOut ? styles.optOutBtnActive : {}),
+            }}
+            data-tour-target="mobile-card-tour-optout"
+          >
+            {hasRecordedOptOut ? "Opt-out recorded" : "Opt out"}
+          </button>
+          <span style={styles.optOutHelper}>
+            Record requests to stop calls or messages.
+          </span>
+        </div>
+      )}
 
       {reportEnabled && !isReporting && (
         <div
@@ -459,6 +598,96 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
+  },
+  cardActions: {
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "4px",
+  },
+  optOutBtn: {
+    width: "100%",
+    backgroundColor: "rgba(79, 159, 104, 0.045)",
+    color: "color-mix(in srgb, var(--ta-green) 78%, var(--ta-muted-strong))",
+    border: "1px solid rgba(79, 159, 104, 0.28)",
+    borderRadius: "8px",
+    padding: "9px 12px",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+  },
+  optOutHelper: {
+    color: "var(--ta-muted)",
+    fontSize: "calc(11.5px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.25,
+    textAlign: "center",
+  },
+  optOutBtnActive: {
+    color: "var(--ta-green)",
+    borderColor: "rgba(79, 159, 104, 0.48)",
+    backgroundColor: "rgba(79, 159, 104, 0.09)",
+  },
+  optOutPanel: {
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "9px",
+    border: "1px solid rgba(79, 159, 104, 0.3)",
+    backgroundColor: "rgba(79, 159, 104, 0.08)",
+    borderRadius: "10px",
+    padding: "10px",
+  },
+  optOutReportBlock: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    border: "1px solid var(--ta-border-subtle)",
+    backgroundColor: "rgba(0, 0, 0, 0.08)",
+    borderRadius: "8px",
+    padding: "10px",
+  },
+  optOutInlineHelper: {
+    color: "var(--ta-muted)",
+    fontSize: "calc(12px * var(--reachout-text-scale, 1))",
+    lineHeight: 1.3,
+  },
+  optOutInlineChoices: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "8px",
+  },
+  optOutHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  },
+  optOutTitle: {
+    color: "var(--ta-green)",
+    fontFamily: "var(--font-heading)",
+    fontSize: "calc(16px * var(--reachout-text-scale, 1))",
+    letterSpacing: "0.04em",
+  },
+  optOutCloseBtn: {
+    width: "28px",
+    height: "28px",
+    backgroundColor: "transparent",
+    border: "1px solid var(--ta-border-subtle)",
+    color: "var(--ta-muted-strong)",
+    borderRadius: "7px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optOutChoice: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    color: "var(--ta-muted-strong)",
+    fontSize: "calc(14px * var(--reachout-text-scale, 1))",
+  },
+  optOutCheckbox: {
+    accentColor: "var(--ta-green)",
   },
   reportBlockMessage: {
     color: "var(--ta-muted-strong)",

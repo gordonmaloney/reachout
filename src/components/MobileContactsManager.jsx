@@ -54,6 +54,7 @@ export default function MobileContactsManager({
   templates = [],
   selectedDialCode,
   extraChannelsEnabled = false,
+  callerName = "",
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -177,6 +178,7 @@ export default function MobileContactsManager({
   const copySignalMessage = async (contact, template) => {
     const message = getOutboundMessage(contact, template, {
       plainText: true,
+      callerName,
     }).trim();
     if (!message) return;
 
@@ -392,7 +394,7 @@ export default function MobileContactsManager({
                       const hasMessageText = getOutboundMessage(
                         contact,
                         template,
-                        { plainText: true }
+                        { plainText: true, callerName }
                       ).trim();
 
                       return (
@@ -405,7 +407,8 @@ export default function MobileContactsManager({
                               href={generateWhatsAppLink(
                                 contact,
                                 template,
-                                selectedDialCode
+                                selectedDialCode,
+                                { callerName }
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -419,7 +422,8 @@ export default function MobileContactsManager({
                               href={generateSmsLink(
                                 contact,
                                 template,
-                                selectedDialCode
+                                selectedDialCode,
+                                { callerName }
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
