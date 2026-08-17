@@ -181,12 +181,69 @@ function digitsOnly(value) {
   return value.replace(/\D/g, "");
 }
 
+const NATIONAL_PHONE_LENGTH_RULES = {
+  1: { min: 10, max: 10 },
+  44: { min: 10, max: 10 },
+  61: { min: 9, max: 9 },
+  64: { min: 8, max: 10 },
+  353: { min: 8, max: 9 },
+};
+
+const TRUNK_ZERO_COUNTRY_CODES = new Set(["1", "44", "61", "64", "353"]);
+
+function getKnownDialCodeDigits() {
+  return dialCodeOptions
+    .map((option) => digitsOnly(option.value))
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+}
+
+function getNationalLengthRule(countryCodeDigits) {
+  return NATIONAL_PHONE_LENGTH_RULES[countryCodeDigits] || { min: 7, max: 12 };
+}
+
+function findKnownDialCode(phoneDigits, { allowBare = false } = {}) {
+  const knownCodeDigits = getKnownDialCodeDigits();
+
+  return knownCodeDigits.find((code) => {
+    if (!phoneDigits.startsWith(code)) return false;
+    if (!allowBare) return true;
+
+    const nationalDigits = phoneDigits.slice(code.length);
+    const rule = getNationalLengthRule(code);
+    return nationalDigits.length >= rule.min && nationalDigits.length <= rule.max;
+  });
+}
+
+function getRepeatedDigitIssue(phoneDigits) {
+  if (phoneDigits.length >= 8 && /^(\d)\1+$/.test(phoneDigits)) {
+    return "This number looks like placeholder digits.";
+  }
+
+  return "";
+}
+
+function getNationalLengthIssue(nationalDigits, countryCodeDigits) {
+  const rule = getNationalLengthRule(countryCodeDigits);
+
+  if (nationalDigits.length < rule.min) return "This number looks too short.";
+  if (nationalDigits.length > rule.max) return "This number looks too long.";
+
+  if (
+    countryCodeDigits === "1" &&
+    nationalDigits.length === 10 &&
+    (!/[2-9]/.test(nationalDigits[0]) || !/[2-9]/.test(nationalDigits[3]))
+  ) {
+    return "This number has an invalid North American area or exchange code.";
+  }
+
+  return "";
+}
+
 export function normalizePhoneNumber(phone, dialCode = "+44") {
   const raw = String(phone || "").trim();
   const selectedCodeDigits = digitsOnly(dialCode);
-  const knownCodeDigits = dialCodeOptions.map((option) =>
-    digitsOnly(option.value)
-  );
+  const knownCodeDigits = getKnownDialCodeDigits();
 
   if (!raw) return "";
 
@@ -200,6 +257,15 @@ export function normalizePhoneNumber(phone, dialCode = "+44") {
   }
 
   const phoneDigits = digitsOnly(raw);
+  const localDigits = phoneDigits.replace(/^0+/, "");
+  const selectedRule = getNationalLengthRule(selectedCodeDigits);
+  if (
+    localDigits.length >= selectedRule.min &&
+    localDigits.length <= selectedRule.max
+  ) {
+    return `+${selectedCodeDigits}${localDigits}`;
+  }
+
   const matchingCode = knownCodeDigits
     .filter(
       (code) =>
@@ -213,7 +279,6 @@ export function normalizePhoneNumber(phone, dialCode = "+44") {
     return `+${phoneDigits}`;
   }
 
-  const localDigits = phoneDigits.replace(/^0+/, "");
   return `+${selectedCodeDigits}${localDigits}`;
 }
 
@@ -271,7 +336,7 @@ export function getPhoneFormatIssue(phone, dialCode = "+44") {
   if (!raw) return "Missing phone number.";
 
   const digits = digitsOnly(raw);
-  if (digits.length < 7) return "This number looks too short.";
+  if (!digits) return "Missing phone number.";
 
   const plusCount = (raw.match(/\+/g) || []).length;
   if (plusCount > 1 || (plusCount === 1 && !raw.startsWith("+"))) {
@@ -282,10 +347,81 @@ export function getPhoneFormatIssue(phone, dialCode = "+44") {
     return "This number includes characters phone links may not understand.";
   }
 
+  if ((raw.includes("(") || raw.includes(")")) && !/\([^()]+\)/.test(raw)) {
+    return "Check the brackets in this number.";
+  }
+
+  if (/[.\-()]{2,}/.test(raw.replace(/\s+/g, ""))) {
+    return "Check the punctuation in this number.";
+  }
+
+  const compact = raw.replace(/[\s().-]/g, "");
+  if (compact.startsWith("+00")) {
+    return "Use either + or 00 for the country code, not both.";
+  }
+
+  const selectedCodeDigits = digitsOnly(dialCode);
+  const repeatedDigitIssue = getRepeatedDigitIssue(digits);
+  if (repeatedDigitIssue) return repeatedDigitIssue;
+
+  const internationalDigits = raw.startsWith("+")
+    ? digits
+    : compact.startsWith("00")
+      ? digitsOnly(compact.slice(2))
+      : "";
+
+  if (internationalDigits) {
+    if (internationalDigits.startsWith("0")) {
+      return "Country codes cannot start with 0.";
+    }
+
+    if (internationalDigits.length < 8) return "This number looks too short.";
+    if (internationalDigits.length > 15) return "This number looks too long.";
+
+    const countryCodeDigits = findKnownDialCode(internationalDigits);
+    if (!countryCodeDigits) return "";
+
+    const nationalDigits = internationalDigits.slice(countryCodeDigits.length);
+    if (
+      TRUNK_ZERO_COUNTRY_CODES.has(countryCodeDigits) &&
+      nationalDigits.startsWith("0")
+    ) {
+      return "Remove the 0 after the country code.";
+    }
+
+    return getNationalLengthIssue(nationalDigits, countryCodeDigits);
+  }
+
+  const nationalDigits = digits.replace(/^0+/, "");
+  const nationalLengthIssue = getNationalLengthIssue(
+    nationalDigits,
+    selectedCodeDigits
+  );
+  if (!nationalLengthIssue) {
+    const normalizedDigits = digitsOnly(normalizePhoneNumber(raw, dialCode));
+    if (normalizedDigits.length < 8) return "This number looks too short.";
+    if (normalizedDigits.length > 15) return "This number looks too long.";
+    return "";
+  }
+
+  const bareCountryCode = findKnownDialCode(digits, { allowBare: true });
+  if (bareCountryCode) {
+    const bareNationalDigits = digits.slice(bareCountryCode.length);
+    if (
+      TRUNK_ZERO_COUNTRY_CODES.has(bareCountryCode) &&
+      bareNationalDigits.startsWith("0")
+    ) {
+      return "Remove the 0 after the country code.";
+    }
+
+    return getNationalLengthIssue(bareNationalDigits, bareCountryCode);
+  }
+
   const normalizedDigits = digitsOnly(normalizePhoneNumber(raw, dialCode));
+  if (normalizedDigits.length < 8) return "This number looks too short.";
   if (normalizedDigits.length > 15) return "This number looks too long.";
 
-  return "";
+  return nationalLengthIssue;
 }
 
 export function getIncorrectlyFormattedContactIds(

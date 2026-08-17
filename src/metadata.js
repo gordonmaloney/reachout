@@ -16,12 +16,21 @@ export const siteMetadata = {
     image: META_IMAGE_URL,
     urlPath: "/s",
   },
+  releaseNotes: {
+    title: "Reachout | Release notes",
+    description: "See what has changed recently in Reachout.",
+    image: META_IMAGE_URL,
+    urlPath: "/release-notes",
+  },
 };
 
 export function getMetadataForPath(pathname = window.location.pathname) {
-  return pathname.replace(/\/+$/, "") === "/s"
-    ? siteMetadata.share
-    : siteMetadata.main;
+  const normalizedPath = pathname.replace(/\/+$/, "");
+
+  if (normalizedPath === "/s") return siteMetadata.share;
+  if (normalizedPath === "/release-notes") return siteMetadata.releaseNotes;
+
+  return siteMetadata.main;
 }
 
 function setMeta(selector, attribute, value) {

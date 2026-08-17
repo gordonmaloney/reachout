@@ -20,6 +20,7 @@ import { mobileProductTourSteps } from "../data/productTourSteps";
 import { CircleHelp } from "lucide-react";
 import FaqPage from "./FaqPage";
 import PrivacyPolicy from "./PrivacyPolicy";
+import ReleaseNotesPage from "./ReleaseNotesPage";
 
 const MOBILE_TOUR_STORAGE_KEY = "reachout.mobileProductTourSeen";
 
@@ -45,7 +46,7 @@ export default function MobileWorkspace({
   onToggleTheme = () => {},
   fontScale = 1,
 }) {
-  const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', 'faq', or 'privacy'
+  const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', 'faq', 'privacy', or 'releaseNotes'
   const [currentIdx, setCurrentIdx] = useState(0);
   const [contactReports, setContactReports] = useState({});
   const [exampleToastDismissed, setExampleToastDismissed] = useState(false);
@@ -102,6 +103,11 @@ export default function MobileWorkspace({
   };
 
   const closeFaq = () => {
+    setView("deck");
+    onCloseFaq();
+  };
+
+  const closeReleaseNotes = () => {
     setView("deck");
     onCloseFaq();
   };
@@ -180,9 +186,14 @@ export default function MobileWorkspace({
     const timeout = window.setTimeout(() => {
       setCurrentIdx(0);
       setContactReports({});
-      if (view !== "faq" && view !== "privacy" && view !== "scan") {
-        setView("deck");
-      }
+    if (
+      view !== "faq" &&
+      view !== "privacy" &&
+      view !== "releaseNotes" &&
+      view !== "scan"
+    ) {
+      setView("deck");
+    }
       setExampleToastDismissed(true);
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -195,6 +206,7 @@ export default function MobileWorkspace({
   }, []);
 
   useEffect(() => {
+    if (initialView === "contacts") return;
     try {
       if (window.localStorage.getItem(MOBILE_TOUR_STORAGE_KEY) === "true") {
         return;
@@ -209,7 +221,7 @@ export default function MobileWorkspace({
       setIsTourOpen(true);
       setCombinedTourPhase("overview");
     }, 0);
-  }, [moveToPhonebankWelcome]);
+  }, [initialView, moveToPhonebankWelcome]);
 
   const markTourSeen = () => {
     try {
@@ -354,6 +366,8 @@ export default function MobileWorkspace({
           <FaqPage onBack={closeFaq} />
         ) : view === "privacy" ? (
           <PrivacyPolicy onBack={closePrivacy} />
+        ) : view === "releaseNotes" ? (
+          <ReleaseNotesPage onBack={closeReleaseNotes} />
         ) : view === "deck" ? (
           <MobileSwipeDeck
             key={`${contacts

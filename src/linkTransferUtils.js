@@ -151,10 +151,25 @@ function expandTransferData(data) {
   };
 }
 
-function getLinkDataFromHash(hashValue = window.location.hash) {
+export function getTransferLinkParams(hashValue = window.location.hash) {
   const hash = String(hashValue || "").replace(/^#/, "");
-  const params = new URLSearchParams(hash);
-  return params.get(LINK_PREFIX);
+  return new URLSearchParams(hash);
+}
+
+function getLinkDataFromHash(hashValue = window.location.hash) {
+  return getTransferLinkParams(hashValue).get(LINK_PREFIX);
+}
+
+export function isContactImportTransferLink(hashValue = window.location.hash) {
+  return getTransferLinkParams(hashValue).get("i") === "1";
+}
+
+export function removeTransferParamsFromHash(hashValue = window.location.hash) {
+  const params = getTransferLinkParams(hashValue);
+  params.delete(LINK_PREFIX);
+  params.delete("i");
+  const remainingHash = params.toString();
+  return remainingHash ? `#${remainingHash}` : "";
 }
 
 export function hasTransferLink(hashValue = window.location.hash) {

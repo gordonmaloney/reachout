@@ -66,7 +66,7 @@ export default function ContactsStage({
         }
       } else {
         // Case 2: space separates name and phone (e.g. "Sandy Mills +447712345678")
-        const phoneMatch = cleanLine.match(/(\+?[\d\s-]{8,20})$/);
+        const phoneMatch = cleanLine.match(/((?:\+|00)?[\d\s().-]{7,28})$/);
         if (phoneMatch) {
           const phone = phoneMatch[1].trim();
           const name = cleanLine

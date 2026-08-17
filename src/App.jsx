@@ -11,12 +11,15 @@ import ReportbackNumberModal from "./components/ReportbackNumberModal";
 import ProductTour from "./components/ProductTour";
 import FaqPage from "./components/FaqPage";
 import PrivacyPolicy from "./components/PrivacyPolicy";
+import ReleaseNotesPage from "./components/ReleaseNotesPage";
 import { initialContacts, initialTemplates } from "./data/mockData";
 import { organiserTourSteps, productTourSteps } from "./data/productTourSteps";
 import {
   hasTransferLink,
+  isContactImportTransferLink,
   isPasswordProtectedTransferLink,
   readEncryptedTransferLink,
+  removeTransferParamsFromHash,
 } from "./linkTransferUtils";
 import MobileWorkspace from "./components/MobileWorkspace";
 import { applyMetadata, getMetadataForPath } from "./metadata";
@@ -118,6 +121,7 @@ export default function App() {
   const routePath = window.location.pathname.replace(/\/+$/, "");
   const isFaqRoute = routePath === "/faq";
   const isPrivacyRoute = routePath === "/privacy";
+  const isReleaseNotesRoute = routePath === "/release-notes";
   const isOrganiserRoute = routePath === "/organiser";
   const isReportbackRoute = routePath === "/reportback";
   const [organiserModeEnabled, setOrganiserModeEnabled] =
@@ -148,6 +152,8 @@ export default function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isFaqOpen, setIsFaqOpen] = useState(isFaqRoute);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(isPrivacyRoute);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] =
+    useState(isReleaseNotesRoute);
   const [isOrganiserInfoOpen, setIsOrganiserInfoOpen] = useState(false);
   const [isReportbackNumberModalOpen, setIsReportbackNumberModalOpen] =
     useState(false);
@@ -158,6 +164,7 @@ export default function App() {
     () => window.location.hash
   );
   const [importedTransferHash, setImportedTransferHash] = useState("");
+  const [contactsImportRequest, setContactsImportRequest] = useState(0);
   const [transferPassword, setTransferPassword] = useState("");
   const [transferPasswordPrompt, setTransferPasswordPrompt] = useState(null);
   const [theme, setTheme] = useState(getInitialTheme);
@@ -202,19 +209,29 @@ export default function App() {
   const openFaq = () => {
     setIsFaqOpen(true);
     setIsPrivacyOpen(false);
+    setIsReleaseNotesOpen(false);
     setIsTourOpen(false);
   };
 
   const openPrivacy = () => {
     setIsPrivacyOpen(true);
     setIsFaqOpen(false);
+    setIsReleaseNotesOpen(false);
+    setIsTourOpen(false);
+  };
+
+  const openReleaseNotes = () => {
+    setIsReleaseNotesOpen(true);
+    setIsFaqOpen(false);
+    setIsPrivacyOpen(false);
     setIsTourOpen(false);
   };
 
   const clearContentPath = () => {
     if (
       window.location.pathname === "/faq" ||
-      window.location.pathname === "/privacy"
+      window.location.pathname === "/privacy" ||
+      window.location.pathname === "/release-notes"
     ) {
       window.history.replaceState({}, "", "/");
     }
@@ -224,6 +241,7 @@ export default function App() {
     clearContentPath();
     setIsFaqOpen(false);
     setIsPrivacyOpen(false);
+    setIsReleaseNotesOpen(false);
     setActiveStage(1);
   };
 
@@ -417,6 +435,16 @@ export default function App() {
     let cancelled = false;
 
     async function importTransferLink() {
+      const shouldOpenContactsImport =
+        isContactImportTransferLink(transferLinkHash);
+
+      const clearProcessedTransferParams = () => {
+        const nextHash = removeTransferParamsFromHash(transferLinkHash);
+        const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+        window.history.replaceState(window.history.state, "", nextUrl);
+        setTransferLinkHash(nextHash);
+      };
+
       try {
         const imported = await readEncryptedTransferLink(transferLinkHash, {
           password: transferPassword,
@@ -424,7 +452,7 @@ export default function App() {
         if (cancelled || !imported) return;
 
         setContacts(imported.contacts || []);
-        setTemplates(imported.templates || []);
+        setTemplates(shouldOpenContactsImport ? [] : imported.templates || []);
         setCallNotes(imported.callNotes || []);
         setCallNotesEnabled(
           Boolean(imported.callNotesEnabled ?? imported.callNotes?.length)
@@ -440,10 +468,16 @@ export default function App() {
         setSelectedDialCode(imported.selectedDialCode || "+44");
         setExtraChannelsEnabled(Boolean(imported.extraChannelsEnabled));
         setCallerNameTokenEnabled(Boolean(imported.callerNameTokenEnabled));
-        setActiveStage(finalStage);
+        if (shouldOpenContactsImport) {
+          setActiveStage(1);
+          setContactsImportRequest((request) => request + 1);
+        } else {
+          setActiveStage(finalStage);
+        }
         setImportedTransferHash(transferLinkHash);
         setTransferPasswordPrompt(null);
         setTransferPassword("");
+        clearProcessedTransferParams();
       } catch (error) {
         if (error?.code === "PASSWORD_REQUIRED" || error?.code === "PASSWORD_INCORRECT") {
           setTransferPassword("");
@@ -458,6 +492,7 @@ export default function App() {
           return;
         }
         setImportedTransferHash(transferLinkHash);
+        clearProcessedTransferParams();
       }
     }
 
@@ -475,7 +510,7 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (isFaqOpen || isPrivacyOpen) return;
+    if (isFaqOpen || isPrivacyOpen || isReleaseNotesOpen) return;
     if (isMobile) return;
     if (hasTransferLink()) return;
 
@@ -489,7 +524,7 @@ export default function App() {
       setIsTourOpen(true);
       setActiveStage(getTourStage(0));
     }, 0);
-  }, [getTourStage, isFaqOpen, isMobile, isPrivacyOpen]);
+  }, [getTourStage, isFaqOpen, isMobile, isPrivacyOpen, isReleaseNotesOpen]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -545,6 +580,7 @@ export default function App() {
     return (
       <>
         <MobileWorkspace
+          key={`mobile-workspace-${contactsImportRequest}`}
           contacts={contacts}
           setContacts={setContacts}
           templates={templates}
@@ -561,13 +597,17 @@ export default function App() {
           callerNameTokenEnabled={callerNameTokenEnabled}
           setCallerNameTokenEnabled={setCallerNameTokenEnabled}
           initialView={
-            isFaqOpen
+            contactsImportRequest
+              ? "contacts"
+              : isFaqOpen
               ? "faq"
               : isPrivacyOpen
                 ? "privacy"
-                : shouldOpenScanner
-                  ? "scan"
-                  : "deck"
+                : isReleaseNotesOpen
+                  ? "releaseNotes"
+                  : shouldOpenScanner
+                    ? "scan"
+                    : "deck"
           }
           onCloseFaq={closeFaqToContacts}
           theme={theme}
@@ -594,7 +634,11 @@ export default function App() {
         {/* Left Sidebar: Journey Nav */}
         <aside className="sidebar-panel">
           <JourneyNav
-            activeStage={isFaqOpen || isPrivacyOpen ? null : activeStage}
+            activeStage={
+              isFaqOpen || isPrivacyOpen || isReleaseNotesOpen
+                ? null
+                : activeStage
+            }
             setActiveStage={goToStage}
             onToggleHelp={toggleHelp}
             isOrganiser={isOrganiser}
@@ -602,6 +646,7 @@ export default function App() {
             organiserModeEnabled={isOrganiser}
             onToggleOrganiser={handleOrganiserModeToggle}
             onOpenOrganiserInfo={() => setIsOrganiserInfoOpen(true)}
+            onOpenReleaseNotes={openReleaseNotes}
             theme={theme}
             onToggleTheme={toggleTheme}
             fontScale={fontScale}
@@ -626,6 +671,8 @@ export default function App() {
             <FaqPage onBack={closeFaqToContacts} />
           ) : isPrivacyOpen ? (
             <PrivacyPolicy onBack={closeFaqToContacts} />
+          ) : isReleaseNotesOpen ? (
+            <ReleaseNotesPage onBack={closeFaqToContacts} />
           ) : activeStage === 1 ? (
             <ContactsStage
               contacts={contacts}
@@ -638,7 +685,7 @@ export default function App() {
             />
           ) : null}
 
-          {!isFaqOpen && !isPrivacyOpen && activeStage === 2 && (
+          {!isFaqOpen && !isPrivacyOpen && !isReleaseNotesOpen && activeStage === 2 && (
             <MessagesStage
               templates={templates}
               setTemplates={setTemplates}
@@ -654,7 +701,7 @@ export default function App() {
             />
           )}
 
-          {!isFaqOpen && !isPrivacyOpen && isOrganiser && activeStage === 3 && (
+          {!isFaqOpen && !isPrivacyOpen && !isReleaseNotesOpen && isOrganiser && activeStage === 3 && (
             <CallNotesStage
               callNotes={callNotes}
               setCallNotes={setCallNotes}
@@ -675,7 +722,7 @@ export default function App() {
             />
           )}
 
-          {!isFaqOpen && !isPrivacyOpen && activeStage === finalStage && (
+          {!isFaqOpen && !isPrivacyOpen && !isReleaseNotesOpen && activeStage === finalStage && (
             <ReviewLinksStage
               contacts={contacts}
               templates={templates}

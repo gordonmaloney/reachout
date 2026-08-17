@@ -16,6 +16,7 @@ export default function JourneyNav({
   canIncreaseFontScale = true,
   onDecreaseFontScale = () => {},
   onIncreaseFontScale = () => {},
+  onOpenReleaseNotes = () => {},
   tourHighlightStage = null,
   tourHighlightTarget = null,
 }) {
@@ -226,6 +227,13 @@ export default function JourneyNav({
           Built by members of Living Rent, Scotland's tenants' union.
         </span>
       </div>
+      <button
+        type="button"
+        onClick={onOpenReleaseNotes}
+        style={styles.releaseNotesLink}
+      >
+        Release notes
+      </button>
     </nav>
   );
 }
@@ -555,5 +563,20 @@ const styles = {
     fontSize: "calc(11px * var(--reachout-text-scale, 1))",
     color: 'var(--ta-muted)',
     lineHeight: 1.35,
-  }
+  },
+  releaseNotesLink: {
+    alignSelf: 'flex-start',
+    marginTop: '10px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: 'var(--ta-muted)',
+    fontFamily: 'var(--font-body)',
+    fontSize: 'calc(11px * var(--reachout-text-scale, 1))',
+    letterSpacing: 0,
+    textTransform: 'none',
+    textDecoration: 'underline',
+    textUnderlineOffset: '3px',
+    padding: 0,
+    cursor: 'pointer',
+  },
 };

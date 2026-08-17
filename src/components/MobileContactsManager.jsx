@@ -560,7 +560,7 @@ function parsePasteText(text) {
       return;
     }
 
-    const phoneMatch = cleanLine.match(/(\+?[\d\s-]{8,20})$/);
+    const phoneMatch = cleanLine.match(/((?:\+|00)?[\d\s().-]{7,28})$/);
     if (!phoneMatch) return;
 
     const phone = phoneMatch[1].trim();
