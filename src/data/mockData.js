@@ -1,9 +1,9 @@
 export const initialContacts = [
-  { id: "1", name: "Sandy Mills", phone: "+44 7712 345678" },
-  { id: "2", name: "Mia Benson", phone: "+44 7345 678901" },
-  { id: "3", name: "Jake Woods", phone: "+44 3461 234567" },
-  { id: "4", name: "Lila Harper", phone: "+44 4784 098765" },
-  { id: "5", name: "Gabe Tucker", phone: "+44 7911 234567" },
+  { id: "1", name: "Sandy Mills", phone: "+44 7700 900101" },
+  { id: "2", name: "Mia Benson", phone: "+44 7700 900102" },
+  { id: "3", name: "Jake Woods", phone: "+44 7700 900103" },
+  { id: "4", name: "Lila Harper", phone: "+44 7700 900104" },
+  { id: "5", name: "Gabe Tucker", phone: "+44 7700 900105" },
 ];
 
 export function isDemoContact(contact) {
