@@ -24,6 +24,39 @@ function makeTransferError(message, code) {
   return error;
 }
 
+function makeInvalidTransferError() {
+  return makeTransferError(
+    "This is not a valid REACHOUT transfer link.",
+    "INVALID_TRANSFER_LINK"
+  );
+}
+
+function validateExpandedTransferData(data) {
+  const validContact = (contact) =>
+    contact &&
+    typeof contact === "object" &&
+    typeof contact.name === "string" &&
+    typeof contact.phone === "string";
+  const validTemplate = (template) =>
+    template &&
+    typeof template === "object" &&
+    typeof template.title === "string" &&
+    typeof template.body === "string";
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !Array.isArray(data.contacts) ||
+    !Array.isArray(data.templates) ||
+    !data.contacts.every(validContact) ||
+    !data.templates.every(validTemplate)
+  ) {
+    throw makeInvalidTransferError();
+  }
+
+  return data;
+}
+
 function getRandomBytes(length) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -115,6 +148,24 @@ function compactTransferData(data) {
 function expandTransferData(data) {
   if (!data || !Array.isArray(data.c) || !Array.isArray(data.t)) {
     return data;
+  }
+
+  const compactContactsAreValid = data.c.every(
+    (contact) =>
+      Array.isArray(contact) &&
+      typeof contact[0] === "string" &&
+      typeof contact[1] === "string"
+  );
+  const compactTemplatesAreValid = data.t.every(
+    (template) =>
+      Array.isArray(template) &&
+      typeof template[0] === "string" &&
+      typeof template[1] === "string" &&
+      typeof template[2] === "string"
+  );
+
+  if (!compactContactsAreValid || !compactTemplatesAreValid) {
+    throw makeInvalidTransferError();
   }
 
   return {
@@ -342,7 +393,17 @@ export async function readEncryptedTransferLink(
   const token = getLinkDataFromHash(hashValue);
   if (!token) return null;
 
-  const transfer = JSON.parse(new TextDecoder().decode(base64UrlToBytes(token)));
+  let transfer;
+  try {
+    transfer = JSON.parse(new TextDecoder().decode(base64UrlToBytes(token)));
+  } catch {
+    throw makeInvalidTransferError();
+  }
+
+  if (!transfer || typeof transfer !== "object" || transfer.v !== LINK_VERSION) {
+    throw makeInvalidTransferError();
+  }
+
   const iv = transfer.i || transfer.iv;
   const keyBytes = transfer.k || transfer.key;
   const salt = transfer.s || transfer.salt;
@@ -350,8 +411,11 @@ export async function readEncryptedTransferLink(
   const encodedData = transfer.d || transfer.data;
   const compression = transfer.c || transfer.cmp || "none";
 
-  if (transfer?.v !== LINK_VERSION || !encodedData) {
-    throw makeTransferError("This is not a valid REACHOUT transfer link.", "INVALID_TRANSFER_LINK");
+  if (
+    typeof encodedData !== "string" ||
+    !encodedData
+  ) {
+    throw makeInvalidTransferError();
   }
 
   let compressedBytes;
@@ -363,8 +427,13 @@ export async function readEncryptedTransferLink(
         "PASSWORD_REQUIRED"
       );
     }
-    if (!iv || !salt) {
-      throw makeTransferError("This protected link is missing security data.", "INVALID_TRANSFER_LINK");
+    if (
+      typeof iv !== "string" ||
+      !iv ||
+      typeof salt !== "string" ||
+      !salt
+    ) {
+      throw makeInvalidTransferError();
     }
 
     try {
@@ -386,33 +455,53 @@ export async function readEncryptedTransferLink(
       );
     }
   } else if (iv && keyBytes) {
-    const key = await crypto.subtle.importKey(
-      "raw",
-      base64UrlToBytes(keyBytes),
-      "AES-GCM",
-      false,
-      ["decrypt"]
-    );
-    compressedBytes = new Uint8Array(
-      await crypto.subtle.decrypt(
-        {
-          name: "AES-GCM",
-          iv: base64UrlToBytes(iv),
-        },
-        key,
-        base64UrlToBytes(encodedData)
-      )
-    );
+    try {
+      const key = await crypto.subtle.importKey(
+        "raw",
+        base64UrlToBytes(keyBytes),
+        "AES-GCM",
+        false,
+        ["decrypt"]
+      );
+      compressedBytes = new Uint8Array(
+        await crypto.subtle.decrypt(
+          {
+            name: "AES-GCM",
+            iv: base64UrlToBytes(iv),
+          },
+          key,
+          base64UrlToBytes(encodedData)
+        )
+      );
+    } catch {
+      throw makeInvalidTransferError();
+    }
   } else {
-    compressedBytes = base64UrlToBytes(encodedData);
+    try {
+      compressedBytes = base64UrlToBytes(encodedData);
+    } catch {
+      throw makeInvalidTransferError();
+    }
   }
 
-  const decompressed = await decompressBytes(compressedBytes, compression);
-  const payload = JSON.parse(new TextDecoder().decode(decompressed));
+  let payload;
+  try {
+    const decompressed = await decompressBytes(compressedBytes, compression);
+    payload = JSON.parse(new TextDecoder().decode(decompressed));
+  } catch {
+    throw makeInvalidTransferError();
+  }
 
   if (payload?.v !== LINK_VERSION || (!payload.d && !payload.data)) {
-    throw makeTransferError("This transfer link has the wrong format.", "INVALID_TRANSFER_LINK");
+    throw makeInvalidTransferError();
   }
 
-  return expandTransferData(payload.d || payload.data);
+  try {
+    return validateExpandedTransferData(
+      expandTransferData(payload.d || payload.data)
+    );
+  } catch (error) {
+    if (error?.code === "INVALID_TRANSFER_LINK") throw error;
+    throw makeInvalidTransferError();
+  }
 }

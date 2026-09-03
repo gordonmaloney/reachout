@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileContactCard from "./MobileContactCard";
 import MobileReportBackCard from "./MobileReportBackCard";
-import { initialContacts } from "../data/mockData";
+import { isDemoContact } from "../data/mockData";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,6 +39,7 @@ export default function MobileSwipeDeck({
   onCardTourClose = () => {},
   returnToWelcomeOnCardTourComplete = false,
   callerName = "",
+  onDemoContactAction = () => {},
 }) {
   const itemCount = contacts.length + 2;
   const [index, setIndex] = useState(initialIndex);
@@ -451,9 +452,8 @@ export default function MobileSwipeDeck({
               reportBackRequired={Boolean(reportBackSettings.mandatory)}
               reportBackBlockMessage={blockMessage}
               blockedQuestionIds={blockedQuestionIds}
-              isExampleContact={initialContacts.some(
-                (example) => example.id === displayContact.id
-              )}
+              isExampleContact={isDemoContact(displayContact)}
+              onDemoContactAction={onDemoContactAction}
               callerName={callerName}
             />
           )}

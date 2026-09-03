@@ -6,6 +6,15 @@ export const initialContacts = [
   { id: "5", name: "Gabe Tucker", phone: "+44 7911 234567" },
 ];
 
+export function isDemoContact(contact) {
+  return initialContacts.some(
+    (example) =>
+      example.id === contact?.id &&
+      example.name === contact?.name &&
+      example.phone === contact?.phone
+  );
+}
+
 export const initialTemplates = [
   {
     id: "t1",

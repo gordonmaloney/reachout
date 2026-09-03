@@ -27,12 +27,46 @@ function WhatsAppMark({ size = 14 }) {
   );
 }
 
+function OutboundAction({
+  href,
+  isDemoContact,
+  onDemoContactAction,
+  onClick,
+  children,
+}) {
+  if (isDemoContact) {
+    return (
+      <button
+        type="button"
+        onClick={onDemoContactAction}
+        className="message-link-action hover-lift"
+      >
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onClick}
+      className="message-link-action hover-lift"
+    >
+      {children}
+    </a>
+  );
+}
+
 export default function Links({
   contact,
   template,
   dialCode,
   extraChannelsEnabled,
   callerName = "",
+  isDemoContact = false,
+  onDemoContactAction = () => {},
 }) {
   const messageOptions = { callerName };
   const whatsappLink = generateWhatsAppLink(
@@ -109,20 +143,37 @@ export default function Links({
         )}
       </div>
       <div className="message-link-actions">
-        <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">
+        <OutboundAction
+          href={whatsappLink}
+          isDemoContact={isDemoContact}
+          onDemoContactAction={onDemoContactAction}
+        >
           <WhatsAppMark size={14} /> WhatsApp
-        </a>
-        <a href={smsLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">
+        </OutboundAction>
+        <OutboundAction
+          href={smsLink}
+          isDemoContact={isDemoContact}
+          onDemoContactAction={onDemoContactAction}
+        >
           <MessageSquare size={14} /> SMS
-        </a>
+        </OutboundAction>
         {extraChannelsEnabled && (
           <>
-            <a href={signalLink} target="_blank" rel="noopener noreferrer" onClick={hasMessageText ? copyPlainMessage : undefined} className="message-link-action hover-lift">
+            <OutboundAction
+              href={signalLink}
+              isDemoContact={isDemoContact}
+              onDemoContactAction={onDemoContactAction}
+              onClick={hasMessageText ? copyPlainMessage : undefined}
+            >
               <MessageCircle size={14} /> Signal
-            </a>
-            <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="message-link-action hover-lift">
+            </OutboundAction>
+            <OutboundAction
+              href={telegramLink}
+              isDemoContact={isDemoContact}
+              onDemoContactAction={onDemoContactAction}
+            >
               <Send size={14} /> Telegram
-            </a>
+            </OutboundAction>
           </>
         )}
       </div>

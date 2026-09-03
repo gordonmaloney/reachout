@@ -5,6 +5,7 @@ import StageShell from './StageShell';
 import { normalizePhoneNumber } from '../utils';
 import TransferQrModal from './TransferQrModal';
 import { createCompactTransferLinks } from '../linkTransferUtils';
+import { isDemoContact } from '../data/mockData';
 
 export default function ReviewLinksStage({
   contacts,
@@ -27,6 +28,7 @@ export default function ReviewLinksStage({
   backLabel = "Back to messages",
   theme = "dark",
   fontScale = 1,
+  onDemoContactAction = () => {},
   onPrev,
 }) {
   const templateList =
@@ -56,6 +58,11 @@ export default function ReviewLinksStage({
     setShowChannelModal(true);
   };
   const copyPhoneNumber = async (contact) => {
+    if (isDemoContact(contact)) {
+      onDemoContactAction();
+      return;
+    }
+
     const phone = normalizePhoneNumber(contact.phone, selectedDialCode);
     try {
       await navigator.clipboard.writeText(phone);
@@ -295,6 +302,8 @@ export default function ReviewLinksStage({
                     dialCode={selectedDialCode}
                     extraChannelsEnabled={extraChannelsEnabled}
                     callNotes={callNotes}
+                    isDemoContact={isDemoContact(c)}
+                    onDemoContactAction={onDemoContactAction}
                   />
                 ))}
               </div>

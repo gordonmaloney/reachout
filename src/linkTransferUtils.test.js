@@ -18,13 +18,19 @@ function toBase64Url(value) {
 }
 
 function makeValidToken() {
-  const payload = toBase64Url(
-    JSON.stringify({
-      v: 1,
-      d: { c: [["Ada", "+441234567890"]], t: [["template", "Title", "Body"]] },
-    })
+  return makeToken({
+    v: 1,
+    d: { c: [["Ada", "+441234567890"]], t: [["template", "Title", "Body"]] },
+  });
+}
+
+function makeToken(payload, outerOverrides = {}) {
+  const encodedPayload = toBase64Url(
+    JSON.stringify(payload)
   );
-  return toBase64Url(JSON.stringify({ v: 1, c: "none", d: payload }));
+  return toBase64Url(
+    JSON.stringify({ v: 1, c: "none", d: encodedPayload, ...outerOverrides })
+  );
 }
 
 test("#ro=VALID_PAYLOAD&i=1 identifies a contacts import", async () => {
@@ -50,7 +56,74 @@ test("the ro token is parsed separately from the i parameter", () => {
 });
 
 test("invalid payloads fail gracefully and transfer params can be removed", async () => {
-  await assert.rejects(readEncryptedTransferLink("#ro=not-valid&i=1"));
+  await assert.rejects(readEncryptedTransferLink("#ro=not-valid&i=1"), {
+    code: "INVALID_TRANSFER_LINK",
+  });
   assert.equal(removeTransferParamsFromHash("#ro=not-valid&i=1&keep=yes"), "#keep=yes");
   assert.equal(removeTransferParamsFromHash("#ro=not-valid&i=1"), "");
+});
+
+test("truncated and invalid base64 tokens are invalid transfer links", async () => {
+  const truncatedToken = makeValidToken().slice(0, -8);
+
+  await assert.rejects(readEncryptedTransferLink(`#ro=${truncatedToken}`), {
+    code: "INVALID_TRANSFER_LINK",
+  });
+  await assert.rejects(readEncryptedTransferLink("#ro=%25%25%25"), {
+    code: "INVALID_TRANSFER_LINK",
+  });
+});
+
+test("unsupported versions and missing payload data are invalid", async () => {
+  await assert.rejects(
+    readEncryptedTransferLink(`#ro=${makeToken({ v: 1, d: { c: [], t: [] } }, { v: 2 })}`),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+
+  const missingPayload = toBase64Url(JSON.stringify({ v: 1, c: "none" }));
+  await assert.rejects(readEncryptedTransferLink(`#ro=${missingPayload}`), {
+    code: "INVALID_TRANSFER_LINK",
+  });
+});
+
+test("malformed contact and template structures are invalid", async () => {
+  await assert.rejects(
+    readEncryptedTransferLink(
+      `#ro=${makeToken({ v: 1, d: { c: "not-an-array", t: [] } })}`
+    ),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+  await assert.rejects(
+    readEncryptedTransferLink(
+      `#ro=${makeToken({ v: 1, d: { c: [["Ada", 123]], t: [] } })}`
+    ),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+  await assert.rejects(
+    readEncryptedTransferLink(
+      `#ro=${makeToken({ v: 1, d: { c: [], t: [["id", "Title", 123]] } })}`
+    ),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+  await assert.rejects(
+    readEncryptedTransferLink(
+      `#ro=${makeToken({ v: 1, d: { c: [null], t: [] } })}`
+    ),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+  await assert.rejects(
+    readEncryptedTransferLink(
+      `#ro=${makeToken({ v: 1, d: { c: [], t: [{ title: "Title" }] } })}`
+    ),
+    { code: "INVALID_TRANSFER_LINK" }
+  );
+});
+
+test("a structurally valid transfer may contain zero contacts", async () => {
+  const imported = await readEncryptedTransferLink(
+    `#ro=${makeToken({ v: 1, d: { c: [], t: [] } })}`
+  );
+
+  assert.deepEqual(imported.contacts, []);
+  assert.deepEqual(imported.templates, []);
 });

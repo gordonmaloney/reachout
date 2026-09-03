@@ -35,6 +35,7 @@ export default function MobileContactCard({
   reportBackBlockMessage = "",
   blockedQuestionIds = [],
   isExampleContact = false,
+  onDemoContactAction = () => {},
   callerName = "",
 }) {
   const templateList =
@@ -58,6 +59,11 @@ export default function MobileContactCard({
     ) || [];
 
   const copyPhoneNumber = async () => {
+    if (isExampleContact) {
+      onDemoContactAction();
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(previewPhone);
       setCopiedPhone(true);
@@ -163,16 +169,28 @@ export default function MobileContactCard({
           </button>
         </div>
         {!isReporting && (
-          <a
-            href={callLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={callButtonStyle}
-            className="hover-lift"
-            data-tour-target="mobile-card-tour-call"
-          >
-            <Phone size={14} /> Call
-          </a>
+          isExampleContact ? (
+            <button
+              type="button"
+              onClick={onDemoContactAction}
+              style={callButtonStyle}
+              className="hover-lift"
+              data-tour-target="mobile-card-tour-call"
+            >
+              <Phone size={14} /> Call
+            </button>
+          ) : (
+            <a
+              href={callLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={callButtonStyle}
+              className="hover-lift"
+              data-tour-target="mobile-card-tour-call"
+            >
+              <Phone size={14} /> Call
+            </a>
+          )
         )}
       </div>
       {isExampleContact && !isReporting && (
@@ -353,6 +371,8 @@ export default function MobileContactCard({
                     dialCode={selectedDialCode}
                     extraChannelsEnabled={extraChannelsEnabled}
                     callerName={callerName}
+                    isDemoContact={isExampleContact}
+                    onDemoContactAction={onDemoContactAction}
                   />
                 </div>
               ))}

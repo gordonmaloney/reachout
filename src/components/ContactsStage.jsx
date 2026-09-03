@@ -8,7 +8,7 @@ import {
   getIncorrectlyFormattedContactIds,
   removeDuplicateContacts,
 } from "../utils";
-import { initialContacts } from "../data/mockData";
+import { isDemoContact } from "../data/mockData";
 
 export default function ContactsStage({
   contacts,
@@ -30,9 +30,7 @@ export default function ContactsStage({
   const [newContactName, setNewContactName] = useState("");
   const [newContactPhone, setNewContactPhone] = useState("");
   const [addContactError, setAddContactError] = useState("");
-  const hasExampleContacts = contacts.some((contact) =>
-    initialContacts.some((example) => example.id === contact.id)
-  );
+  const hasExampleContacts = contacts.some(isDemoContact);
 
   const duplicateContactIds = getDuplicateContactIds(
     contacts,

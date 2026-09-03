@@ -14,7 +14,11 @@ import {
   Sun,
   Users,
 } from "lucide-react";
-import { initialContacts, initialTemplates } from "../data/mockData";
+import {
+  initialContacts,
+  initialTemplates,
+  isDemoContact,
+} from "../data/mockData";
 import ProductTour from "./ProductTour";
 import { mobileProductTourSteps } from "../data/productTourSteps";
 import { CircleHelp } from "lucide-react";
@@ -45,6 +49,7 @@ export default function MobileWorkspace({
   theme = "dark",
   onToggleTheme = () => {},
   fontScale = 1,
+  onDemoContactAction = () => {},
 }) {
   const [view, setView] = useState(initialView); // 'deck', 'contacts', 'templates', 'scan', 'faq', 'privacy', or 'releaseNotes'
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -72,11 +77,7 @@ export default function MobileWorkspace({
   const isExampleData =
     contacts.length === initialContacts.length &&
     templates.length === initialTemplates.length &&
-    contacts.every(
-      (contact, index) =>
-        contact.name === initialContacts[index]?.name &&
-        contact.phone === initialContacts[index]?.phone
-    ) &&
+    contacts.every(isDemoContact) &&
     templates.every(
       (template, index) =>
         template.title === initialTemplates[index]?.title &&
@@ -394,6 +395,7 @@ export default function MobileWorkspace({
             cardTourRequestToken={cardTourRequestToken}
             onCardTourClose={handleCardTourClose}
             returnToWelcomeOnCardTourComplete={combinedTourPhase === "card"}
+            onDemoContactAction={onDemoContactAction}
           />
         ) : view === "contacts" ? (
           <MobileContactsManager
@@ -403,6 +405,7 @@ export default function MobileWorkspace({
             selectedDialCode={selectedDialCode}
             extraChannelsEnabled={extraChannelsEnabled}
             callerName={callerName}
+            onDemoContactAction={onDemoContactAction}
           />
         ) : view === "templates" ? (
           <MobileTemplateEditor

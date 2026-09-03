@@ -23,6 +23,7 @@ import {
   normalizePhoneNumber,
   removeDuplicateContacts,
 } from "../utils";
+import { isDemoContact } from "../data/mockData";
 
 function WhatsAppMark({ size = 13 }) {
   return (
@@ -48,6 +49,35 @@ function WhatsAppMark({ size = 13 }) {
   );
 }
 
+function DemoSafeLink({
+  demo,
+  href,
+  onDemoContactAction,
+  onClick,
+  children,
+  ...props
+}) {
+  if (demo) {
+    return (
+      <button type="button" onClick={onDemoContactAction} {...props}>
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </a>
+  );
+}
+
 export default function MobileContactsManager({
   contacts,
   setContacts,
@@ -55,6 +85,7 @@ export default function MobileContactsManager({
   selectedDialCode,
   extraChannelsEnabled = false,
   callerName = "",
+  onDemoContactAction = () => {},
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -301,16 +332,16 @@ export default function MobileContactsManager({
               >
                 <div style={styles.rowTop}>
                   {!isEditing && (
-                    <a
+                    <DemoSafeLink
+                      demo={isDemoContact(contact)}
                       href={generateCallLink(contact, selectedDialCode)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onDemoContactAction={onDemoContactAction}
                       aria-label={`Call ${contact.name}`}
                       title={`Call ${contact.name}`}
                       style={{ ...styles.iconBtn, ...styles.callHeaderBtn }}
                     >
                       <Phone size={15} />
-                    </a>
+                    </DemoSafeLink>
                   )}
                   <div style={styles.contactMain}>
                     {isEditing ? (
@@ -403,45 +434,45 @@ export default function MobileContactsManager({
                             {template.title ? <>{template.title}:</> : <i>No template:</i>}
                           </span>
                           <div style={styles.messageActions}>
-                            <a
+                            <DemoSafeLink
+                              demo={isDemoContact(contact)}
                               href={generateWhatsAppLink(
                                 contact,
                                 template,
                                 selectedDialCode,
                                 { callerName }
                               )}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              onDemoContactAction={onDemoContactAction}
                               aria-label={`WhatsApp ${contact.name}: ${template.title}`}
                               title={`WhatsApp: ${template.title}`}
                               style={styles.contactActionBtn}
                             >
                               <WhatsAppMark />
-                            </a>
-                            <a
+                            </DemoSafeLink>
+                            <DemoSafeLink
+                              demo={isDemoContact(contact)}
                               href={generateSmsLink(
                                 contact,
                                 template,
                                 selectedDialCode,
                                 { callerName }
                               )}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              onDemoContactAction={onDemoContactAction}
                               aria-label={`SMS ${contact.name}: ${template.title}`}
                               title={`SMS: ${template.title}`}
                               style={styles.contactActionBtn}
                             >
                               <MessageSquare size={13} />
-                            </a>
+                            </DemoSafeLink>
                             {extraChannelsEnabled && (
                               <>
-                                <a
+                                <DemoSafeLink
+                                  demo={isDemoContact(contact)}
                                   href={generateSignalLink(
                                     contact,
                                     selectedDialCode
                                   )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                  onDemoContactAction={onDemoContactAction}
                                   onClick={
                                     hasMessageText
                                       ? () =>
@@ -457,20 +488,20 @@ export default function MobileContactsManager({
                                   ) : (
                                     <MessageCircle size={13} />
                                   )}
-                                </a>
-                                <a
+                                </DemoSafeLink>
+                                <DemoSafeLink
+                                  demo={isDemoContact(contact)}
                                   href={generateTelegramLink(
                                     contact,
                                     selectedDialCode
                                   )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                  onDemoContactAction={onDemoContactAction}
                                   aria-label={`Telegram ${contact.name}`}
                                   title="Telegram"
                                   style={styles.contactActionBtn}
                                 >
                                   <Send size={13} />
-                                </a>
+                                </DemoSafeLink>
                               </>
                             )}
                           </div>

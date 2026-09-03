@@ -622,6 +622,22 @@ select:focus-visible {
   min-width: 0;
 }
 
+@keyframes transfer-link-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.transfer-link-spinner {
+  animation: transfer-link-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transfer-link-spinner {
+    animation: none;
+  }
+}
+
 .mobile-template-list,
 .mobile-template-body {
   scrollbar-color: rgba(79, 159, 104, 0.55) rgba(255, 255, 255, 0.04);

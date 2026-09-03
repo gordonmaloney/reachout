@@ -12,6 +12,8 @@ import ProductTour from "./components/ProductTour";
 import FaqPage from "./components/FaqPage";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import ReleaseNotesPage from "./components/ReleaseNotesPage";
+import DemoContactModal from "./components/DemoContactModal";
+import TransferLinkStatus from "./components/TransferLinkStatus";
 import { initialContacts, initialTemplates } from "./data/mockData";
 import { organiserTourSteps, productTourSteps } from "./data/productTourSteps";
 import {
@@ -124,6 +126,10 @@ export default function App() {
   const isReleaseNotesRoute = routePath === "/release-notes";
   const isOrganiserRoute = routePath === "/organiser";
   const isReportbackRoute = routePath === "/reportback";
+  const isShareRoute = routePath === "/s";
+  const initialTransferHash = window.location.hash;
+  const expectsInitialTransfer =
+    isShareRoute || hasTransferLink(initialTransferHash);
   const [organiserModeEnabled, setOrganiserModeEnabled] =
     useState(isOrganiserRoute);
   const isOrganiser = isOrganiserRoute || organiserModeEnabled;
@@ -131,8 +137,12 @@ export default function App() {
   const finalStage = totalStages;
   const tourSteps = isOrganiser ? organiserTourSteps : productTourSteps;
   const [activeStage, setActiveStage] = useState(1);
-  const [contacts, setContacts] = useState(initialContacts);
-  const [templates, setTemplates] = useState(initialTemplates);
+  const [contacts, setContacts] = useState(
+    expectsInitialTransfer ? [] : initialContacts
+  );
+  const [templates, setTemplates] = useState(
+    expectsInitialTransfer ? [] : initialTemplates
+  );
   const [callNotes, setCallNotes] = useState([]);
   const [callNotesEnabled, setCallNotesEnabled] = useState(false);
   const [reportBackSettings, setReportBackSettings] = useState({
@@ -159,10 +169,16 @@ export default function App() {
     useState(false);
   const [reportbackPhoneFocusToken, setReportbackPhoneFocusToken] = useState(0);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isDemoContactModalOpen, setIsDemoContactModalOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [transferLinkHash, setTransferLinkHash] = useState(
-    () => window.location.hash
+    initialTransferHash
   );
+  const [transferStatus, setTransferStatus] = useState(() => {
+    if (hasTransferLink(initialTransferHash)) return "loading";
+    if (isShareRoute) return "invalid";
+    return "idle";
+  });
   const [importedTransferHash, setImportedTransferHash] = useState("");
   const [contactsImportRequest, setContactsImportRequest] = useState(0);
   const [transferPassword, setTransferPassword] = useState("");
@@ -399,7 +415,15 @@ export default function App() {
 
   useEffect(() => {
     const updateTransferHash = () => {
-      setTransferLinkHash(window.location.hash);
+      const nextHash = window.location.hash;
+      setTransferLinkHash(nextHash);
+      if (hasTransferLink(nextHash)) {
+        setTransferStatus("loading");
+      } else if (isShareRoute) {
+        setTransferStatus((current) =>
+          current === "ready" ? current : "invalid"
+        );
+      }
     };
 
     window.addEventListener("hashchange", updateTransferHash);
@@ -409,7 +433,7 @@ export default function App() {
       window.removeEventListener("hashchange", updateTransferHash);
       window.removeEventListener("popstate", updateTransferHash);
     };
-  }, []);
+  }, [isShareRoute]);
 
   useEffect(() => {
     applyMetadata(getMetadataForPath(routePath));
@@ -423,6 +447,7 @@ export default function App() {
       !transferPassword
     ) {
       if (transferPasswordPrompt?.hash !== transferLinkHash) {
+        setTransferStatus("password-required");
         setTransferPasswordPrompt({
           hash: transferLinkHash,
           value: "",
@@ -475,12 +500,14 @@ export default function App() {
           setActiveStage(finalStage);
         }
         setImportedTransferHash(transferLinkHash);
+        setTransferStatus("ready");
         setTransferPasswordPrompt(null);
         setTransferPassword("");
         clearProcessedTransferParams();
       } catch (error) {
         if (error?.code === "PASSWORD_REQUIRED" || error?.code === "PASSWORD_INCORRECT") {
           setTransferPassword("");
+          setTransferStatus("password-required");
           setTransferPasswordPrompt({
             hash: transferLinkHash,
             value: "",
@@ -492,7 +519,7 @@ export default function App() {
           return;
         }
         setImportedTransferHash(transferLinkHash);
-        clearProcessedTransferParams();
+        setTransferStatus("invalid");
       }
     }
 
@@ -561,6 +588,32 @@ export default function App() {
     />
   );
 
+  if (transferStatus === "invalid") {
+    return (
+      <TransferLinkStatus
+        status="invalid"
+        theme={theme}
+        fontScale={fontScale}
+      />
+    );
+  }
+
+  if (
+    transferStatus === "loading" ||
+    transferStatus === "password-required"
+  ) {
+    return (
+      <>
+        <TransferLinkStatus
+          status="loading"
+          theme={theme}
+          fontScale={fontScale}
+        />
+        {passwordPrompt}
+      </>
+    );
+  }
+
   if (isMobile) {
     const shouldOpenScanner =
       new URLSearchParams(window.location.search).get("scan") === "1" ||
@@ -612,6 +665,13 @@ export default function App() {
           onCloseFaq={closeFaqToContacts}
           theme={theme}
           onToggleTheme={toggleTheme}
+          fontScale={fontScale}
+          onDemoContactAction={() => setIsDemoContactModalOpen(true)}
+        />
+        <DemoContactModal
+          isOpen={isDemoContactModalOpen}
+          onClose={() => setIsDemoContactModalOpen(false)}
+          theme={theme}
           fontScale={fontScale}
         />
         {passwordPrompt}
@@ -748,6 +808,7 @@ export default function App() {
               }
               onPrev={handlePrevStage}
               onRestart={() => setActiveStage(1)}
+              onDemoContactAction={() => setIsDemoContactModalOpen(true)}
             />
           )}
         </section>
@@ -775,6 +836,12 @@ export default function App() {
           onClose={closeProductTour}
         />
       )}
+      <DemoContactModal
+        isOpen={isDemoContactModalOpen}
+        onClose={() => setIsDemoContactModalOpen(false)}
+        theme={theme}
+        fontScale={fontScale}
+      />
       {passwordPrompt}
     </div>
   );
